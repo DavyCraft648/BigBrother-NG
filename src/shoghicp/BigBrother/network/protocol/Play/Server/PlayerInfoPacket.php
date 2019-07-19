@@ -31,7 +31,7 @@ namespace shoghicp\BigBrother\network\protocol\Play\Server;
 
 use shoghicp\BigBrother\network\OutboundPacket;
 
-class PlayerListPacket extends OutboundPacket{
+class PlayerInfoPacket extends OutboundPacket{
 
 	const TYPE_ADD = 0;
 	const TYPE_UPDATE_NAME = 3;
@@ -43,16 +43,17 @@ class PlayerListPacket extends OutboundPacket{
 	public $players = [];
 
 	public function pid() : int{
-		return self::PLAYER_LIST_PACKET;
+		return self::PLAYER_INFO_PACKET;
 	}
 
 	protected function encode() : void{
 		$this->putVarInt($this->actionID);
 		$this->putVarInt(count($this->players));
 		foreach($this->players as $player){
+			$this->put($player[0]);//UUID
+
 			switch($this->actionID){
 				case self::TYPE_ADD:
-					$this->put($player[0]);//UUID
 					$this->putString($player[1]); //PlayerName
 					$this->putVarInt(count($player[2])); //Count Property
 
@@ -75,15 +76,13 @@ class PlayerListPacket extends OutboundPacket{
 					}
 					break;
 				case self::TYPE_UPDATE_NAME:
-					$this->put($player[0]);//UUID
 					$this->putBool($player[1]); //has Display name
 					$this->putString($player[2]);//Display name
 					break;
 				case self::TYPE_REMOVE:
-					$this->put($player[0]);//UUID
 					break;
 				default:
-					echo "PlayerListPacket: ".$this->actionID."\n";
+					echo "PlayerInfoPacket: ".$this->actionID."\n";
 					break;
 			}
 		}

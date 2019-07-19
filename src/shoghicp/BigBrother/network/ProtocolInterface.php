@@ -177,8 +177,9 @@ class ProtocolInterface implements SourceInterface{
 	protected function sendPacket(int $target, Packet $packet){
 		if(DEBUG > 4){
 			$id = bin2hex(chr($packet->pid()));
-			if($id !== "1f"){
+			if($packet->pid() !== OutboundPacket::KEEP_ALIVE_PACKET){
 				echo "[Send][Interface] 0x".bin2hex(chr($packet->pid()))."\n";
+				echo (new \ReflectionClass($packet))->getName()."\n";
 			}
 		}
 
@@ -273,8 +274,7 @@ class ProtocolInterface implements SourceInterface{
 	 */
 	protected function handlePacket(DesktopPlayer $player, string $payload){
 		if(DEBUG > 4){
-			$id = bin2hex(chr(ord($payload{0})));
-			if($id !== "0b"){//KeepAlivePacket
+			if(ord($payload{0}) !== InboundPacket::KEEP_ALIVE_PACKET){//KeepAlivePacket
 				echo "[Receive][Interface] 0x".bin2hex(chr(ord($payload{0})))."\n";
 			}
 		}
@@ -304,9 +304,9 @@ class ProtocolInterface implements SourceInterface{
 				case InboundPacket::CONFIRM_TRANSACTION_PACKET:
 					$pk = new ConfirmTransactionPacket();
 					break;
-				case InboundPacket::ENCHANT_ITEM_PACKET:
+				/*case InboundPacket::ENCHANT_ITEM_PACKET:
 					$pk = new EnchantItemPacket();
-					break;
+					break;*/
 				case InboundPacket::CLICK_WINDOW_PACKET:
 					$pk = new ClickWindowPacket();
 					break;
@@ -346,9 +346,9 @@ class ProtocolInterface implements SourceInterface{
 				case InboundPacket::ENTITY_ACTION_PACKET:
 					$pk = new EntityActionPacket();
 					break;
-				case InboundPacket::CRAFTING_BOOK_DATA_PACKET:
+				/*case InboundPacket::CRAFTING_BOOK_DATA_PACKET:
 					$pk = new CraftingBookDataPacket();
-					break;
+					break;*/
 				case InboundPacket::ADVANCEMENT_TAB_PACKET:
 					$pk = new AdvancementTabPacket();
 					break;

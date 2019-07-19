@@ -445,7 +445,7 @@ class ConvertUtils{
 				$nbt = new CompoundTag($name, $tags);
 			break;
 			case NBT::TAG_IntArray:
-				$nbt = new IntArrayTag($name, unpack("N*", $stream->get($stream->getInt()*4)));
+				$nbt = new IntArrayTag($name, unpack("N*", $stream->get($stream->getInt() * 4)));
 			break;
 		}
 
@@ -703,11 +703,11 @@ class ConvertUtils{
 					}
 
 					if(((int) $d[1] & (1 << Human::DATA_FLAG_CAN_SHOW_NAMETAG)) > 0){
-						$newData[3] = [6, true];
+						$newData[3] = [7, true];
 					}
 
 					if(((int) $d[1] & (1 << Human::DATA_FLAG_ALWAYS_SHOW_NAMETAG)) > 0){
-						$newData[3] = [6, true];
+						$newData[3] = [7, true];
 					}
 
 					/*if(((int) $d[1] & (1 << Human::DATA_FLAG_IMMOBILE)) > 0){//TODO
@@ -715,7 +715,7 @@ class ConvertUtils{
 					}*/
 
 					if(((int) $d[1] & (1 << Human::DATA_FLAG_SILENT)) > 0){
-						$newData[4] = [6, true];
+						$newData[4] = [7, true];
 					}
 
 					$newData[0] = [0, $flags];
@@ -733,7 +733,7 @@ class ConvertUtils{
 					$newData[8] = [1, $d[1]];
 				break;
 				case Human::DATA_POTION_AMBIENT:
-					$newData[9] = [6, $d[1] ? true : false];
+					$newData[9] = [7, $d[1] ? true : false];
 				break;
 				case Human::DATA_VARIANT:
 				case Human::DATA_PLAYER_FLAGS:

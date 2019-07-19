@@ -85,17 +85,18 @@ class Binary extends \pocketmine\utils\Binary{
 				break;
 				case 3://String
 				case 4://Chat
+					var_dump(strlen($d[1]));
 					$m .= self::writeComputerVarInt(strlen($d[1])) . $d[1];
 				break;
 				case 5://Slot
 					/** @var Item $item */
-					$item = $d[1];
+					/*$item = $d[1];
 					if($item->getId() === 0){
-						$m .= self::writeShort(-1);
+						$m .= self::writeBool(false);
 					}else{
-						$m .= self::writeShort($item->getId());
+						$m .= self::writeComputerVarInt($item->getId());
 						$m .= self::writeByte($item->getCount());
-						$m .= self::writeShort($item->getDamage());
+						//$m .= self::writeShort($item->getDamage());
 
 						if($item->hasCompoundTag()){
 							$itemNBT = clone $item->getNamedTag();
@@ -103,17 +104,18 @@ class Binary extends \pocketmine\utils\Binary{
 						}else{
 							$m .= "\x00";//TAG_End
 						}
-					}
+					}*/
+					self::writeBool(false);
 				break;
-				case 6://Boolean
+				case 7://Boolean
 					$m .= self::writeByte($d[1] ? 1 : 0);
 				break;
-				case 7://Rotation
+				case 8://Rotation
 					$m .= self::writeFloat($d[1][0]);
 					$m .= self::writeFloat($d[1][1]);
 					$m .= self::writeFloat($d[1][2]);
 				break;
-				case 8://Position
+				case 9://Position
 					$long = (($d[1][0] & 0x3FFFFFF) << 38) | (($d[1][1] & 0xFFF) << 26) | ($d[1][2] & 0x3FFFFFF);
 					$m .= self::writeLong($long);
 				break;

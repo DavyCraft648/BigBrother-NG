@@ -141,7 +141,7 @@ use shoghicp\BigBrother\network\protocol\Play\Server\NamedSoundEffectPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\ParticlePacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\PlayDisconnectPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\PlayerAbilitiesPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\PlayerListPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\PlayerInfoPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\PlayerPositionAndLookPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\PluginMessagePacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\RemoveEntityEffectPacket;
@@ -2438,21 +2438,21 @@ class Translator{
 				$pk = new ChunkDataPacket();
 				$pk->chunkX = $packet->getChunkX();
 				$pk->chunkZ = $packet->getChunkZ();
-				$pk->groundUp = true;
+				$pk->isFullChunk = $chunk->isFullChunk();
 				$pk->primaryBitmap = $chunk->getBitMapData();
+				$pk->heightMaps = $chunk->getHeightMaps();
 				$pk->payload = $chunk->getChunkData();
-				$pk->biomes = $chunk->getBiomesData();
 				$pk->blockEntities = $blockEntities;
 
 				return $pk;
 
 			case Info::PLAYER_LIST_PACKET:
-				/** @var PlayerListPacket $packet */
-				$pk = new PlayerListPacket();
+				/** @var PlayerInfoPacket $packet */
+				$pk = new PlayerInfoPacket();
 
 				switch($packet->type){
 					case 0://Add
-						$pk->actionID = PlayerListPacket::TYPE_ADD;
+						$pk->actionID = PlayerInfoPacket::TYPE_ADD;
 
 						$loggedInPlayers = $player->getServer()->getLoggedInPlayers();
 						foreach($packet->entries as $entry){
@@ -2500,7 +2500,7 @@ class Translator{
 						}
 					break;
 					case 1://Remove
-						$pk->actionID = PlayerListPacket::TYPE_REMOVE;
+						$pk->actionID = PlayerInfoPacket::TYPE_REMOVE;
 
 						foreach($packet->entries as $entry){
 							$pk->players[] = [

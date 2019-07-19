@@ -56,9 +56,10 @@ class JoinGamePacket extends OutboundPacket{
 		$this->putInt($this->eid);
 		$this->putByte($this->gamemode);
 		$this->putInt($this->dimension);
-		$this->putByte($this->difficulty);
+		//$this->putByte($this->difficulty);
 		$this->putByte($this->maxPlayers);
 		$this->putString($this->levelType);
+		$this->putVarInt(10);
 		$this->putBool($this->reducedDebugInfo);
 	}
 }

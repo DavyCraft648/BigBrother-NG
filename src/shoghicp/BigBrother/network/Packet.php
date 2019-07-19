@@ -70,8 +70,8 @@ abstract class Packet extends stdClass{
 	protected function getPosition(int &$x=null, int &$y=null, int &$z=null) : void{
 		$long = $this->getLong();
 		$x = $long >> 38;
-		$y = ($long >> 26) & 0xFFF;
-		$z = $long << 38 >> 38;
+		$y = $long & 0xFFF;
+		$z = ($long << 26 >> 38);
 	}
 
 	protected function getFloat() : float{
@@ -106,7 +106,8 @@ abstract class Packet extends stdClass{
 	protected function putSlot(Item $item) : void{
 		ConvertUtils::convertItemData(true, $item);
 
-		if($item->getID() === 0){
+		$this->putBool(false);
+		/*if($item->getID() === 0){
 			$this->putShort(-1);
 		}else{
 			$this->putShort($item->getID());
@@ -119,7 +120,7 @@ abstract class Packet extends stdClass{
 			}else{
 				$this->put("\x00");//TAG_End
 			}
-		}
+		}*/
 	}
 
 	protected function getShort() : int{
@@ -179,7 +180,7 @@ abstract class Packet extends stdClass{
 	}
 
 	protected function putPosition(int $x, int $y, int $z) : void{
-		$long = (($x & 0x3FFFFFF) << 38) | (($y & 0xFFF) << 26) | ($z & 0x3FFFFFF);
+		$long = (($x & 0x3FFFFFF) << 38) | (($z & 0x3FFFFFF) << 12) | ($y & 0xFFF);
 		$this->putLong($long);
 	}
 
@@ -219,6 +220,7 @@ abstract class Packet extends stdClass{
 	}
 
 	protected function putString(string $v) : void{
+		//var_dump([$v => strlen($v)]);
 		$this->putVarInt(strlen($v));
 		$this->put($v);
 	}
