@@ -147,7 +147,11 @@ class DesktopChunk{
 			/* Data Array */
 			$payload .= $chunkData;
 		}
-		$payload .= $chunk->getBiomeIdArray();
+		if($this->isFullChunk()){
+			for($i = 0; $i < 256; $i++){
+				$payload .= Binary::writeInt(ord($chunk->getBiomeIdArray()[$i]));
+			}
+		}
 
 		$this->chunkData = $payload;
 	}
@@ -173,7 +177,7 @@ class DesktopChunk{
 	 * @return bool
 	 */
 	public function isFullChunk(): bool{
-		return $this->bitMap === 65535;
+		return true;
 	}
 
 	/**

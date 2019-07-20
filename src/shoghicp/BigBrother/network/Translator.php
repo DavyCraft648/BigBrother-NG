@@ -987,6 +987,7 @@ class Translator{
 				$pk->dimension = $player->bigBrother_getDimensionPEToPC($packet->dimension);
 				$pk->difficulty = $packet->difficulty;
 				$pk->maxPlayers = $player->getServer()->getMaxPlayers();
+				$pk->viewDistance = $player->getServer()->getViewDistance();
 				$pk->levelType = "default";
 				$packets[] = $pk;
 

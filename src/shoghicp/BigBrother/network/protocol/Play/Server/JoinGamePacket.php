@@ -40,11 +40,11 @@ class JoinGamePacket extends OutboundPacket{
 	/** @var int */
 	public $dimension;
 	/** @var int */
-	public $difficulty;
-	/** @var int */
 	public $maxPlayers;
 	/** @var string */
 	public $levelType;
+	/** @var int */
+	public $viewDistance;
 	/** @var bool */
 	public $reducedDebugInfo = false;
 
@@ -56,10 +56,9 @@ class JoinGamePacket extends OutboundPacket{
 		$this->putInt($this->eid);
 		$this->putByte($this->gamemode);
 		$this->putInt($this->dimension);
-		//$this->putByte($this->difficulty);
 		$this->putByte($this->maxPlayers);
 		$this->putString($this->levelType);
-		$this->putVarInt(10);
+		$this->putVarInt($this->viewDistance);
 		$this->putBool($this->reducedDebugInfo);
 	}
 }

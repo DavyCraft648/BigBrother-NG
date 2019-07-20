@@ -220,7 +220,6 @@ abstract class Packet extends stdClass{
 	}
 
 	protected function putString(string $v) : void{
-		//var_dump([$v => strlen($v)]);
 		$this->putVarInt(strlen($v));
 		$this->put($v);
 	}
