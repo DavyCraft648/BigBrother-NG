@@ -225,12 +225,12 @@ class ColorUtils extends Color{
 	 * @param int $height
 	 * @return string
 	 */
-	public static function convertColorsToPC($colors, $width, $height) : string{
+	public static function convertColorsToPC(array $colors, int $width, int $height) : string{
 		$ret = "";
 
 		for($y=0; $y<$height; ++$y){
 			for($x=0; $x<$width; ++$x){
-				$ret .= $colors[$y][$x]->a >= 128 ? self::$index{($colors[$y][$x]->r << 16) + ($colors[$y][$x]->g << 8) + $colors[$y][$x]->b} : chr(0x00);
+				$ret .= $colors[$y][$x]->a >= 128 ? self::$index[($colors[$y][$x]->r << 16) + ($colors[$y][$x]->g << 8) + $colors[$y][$x]->b] : chr(0x00);
 			}
 		}
 

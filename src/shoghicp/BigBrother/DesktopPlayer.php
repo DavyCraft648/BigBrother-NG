@@ -29,6 +29,7 @@ declare(strict_types=1);
 
 namespace shoghicp\BigBrother;
 
+use pocketmine\network\mcpe\protocol\types\GeneratorType;
 use pocketmine\network\mcpe\VerifyLoginTask;
 use pocketmine\Player;
 use pocketmine\Server;
@@ -101,7 +102,7 @@ class DesktopPlayer extends Player{
 	/** @var array */
 	private $bigBrother_pluginMessageList = [];
 	/** @var array */
-	private $bigBrother_breakPosition = [];
+	private $bigBrother_breakPosition;
 	/** @var array */
 	private $bigBrother_bossBarData = [
 		"entityRuntimeId" => -1,
@@ -159,13 +160,15 @@ class DesktopPlayer extends Player{
 	public function bigBrother_getDimensionPEToPC(int $level_dimension) : int{
 		$dimension = 0;
 		switch($level_dimension){
-			case 0://Over world
+			case GeneratorType::FINITE_OVERWORLD://Over world
+			case GeneratorType::OVERWORLD:
+			case GeneratorType::FLAT:
 				$dimension = 0;
 			break;
-			case 1://Nether
+			case GeneratorType::NETHER://Nether
 				$dimension = -1;
 			break;
-			case 2://The End
+			case GeneratorType::THE_END://The End
 				$dimension = 1;
 			break;
 		}
@@ -451,12 +454,12 @@ class DesktopPlayer extends Player{
 
 		$pk = new TitlePacket(); //for Set SubTitle
 		$pk->actionID = TitlePacket::TYPE_SET_TITLE;
-		$pk->data = TextFormat::toJSON("");
+		$pk->data = BigBrother::toJSONInternal("");
 		$this->putRawPacket($pk);
 
 		$pk = new TitlePacket();
 		$pk->actionID = TitlePacket::TYPE_SET_SUB_TITLE;
-		$pk->data = TextFormat::toJSON(TextFormat::YELLOW . TextFormat::BOLD . "This is a beta version of BigBrother.");
+		$pk->data = BigBrother::toJSONInternal(TextFormat::YELLOW . TextFormat::BOLD . "This is a beta version of BigBrother.");
 		$this->putRawPacket($pk);
 
 		$this->sendAdvancements(true);
@@ -556,6 +559,8 @@ class DesktopPlayer extends Player{
 			$pk->clientData["CurrentInputMode"] = 1;//Keyboard and mouse
 
 			$pk->clientData["AnimatedImageData"] = [];
+			$pk->clientData["PersonaPieces"] = [];
+			$pk->clientData["PieceTintColors"] = [];
 
 			if($model){
 				$pk->clientData["SkinId"] = $this->bigBrother_formattedUUID."_CustomSlim";
@@ -622,7 +627,6 @@ class DesktopPlayer extends Player{
 				 * @param DesktopPlayer $player
 				 * @param string $username
 				 * @param string $hash
-				 * @noinspection PhpUndefinedMethodInspection TODO: Remove
 				 */
 				public function __construct(DesktopPlayer $player, string $username, string $hash){
 					self::storeLocal($player);
@@ -663,7 +667,6 @@ class DesktopPlayer extends Player{
 				/**
 				 * @override
 				 * @param $server
-				 * @noinspection PhpUndefinedMethodInspection TODO: Remove
 				 */
 				public function onCompletion(Server $server){
 					$result = $this->getResult();
@@ -705,7 +708,6 @@ class DesktopPlayer extends Player{
 						 * @param BigBrother $plugin
 						 * @param DesktopPlayer $player
 						 * @param string $username
-						 * @noinspection PhpUndefinedMethodInspection TODO: Remove
 						 */
 						public function __construct(BigBrother $plugin, DesktopPlayer $player, string $username){
 							self::storeLocal([$plugin, $player]);
@@ -773,7 +775,6 @@ class DesktopPlayer extends Player{
 						/**
 						 * @override
 						 * @param Server $server
-						 * @noinspection PhpUndefinedMethodInspection TODO: Remove
 						 */
 						public function onCompletion(Server $server){
 							$info = $this->getResult();

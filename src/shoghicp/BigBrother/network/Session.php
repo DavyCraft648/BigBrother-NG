@@ -30,7 +30,7 @@ declare(strict_types=1);
 namespace shoghicp\BigBrother\network;
 
 use phpseclib\Crypt\AES;
-use pocketmine\utils\TextFormat;
+use shoghicp\BigBrother\BigBrother;
 use shoghicp\BigBrother\network\protocol\Login\LoginDisconnectPacket;
 use shoghicp\BigBrother\network\protocol\Status\PingPacket;
 use shoghicp\BigBrother\utils\Binary;
@@ -137,20 +137,7 @@ class Session{
 	 * @param Packet $packet
 	 */
 	public function writePacket(Packet $packet) : void{
-		$data = $packet->write();
-		if($this->threshold === null){
-			$this->write(Binary::writeComputerVarInt(strlen($data)) . $data);
-		}else{
-			$dataLength = strlen($data);
-			if($dataLength >= $this->threshold){
-				$data = zlib_encode($data, ZLIB_ENCODING_DEFLATE, 7);
-			}else{
-				$dataLength = 0;
-			}
-
-			$data = Binary::writeComputerVarInt($dataLength) . $data;
-			$this->write(Binary::writeComputerVarInt(strlen($data)) . $data);
-		}
+		$this->writeRaw($packet->write());
 	}
 
 	/**
@@ -223,7 +210,7 @@ class Session{
 						"online" => $this->manager->getServerData()["OnlinePlayers"],
 						"sample" => $sample,
 					],
-					"description" => json_decode(TextFormat::toJSON($this->manager->description))
+					"description" => json_decode(BigBrother::toJSONInternal($this->manager->description))
 				];
 				if($this->manager->favicon !== null){
 					$data["favicon"] = $this->manager->favicon;

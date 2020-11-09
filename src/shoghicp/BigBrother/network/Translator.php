@@ -39,6 +39,16 @@ use pocketmine\network\mcpe\protocol\RemoveActorPacket;
 use pocketmine\network\mcpe\protocol\SetActorDataPacket;
 use pocketmine\network\mcpe\protocol\SetActorMotionPacket;
 use pocketmine\network\mcpe\protocol\TakeItemActorPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\AdvancementTabPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\ClientSettingsPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\ClientStatusPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\EntityActionPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\PlayerBlockPlacementPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\PlayerDiggingPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\PlayerLookPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\PlayerPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\PlayerPositionPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\UpdateSignPacket;
 use UnexpectedValueException;
 use const pocketmine\DEBUG;
 use pocketmine\block\Block;
@@ -50,7 +60,6 @@ use pocketmine\nbt\NetworkLittleEndianNBTStream;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\IntTag;
 use pocketmine\nbt\tag\StringTag;
-use pocketmine\nbt\tag\ShortTag;
 use pocketmine\event\player\PlayerDropItemEvent;
 use pocketmine\network\mcpe\protocol\AddPaintingPacket;
 use pocketmine\network\mcpe\protocol\AddPlayerPacket;
@@ -94,7 +103,7 @@ use pocketmine\network\mcpe\protocol\SetTitlePacket;
 use pocketmine\network\mcpe\protocol\StartGamePacket;
 use pocketmine\network\mcpe\protocol\TextPacket;
 use /** @noinspection PhpInternalEntityUsedInspection */
-	pocketmine\network\mcpe\protocol\types\RuntimeBlockMapping;
+	pocketmine\network\mcpe\convert\RuntimeBlockMapping;
 use pocketmine\network\mcpe\protocol\UpdateAttributesPacket;
 use pocketmine\network\mcpe\protocol\UpdateBlockPacket;
 use pocketmine\network\mcpe\NetworkBinaryStream;
@@ -180,6 +189,7 @@ class Translator{
 				return null;
 
 			case InboundPacket::CHAT_PACKET:
+				/** @var protocol\Play\Client\ChatPacket $packet */
 				$pk = new TextPacket();
 				$pk->type = 1;//Chat Type
 				$pk->sourceName = "";
@@ -187,6 +197,7 @@ class Translator{
 				return $pk;
 
 			case InboundPacket::CLIENT_STATUS_PACKET:
+				/** @var ClientStatusPacket $packet */
 				switch($packet->actionID){
 					case 0:
 						$pk = new PlayerActionPacket();
@@ -215,6 +226,7 @@ class Translator{
 				return null;
 
 			case InboundPacket::CLIENT_SETTINGS_PACKET:
+				/** @var ClientSettingsPacket $packet */
 				$player->bigBrother_setClientSetting([
 					"Lang" => $packet->lang,
 					"View" => $packet->view,
@@ -223,9 +235,9 @@ class Translator{
 					"SkinSettings" => $packet->skinSetting,
 				]);
 
-				$locale = $packet->lang{0}.$packet->lang{1};
-				if(isset($packet->lang{2})){
-					$locale .= $packet->lang{2}.strtoupper($packet->lang{3}.$packet->lang{4});
+				$locale = $packet->lang[0].$packet->lang[1];
+				if(isset($packet->lang[2])){
+					$locale .= $packet->lang[2].strtoupper($packet->lang[3].$packet->lang[4]);
 				}
 				$player->setLocale($locale);
 
@@ -260,6 +272,7 @@ class Translator{
 				return $pk;
 
 			case InboundPacket::PLUGIN_MESSAGE_PACKET:
+				/** @var PluginMessagePacket $packet */
 				switch($packet->channel){
 					case "REGISTER"://Mods Register
 						$player->bigBrother_setPluginMessageList("Channels", $packet->data);
@@ -338,6 +351,7 @@ class Translator{
 				return null;
 
 			case InboundPacket::USE_ENTITY_PACKET:
+				/** @var UseEntityPacket $packet */
 				$frame = ItemFrameBlockEntity::getItemFrameById($player->getLevel(), $packet->target);
 				if($frame !== null){
 					switch($packet->type){
@@ -425,10 +439,12 @@ class Translator{
 				return null;
 
 			case InboundPacket::PLAYER_PACKET:
+				/** @var PlayerPacket $packet */
 				$player->onGround = $packet->onGround;
 				return null;
 
 			case InboundPacket::PLAYER_POSITION_PACKET:
+				/** @var PlayerPositionPacket $packet */
 				if($player->isImmobile()){
 					$pk = new PlayerPositionAndLookPacket();
 					$pk->x = $player->x;
@@ -466,6 +482,7 @@ class Translator{
 				return $packets;
 
 			case InboundPacket::PLAYER_POSITION_AND_LOOK_PACKET:
+				/** @var protocol\Play\Client\PlayerPositionAndLookPacket $packet */
 				if($player->isImmobile()){
 					$pk = new PlayerPositionAndLookPacket();
 					$pk->x = $player->x;
@@ -503,6 +520,7 @@ class Translator{
 				return $packets;
 
 			case InboundPacket::PLAYER_LOOK_PACKET:
+				/** @var PlayerLookPacket $packet */
 				if($player->isImmobile()){
 					$pk = new PlayerPositionAndLookPacket();
 					$pk->x = $player->x;
@@ -526,6 +544,7 @@ class Translator{
 				return $pk;
 
 			case InboundPacket::PLAYER_ABILITIES_PACKET:
+				/** @var PlayerAbilitiesPacket $packet */
 				$pk = new AdventureSettingsPacket();
 				$pk->entityUniqueId = $player->getId();
 				$pk->setFlag(AdventureSettingsPacket::FLYING, $packet->isFlying);
@@ -533,6 +552,7 @@ class Translator{
 				return $pk;
 
 			case InboundPacket::PLAYER_DIGGING_PACKET:
+				/** @var PlayerDiggingPacket $packet */
 				switch($packet->status){
 					case 0:
 						if($player->getGamemode() === 1){
@@ -709,6 +729,7 @@ class Translator{
 				return null;
 
 			case InboundPacket::ENTITY_ACTION_PACKET:
+				/** @var EntityActionPacket $packet */
 				switch($packet->actionID){
 					case 0://Start sneaking
 						$pk = new PlayerActionPacket();
@@ -768,6 +789,7 @@ class Translator{
 				return null;
 
 			case InboundPacket::ADVANCEMENT_TAB_PACKET:
+				/** @var AdvancementTabPacket $packet */
 				if($packet->status === 0){
 					$pk = new SelectAdvancementTabPacket();
 					$pk->hasTab = true;
@@ -778,6 +800,7 @@ class Translator{
 				return null;
 
 			case InboundPacket::HELD_ITEM_CHANGE_PACKET:
+				/** @var HeldItemChangePacket $packet */
 				$pk = new MobEquipmentPacket();
 				$pk->entityRuntimeId = $player->getId();
 				$pk->item = $player->getInventory()->getHotbarSlotItem($packet->selectedSlot);
@@ -793,6 +816,7 @@ class Translator{
 				return $pk;
 
 			case InboundPacket::UPDATE_SIGN_PACKET:
+				/** @var UpdateSignPacket $packet */
 				$tags = new CompoundTag("", [
 					new StringTag("id", Tile::SIGN),
 					new StringTag("Text1", $packet->line1),
@@ -839,6 +863,7 @@ class Translator{
 				return $pk;
 
 			case InboundPacket::PLAYER_BLOCK_PLACEMENT_PACKET:
+				/** @var PlayerBlockPlacementPacket $packet */
 				$blockClicked = $player->getLevel()->getBlock(new Vector3($packet->x, $packet->y, $packet->z));
 				$blockReplace = $blockClicked->getSide($packet->direction);
 
@@ -977,7 +1002,7 @@ class Translator{
 				$pk = new JoinGamePacket();
 				$pk->eid = $packet->entityUniqueId;
 				$pk->gamemode = $packet->playerGamemode;
-				$pk->dimension = $player->bigBrother_getDimensionPEToPC($packet->dimension);
+				$pk->dimension = $player->bigBrother_getDimensionPEToPC($packet->generator);
 				$pk->difficulty = $packet->difficulty;
 				$pk->maxPlayers = $player->getServer()->getMaxPlayers();
 				$pk->viewDistance = $player->getServer()->getViewDistance();
@@ -2327,14 +2352,8 @@ class Translator{
 					break;
 					case Tile::FLOWER_POT:
 						$pk->actionID = 5;
-
 						/** @var CompoundTag $nbt */
-						$nbt->setTag(new ShortTag("Item", $nbt->getTagValue("item", ShortTag::class)));
-						$nbt->setTag(new IntTag("Data", $nbt->getTagValue("mData", IntTag::class)));
-
-						$nbt->removeTag("item", "mdata");
-
-						$pk->namedtag = $nbt;
+						$pk->namedtag = ConvertUtils::convertBlockEntity(true, $nbt);
 					break;
 					case Tile::ITEM_FRAME:
 						if(($entity = ItemFrameBlockEntity::getItemFrame($player->getLevel(), $packet->x, $packet->y, $packet->z)) !== null){
@@ -2345,16 +2364,7 @@ class Translator{
 					case Tile::SIGN:
 						$pk->actionID = 9;
 						/** @var CompoundTag $nbt */
-						$textData = explode("\n", $nbt->getTagValue("Text", StringTag::class));
-
-						//blame mojang
-						$nbt->setTag(new StringTag("Text1", BigBrother::toJSON($textData[0])));
-						$nbt->setTag(new StringTag("Text2", BigBrother::toJSON($textData[1])));
-						$nbt->setTag(new StringTag("Text3", BigBrother::toJSON($textData[2])));
-						$nbt->setTag(new StringTag("Text4", BigBrother::toJSON($textData[3])));
-						$nbt->removeTag("Text");
-
-						$pk->namedtag = $nbt;
+						$pk->namedtag = ConvertUtils::convertBlockEntity(true, $nbt);
 					break;
 					case Tile::SKULL:
 						$pk->actionID = 4;
