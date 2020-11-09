@@ -27,23 +27,27 @@
 
 declare(strict_types=1);
 
-namespace shoghicp\BigBrother\network\protocol\Play\Client;
+namespace shoghicp\BigBrother\network\protocol\Play\Server;
 
-use shoghicp\BigBrother\network\InboundPacket;
+use shoghicp\BigBrother\network\OutboundPacket;
 
-class EnchantItemPacket extends InboundPacket{
+class WindowConfirmationPacket extends OutboundPacket{
 
 	/** @var int */
 	public $windowID;
 	/** @var int */
-	public $enchantment;
+	public $actionNumber;
+	/** @var bool */
+	public $accepted;
 
 	public function pid() : int{
-		return self::ENCHANT_ITEM_PACKET;
+		return self::WINDOW_CONFIRMATION_PACKET;
 	}
 
-	protected function decode() : void{
-		$this->windowID = $this->getSignedByte();
-		$this->enchantment = $this->getSignedByte();
+	protected function encode() : void{
+		$this->putByte($this->windowID);
+		$this->putShort($this->actionNumber);
+		$this->putBool($this->accepted);
 	}
+
 }

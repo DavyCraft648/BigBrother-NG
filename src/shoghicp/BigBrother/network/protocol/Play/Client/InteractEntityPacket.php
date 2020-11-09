@@ -31,31 +31,45 @@ namespace shoghicp\BigBrother\network\protocol\Play\Client;
 
 use shoghicp\BigBrother\network\InboundPacket;
 
-class CraftingBookDataPacket extends InboundPacket{
+class InteractEntityPacket extends InboundPacket{
 
+	const INTERACT    = 0;
+	const ATTACK      = 1;
+	const INTERACT_AT = 2;
+
+	/** @var int */
+	public $target;
 	/** @var int */
 	public $type;
+
+	/** @var float */
+	public $targetX;
+	/** @var float */
+	public $targetY;
+	/** @var float */
+	public $targetZ;
+
 	/** @var int */
-	public $recipeId = -1;
+	public $hand;
+
 	/** @var bool */
-	public $isCraftingBookOpen = false;
-	/** @var bool */
-	public $isFilteringCraftable = false;
+	public $sneaking;
 
 	public function pid() : int{
-		return self::CRAFTING_BOOK_DATA_PACKET;
+		return self::INTERACT_ENTITY_PACKET;
 	}
 
 	protected function decode() : void{
+		$this->target = $this->getVarInt();
 		$this->type = $this->getVarInt();
-		switch($this->type){
-			case 0://Displayed Recipe
-				$this->recipeId = $this->getInt();
-			break;
-			case 1://Crafting Book Status
-				$this->isCraftingBookOpen = $this->getBool();
-				$this->isFilteringCraftable = $this->getBool();
-			break;
+		if($this->type === self::INTERACT_AT){
+			$this->targetX = $this->getFloat();
+			$this->targetY = $this->getFloat();
+			$this->targetZ = $this->getFloat();
 		}
+		if($this->type !== self::ATTACK){
+			$this->hand = $this->getVarInt();
+		}
+		$this->sneaking = $this->getBool();
 	}
 }

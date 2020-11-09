@@ -38,16 +38,15 @@ class SpawnPaintingPacket extends OutboundPacket{
 	/** @var string */
 	public $uuid;
 	/** @var int */
+	public $motive;
+	/** @var int */
 	public $x;
 	/** @var int */
 	public $y;
 	/** @var int */
 	public $z;
-	/** @var string */
-	public $title;
 	/** @var int */
 	public $direction;
-	
 
 	public function pid() : int{
 		return self::SPAWN_PAINTING_PACKET;
@@ -56,7 +55,7 @@ class SpawnPaintingPacket extends OutboundPacket{
 	protected function encode() : void{
 		$this->putVarInt($this->eid);
 		$this->put($this->uuid);
-		$this->putString($this->title);
+		$this->putVarInt($this->motive);
 		$this->putPosition($this->x, $this->y, $this->z);
 		$this->putByte($this->direction);
 	}

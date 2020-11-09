@@ -29,6 +29,7 @@ declare(strict_types=1);
 
 namespace shoghicp\BigBrother;
 
+use InvalidArgumentException;
 use phpseclib\Crypt\RSA;
 use phpseclib\Crypt\AES;
 
@@ -74,6 +75,12 @@ class BigBrother extends PluginBase implements Listener{
 	/** @var array */
 	protected $profileCache = [];
 
+	/** @var string */
+	protected $dimensionCodec;
+
+	/** @var string */
+	protected $dimension;
+
 	/**
 	 * @override
 	 */
@@ -92,10 +99,15 @@ class BigBrother extends PluginBase implements Listener{
 				$this->saveDefaultConfig();
 				$this->saveResource("server-icon.png", false);
 				$this->saveResource("color_index.dat", true);
+				$this->saveResource("dimensionCodec.dat", true);
+				$this->saveResource("dimension.dat", true);
 				$this->saveResource("openssl.cnf", false);
 				$this->reloadConfig();
 
 				ColorUtils::loadColorIndex($this->getDataFolder()."color_index.dat");
+
+				$this->dimensionCodec = file_get_contents($this->getDataFolder()."dimensionCodec.dat");
+				$this->dimension = file_get_contents($this->getDataFolder()."dimension.dat");
 
 				$this->getLogger()->info("OS: ".php_uname());
 				$this->getLogger()->info("PHP version: ".PHP_VERSION);
@@ -265,6 +277,22 @@ class BigBrother extends PluginBase implements Listener{
 	}
 
 	/**
+	 * Return string of Compound Tag
+	 * @return string
+	 */
+	public function getDimensionCodec(): string{
+		return $this->dimensionCodec;
+	}
+
+	/**
+	 * Return string of Compound Tag
+	 * @return string
+	 */
+	public function getDimension(): string{
+		return $this->dimension;
+	}
+
+	/**
 	 * @param PlayerRespawnEvent $event
 	 *
 	 * @priority NORMAL
@@ -399,8 +427,9 @@ class BigBrother extends PluginBase implements Listener{
 	/**
 	 * Returns an JSON-formatted string with colors/markup
 	 *
-	 * @internal
 	 * @param string|string[] $string
+	 * @return string
+	 * @internal
 	 */
 	public static function toJSONInternal($string) : string{
 		if(!is_array($string)){
@@ -582,7 +611,7 @@ class BigBrother extends PluginBase implements Listener{
 
 		$result = json_encode($newString, JSON_UNESCAPED_SLASHES);
 		if($result === false){
-			throw new \InvalidArgumentException("Failed to encode result JSON: " . json_last_error_msg());
+			throw new InvalidArgumentException("Failed to encode result JSON: " . json_last_error_msg());
 		}
 		return $result;
 	}

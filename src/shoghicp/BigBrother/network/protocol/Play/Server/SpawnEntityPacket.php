@@ -31,7 +31,7 @@ namespace shoghicp\BigBrother\network\protocol\Play\Server;
 
 use shoghicp\BigBrother\network\OutboundPacket;
 
-class SpawnObjectPacket extends OutboundPacket{
+class SpawnEntityPacket extends OutboundPacket{
 
 	const BOAT              =  1;
 	const ITEM_STACK        =  2;
@@ -89,13 +89,13 @@ class SpawnObjectPacket extends OutboundPacket{
 	public $velocityZ;
 
 	public function pid() : int{
-		return self::SPAWN_OBJECT_PACKET;
+		return self::SPAWN_ENTITY_PACKET;
 	}
 
 	protected function encode() : void{
 		$this->putVarInt($this->eid);
 		$this->put($this->uuid);
-		$this->putByte($this->type);
+		$this->putVarInt($this->type);
 		$this->putDouble($this->x);
 		$this->putDouble($this->y);
 		$this->putDouble($this->z);

@@ -356,6 +356,12 @@ class ConvertUtils{
 				$stream->putInt(count($nbt->getValue()));
 				$stream->put(pack("N*", ...$nbt->getValue()));
 			break;
+			case 12:
+				$stream->putInt(count($nbt->getValue()));
+				foreach($nbt->getValue() as $value){
+					$stream->putLong($value);
+				}
+			break;
 		}
 
 		return $stream->getBuffer();
@@ -449,6 +455,7 @@ class ConvertUtils{
 			case NBT::TAG_IntArray:
 				$nbt = new IntArrayTag($name, unpack("N*", $stream->get($stream->getInt() * 4)));
 			break;
+			//TODO: LongArray
 		}
 
 		return $nbt;

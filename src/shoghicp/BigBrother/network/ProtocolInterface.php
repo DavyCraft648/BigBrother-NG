@@ -30,6 +30,8 @@ declare(strict_types=1);
 namespace shoghicp\BigBrother\network;
 
 use Exception;
+use ReflectionClass;
+use ReflectionException;
 use SplObjectStorage;
 use const pocketmine\DEBUG;
 use pocketmine\network\mcpe\protocol\DataPacket;
@@ -42,12 +44,10 @@ use shoghicp\BigBrother\DesktopPlayer;
 use shoghicp\BigBrother\network\protocol\Login\EncryptionResponsePacket;
 use shoghicp\BigBrother\network\protocol\Login\LoginStartPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\AdvancementTabPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\EnchantItemPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\TeleportConfirmPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\AnimatePacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\ConfirmTransactionPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\CraftRecipeRequestPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\CraftingBookDataPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\ClickWindowPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\ClientSettingsPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\ClientStatusPacket;
@@ -60,14 +60,14 @@ use shoghicp\BigBrother\network\protocol\Play\Client\HeldItemChangePacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\KeepAlivePacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\PlayerBlockPlacementPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\PlayerDiggingPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\PlayerLookPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\PlayerPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\PlayerPositionAndLookPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\PlayerRotationPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\PlayerMovementPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\PlayerPositionAndRotationPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\PlayerPositionPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\PluginMessagePacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\TabCompletePacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\UpdateSignPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\UseEntityPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\InteractEntityPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\UseItemPacket;
 use shoghicp\BigBrother\utils\Binary;
 
@@ -174,10 +174,12 @@ class ProtocolInterface implements SourceInterface{
 	 */
 	protected function sendPacket(int $target, Packet $packet){
 		if(DEBUG > 4){
-			$id = bin2hex(chr($packet->pid()));
 			if($packet->pid() !== OutboundPacket::KEEP_ALIVE_PACKET){
-				echo "[Send][Interface] 0x".bin2hex(chr($packet->pid()))."\n";
-				echo (new \ReflectionClass($packet))->getName()."\n";
+				try{
+					echo "[Send][Interface] 0x".bin2hex(chr($packet->pid())).": ".strlen($packet->write())."\n";
+					echo (new ReflectionClass($packet))->getName()."\n";
+				}catch(ReflectionException $e){
+				}
 			}
 		}
 
@@ -273,7 +275,7 @@ class ProtocolInterface implements SourceInterface{
 	protected function handlePacket(DesktopPlayer $player, string $payload){
 		if(DEBUG > 4){
 			if(ord($payload[0]) !== InboundPacket::KEEP_ALIVE_PACKET){//KeepAlivePacket
-				echo "[Receive][Interface] 0x".bin2hex(chr(ord($payload{0})))."\n";
+				echo "[Receive][Interface] 0x".bin2hex(chr(ord($payload[0])))."\n";
 			}
 		}
 
@@ -286,88 +288,82 @@ class ProtocolInterface implements SourceInterface{
 			switch($pid){
 				case InboundPacket::TELEPORT_CONFIRM_PACKET:
 					$pk = new TeleportConfirmPacket();
-					break;
+				break;
 				case InboundPacket::TAB_COMPLETE_PACKET:
 					$pk = new TabCompletePacket();
-					break;
+				break;
 				case InboundPacket::CHAT_PACKET:
 					$pk = new ChatPacket();
-					break;
+				break;
 				case InboundPacket::CLIENT_STATUS_PACKET:
 					$pk = new ClientStatusPacket();
-					break;
+				break;
 				case InboundPacket::CLIENT_SETTINGS_PACKET:
 					$pk = new ClientSettingsPacket();
-					break;
+				break;
 				case InboundPacket::CONFIRM_TRANSACTION_PACKET:
 					$pk = new ConfirmTransactionPacket();
-					break;
-				/*case InboundPacket::ENCHANT_ITEM_PACKET:
-					$pk = new EnchantItemPacket();
-					break;*/
+				break;
 				case InboundPacket::CLICK_WINDOW_PACKET:
 					$pk = new ClickWindowPacket();
-					break;
+				break;
 				case InboundPacket::CLOSE_WINDOW_PACKET:
 					$pk = new CloseWindowPacket();
-					break;
+				break;
 				case InboundPacket::PLUGIN_MESSAGE_PACKET:
 					$pk = new PluginMessagePacket();
-					break;
-				case InboundPacket::USE_ENTITY_PACKET:
-					$pk = new UseEntityPacket();
-					break;
+				break;
+				case InboundPacket::INTERACT_ENTITY_PACKET:
+					$pk = new InteractEntityPacket();
+				break;
 				case InboundPacket::KEEP_ALIVE_PACKET:
 					$pk = new KeepAlivePacket();
-					break;
-				case InboundPacket::PLAYER_PACKET:
-					$pk = new PlayerPacket();
-					break;
+				break;
+				case InboundPacket::PLAYER_MOVEMENT_PACKET:
+					$pk = new PlayerMovementPacket();
+				break;
 				case InboundPacket::PLAYER_POSITION_PACKET:
 					$pk = new PlayerPositionPacket();
-					break;
-				case InboundPacket::PLAYER_POSITION_AND_LOOK_PACKET:
-					$pk = new PlayerPositionAndLookPacket();
-					break;
-				case InboundPacket::PLAYER_LOOK_PACKET:
-					$pk = new PlayerLookPacket();
-					break;
+				break;
+				case InboundPacket::PLAYER_POSITION_AND_ROTATION_PACKET:
+					$pk = new PlayerPositionAndRotationPacket();
+				break;
+				case InboundPacket::PLAYER_ROTATION_PACKET:
+					$pk = new PlayerRotationPacket();
+				break;
 				case InboundPacket::CRAFT_RECIPE_REQUEST_PACKET:
 					$pk = new CraftRecipeRequestPacket();
 				break;
 				case InboundPacket::PLAYER_ABILITIES_PACKET:
 					$pk = new PlayerAbilitiesPacket();
-					break;
+				break;
 				case InboundPacket::PLAYER_DIGGING_PACKET:
 					$pk = new PlayerDiggingPacket();
-					break;
+				break;
 				case InboundPacket::ENTITY_ACTION_PACKET:
 					$pk = new EntityActionPacket();
-					break;
-				/*case InboundPacket::CRAFTING_BOOK_DATA_PACKET:
-					$pk = new CraftingBookDataPacket();
-					break;*/
+				break;
 				case InboundPacket::ADVANCEMENT_TAB_PACKET:
 					$pk = new AdvancementTabPacket();
-					break;
+				break;
 				case InboundPacket::HELD_ITEM_CHANGE_PACKET:
 					$pk = new HeldItemChangePacket();
-					break;
+				break;
 				case InboundPacket::CREATIVE_INVENTORY_ACTION_PACKET:
 					$pk = new CreativeInventoryActionPacket();
-					break;
+				break;
 				case InboundPacket::UPDATE_SIGN_PACKET:
 					$pk = new UpdateSignPacket();
-					break;
+				break;
 				case InboundPacket::ANIMATE_PACKET:
 					$pk = new AnimatePacket();
-					break;
+				break;
 				case InboundPacket::PLAYER_BLOCK_PLACEMENT_PACKET:
 					$pk = new PlayerBlockPlacementPacket();
-					break;
+				break;
 				case InboundPacket::USE_ITEM_PACKET:
 					$pk = new UseItemPacket();
-					break;
+				break;
 				default:
 					if(DEBUG > 4){
 						echo "[Receive][Interface] 0x".bin2hex(chr($pid))." Not implemented\n"; //Debug

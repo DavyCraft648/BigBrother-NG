@@ -35,18 +35,34 @@ class JoinGamePacket extends OutboundPacket{
 
 	/** @var int */
 	public $eid;
+	/** @var bool */
+	public $isHardcore = false;
 	/** @var int */
 	public $gamemode;
 	/** @var int */
+	public $previousGamemode;
+	/** @var string[] */
+	public $worldNames;
+	/** @var string */
+	public $dimensionCodec;
+	/** @var string */
 	public $dimension;
+	/** @var string */
+	public $worldName;
+	/** @var int */
+	public $hashedSeed;
 	/** @var int */
 	public $maxPlayers;
-	/** @var string */
-	public $levelType;
 	/** @var int */
 	public $viewDistance;
 	/** @var bool */
 	public $reducedDebugInfo = false;
+	/** @var bool */
+	public $enableRespawnScreen = false;
+	/** @var bool */
+	public $isDebug = false;
+	/** @var bool */
+	public $isFlat = false;
 
 	public function pid() : int{
 		return self::JOIN_GAME_PACKET;
@@ -54,11 +70,23 @@ class JoinGamePacket extends OutboundPacket{
 
 	protected function encode() : void{
 		$this->putInt($this->eid);
+		$this->putBool($this->isHardcore);
 		$this->putByte($this->gamemode);
-		$this->putInt($this->dimension);
-		$this->putByte($this->maxPlayers);
-		$this->putString($this->levelType);
+		$this->putByte($this->previousGamemode);
+		$this->putVarInt(count($this->worldNames));
+		foreach($this->worldNames as $worldName){
+			$this->putString($worldName);
+		}
+		$this->put($this->dimensionCodec);
+		$this->put($this->dimension);
+		$this->putString($this->worldName);
+		$this->putLong($this->hashedSeed);
+		$this->putVarInt($this->maxPlayers);
 		$this->putVarInt($this->viewDistance);
 		$this->putBool($this->reducedDebugInfo);
+		$this->putBool($this->enableRespawnScreen);
+		$this->putBool($this->isDebug);
+		$this->putBool($this->isFlat);
 	}
+
 }

@@ -32,7 +32,7 @@ namespace shoghicp\BigBrother;
 use pocketmine\block\Block;
 use pocketmine\level\Level;
 use pocketmine\nbt\tag\CompoundTag;
-use pocketmine\nbt\tag\LongTag;
+use shoghicp\BigBrother\nbt\tag\LongArrayTag;
 use shoghicp\BigBrother\utils\Binary;
 use shoghicp\BigBrother\utils\ConvertUtils;
 use shoghicp\BigBrother\entity\ItemFrameBlockEntity;
@@ -52,6 +52,8 @@ class DesktopChunk{
 	private $chunkData;
 	/** @var CompoundTag */
 	private $heightMaps;
+	/** @var int[] */
+	private $biomes;
 
 	/**
 	 * @param DesktopPlayer $player
@@ -93,14 +95,14 @@ class DesktopChunk{
 						$blockId = $subChunk->getBlockId($x, $y, $z);
 						$blockData = $subChunk->getBlockData($x, $y, $z);
 
-						if($blockId !== Block::AIR){
-							$blockCount++;
-						}
-
 						if($blockId == Block::FRAME_BLOCK){
 							ItemFrameBlockEntity::getItemFrame($this->player->getLevel(), $x + ($this->chunkX << 4), $y + ($num << 4), $z + ($this->chunkZ << 4), $blockData, true);
 							$block = Block::AIR;
 						}else{
+							if($blockId !== Block::AIR){
+								$blockCount++;
+							}
+
 							ConvertUtils::convertBlockData(true, $blockId, $blockData);
 							$block = (int) ($blockId << 4) | $blockData;
 						}
@@ -147,23 +149,23 @@ class DesktopChunk{
 			/* Data Array */
 			$payload .= $chunkData;
 		}
-		if($this->isFullChunk()){
-			for($i = 0; $i < 256; $i++){
-				$payload .= Binary::writeInt(ord($chunk->getBiomeIdArray()[$i]));
-			}
-		}
 
 		$this->chunkData = $payload;
 	}
 
 	public function generateHeightMaps(){
 		$chunk = $this->level->getChunk($this->chunkX, $this->chunkZ, false);
-		$chunk->getHeightMapArray();
 
-		$heightMaps = new CompoundTag("Heightmaps", [
-			//TODO
+		$heightMaps = new CompoundTag("", [
+			new LongArrayTag("MOTION_BLOCKING", array_fill(0, 37, 0)),//TODO: どうやって対応させるか
 		]);
 		$this->heightMaps = $heightMaps;
+
+		$payload = "";
+		for($i = 0; $i < 256; $i++){
+			$payload .= Binary::writeInt(ord($chunk->getBiomeIdArray()[$i]));
+		}
+		$this->biomes = $payload;
 	}
 
 	/**
@@ -189,6 +191,10 @@ class DesktopChunk{
 
 	public function getHeightMaps(): CompoundTag{
 		return $this->heightMaps;
+	}
+
+	public function getBiomes(){
+		return $this->biomes;
 	}
 
 }

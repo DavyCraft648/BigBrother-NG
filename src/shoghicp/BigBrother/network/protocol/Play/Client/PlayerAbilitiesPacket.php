@@ -52,14 +52,7 @@ class PlayerAbilitiesPacket extends InboundPacket{
 	}
 
 	protected function decode() : void{
-		$flags = $this->getSignedByte();
-
-		$this->damageDisabled = ($flags & 0x08) !== 0;
-		$this->canFly = ($flags & 0x04) !== 0;
+		$flags = $this->getByte();
 		$this->isFlying = ($flags & 0x02) !== 0;
-		$this->isCreative = ($flags & 0x01) !== 0;
-
-		$this->flyingSpeed = $this->getFloat();
-		$this->walkingSpeed = $this->getFloat();
 	}
 }

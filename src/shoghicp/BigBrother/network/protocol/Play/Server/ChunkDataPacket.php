@@ -62,6 +62,10 @@ class ChunkDataPacket extends OutboundPacket{
 		$this->putBool($this->isFullChunk);
 		$this->putVarInt($this->primaryBitmap);
 		$this->put(ConvertUtils::convertNBTDataFromPEtoPC($this->heightMaps));
+		if($this->isFullChunk){
+			$this->putVarInt(strlen($this->biomes));
+			$this->put($this->biomes);
+		}
 		$this->putVarInt(strlen($this->payload));
 		$this->put($this->payload);
 		$this->putVarInt(count($this->blockEntities));

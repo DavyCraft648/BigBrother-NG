@@ -27,27 +27,35 @@
 
 declare(strict_types=1);
 
-namespace shoghicp\BigBrother\network\protocol\Play\Server;
+namespace shoghicp\BigBrother\network\protocol\Play\Client;
 
-use shoghicp\BigBrother\network\OutboundPacket;
+use shoghicp\BigBrother\network\InboundPacket;
 
-class UseBedPacket extends OutboundPacket{
+class PlayerPositionAndRotationPacket extends InboundPacket{
 
-	/** @var int */
-	public $eid;
-	/** @var int */
-	public $bedX;
-	/** @var int */
-	public $bedY;
-	/** @var int */
-	public $bedZ;
+	/** @var float */
+	public $x;
+	/** @var float */
+	public $y;
+	/** @var float */
+	public $z;
+	/** @var float */
+	public $yaw;
+	/** @var float */
+	public $pitch;
+	/** @var bool */
+	public $onGround;
 
 	public function pid() : int{
-		return self::USE_BED_PACKET;
+		return self::PLAYER_POSITION_AND_ROTATION_PACKET;
 	}
 
-	protected function encode() : void{
-		$this->putVarInt($this->eid);
-		$this->putPosition($this->bedX, $this->bedY, $this->bedZ);
+	protected function decode() : void{
+		$this->x = $this->getDouble();
+		$this->y = $this->getDouble();
+		$this->z = $this->getDouble();
+		$this->yaw = $this->getFloat();
+		$this->pitch = $this->getFloat();
+		$this->onGround = $this->getBool();
 	}
 }

@@ -27,26 +27,32 @@
 
 declare(strict_types=1);
 
-namespace shoghicp\BigBrother\network\protocol\Play\Client;
+namespace shoghicp\BigBrother\network\protocol\Play\Server;
 
-use shoghicp\BigBrother\network\InboundPacket;
+use shoghicp\BigBrother\network\OutboundPacket;
+use shoghicp\BigBrother\utils\ConvertUtils;
+use pocketmine\nbt\tag\NamedTag;
 
-class PlayerLookPacket extends InboundPacket{
+class BlockEntityPacket extends OutboundPacket{
 
-	/** @var float */
-	public $yaw;
-	/** @var float */
-	public $pitch;
-	/** @var bool */
-	public $onGround;
+	/** @var int */
+	public $x;
+	/** @var int */
+	public $y;
+	/** @var int */
+	public $z;
+	/** @var int */
+	public $actionID;
+	/** @var NamedTag */
+	public $namedtag;
 
 	public function pid() : int{
-		return self::PLAYER_LOOK_PACKET;
+		return self::BLOCK_ENTITY_PACKET;
 	}
 
-	protected function decode() : void{
-		$this->yaw = $this->getFloat();
-		$this->pitch = $this->getFloat();
-		$this->onGround = $this->getBool();
+	protected function encode() : void{
+		$this->putPosition($this->x, $this->y, $this->z);
+		$this->putByte($this->actionID);
+		$this->put(ConvertUtils::convertNBTDataFromPEtoPC($this->namedtag));
 	}
 }

@@ -35,6 +35,7 @@ use pocketmine\network\mcpe\protocol\AddItemActorPacket;
 use pocketmine\network\mcpe\protocol\BlockActorDataPacket;
 use pocketmine\network\mcpe\protocol\LevelChunkPacket;
 use pocketmine\network\mcpe\protocol\MoveActorAbsolutePacket;
+use pocketmine\network\mcpe\protocol\PlayerListPacket;
 use pocketmine\network\mcpe\protocol\RemoveActorPacket;
 use pocketmine\network\mcpe\protocol\SetActorDataPacket;
 use pocketmine\network\mcpe\protocol\SetActorMotionPacket;
@@ -45,8 +46,8 @@ use shoghicp\BigBrother\network\protocol\Play\Client\ClientStatusPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\EntityActionPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\PlayerBlockPlacementPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\PlayerDiggingPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\PlayerLookPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\PlayerPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\PlayerRotationPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\PlayerMovementPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\PlayerPositionPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\UpdateSignPacket;
 use UnexpectedValueException;
@@ -121,7 +122,7 @@ use shoghicp\BigBrother\network\protocol\Login\LoginDisconnectPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\ClickWindowPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\CloseWindowPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\CreativeInventoryActionPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\UseEntityPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\InteractEntityPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\AnimatePacket as STCAnimatePacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\BlockActionPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\BlockChangePacket;
@@ -156,19 +157,17 @@ use shoghicp\BigBrother\network\protocol\Play\Server\RespawnPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\SelectAdvancementTabPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\ServerDifficultyPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\SetExperiencePacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\SpawnGlobalEntityPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\SpawnExperienceOrbPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\SpawnMobPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\SpawnObjectPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\SpawnLivingEntityPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\SpawnEntityPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\SpawnPaintingPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\SpawnPlayerPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\SpawnPositionPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\StatisticsPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\TimeUpdatePacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\TitlePacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\UpdateBlockEntityPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\BlockEntityPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\UpdateHealthPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\UseBedPacket;
 use shoghicp\BigBrother\utils\ConvertUtils;
 use shoghicp\BigBrother\utils\ColorUtils;
 use stdClass;
@@ -350,12 +349,12 @@ class Translator{
 				}
 				return null;
 
-			case InboundPacket::USE_ENTITY_PACKET:
-				/** @var UseEntityPacket $packet */
+			case InboundPacket::INTERACT_ENTITY_PACKET:
+				/** @var InteractEntityPacket $packet */
 				$frame = ItemFrameBlockEntity::getItemFrameById($player->getLevel(), $packet->target);
 				if($frame !== null){
 					switch($packet->type){
-						case UseEntityPacket::INTERACT:
+						case InteractEntityPacket::INTERACT:
 							$pk = new InventoryTransactionPacket();
 							$pk->transactionType = InventoryTransactionPacket::TYPE_USE_ITEM;
 							$pk->trData = new stdClass();
@@ -370,7 +369,7 @@ class Translator{
 							$pk->trData->clickPos = $frame->asVector3();
 							return $pk;
 						break;
-						case UseEntityPacket::ATTACK:
+						case InteractEntityPacket::ATTACK:
 							if($frame->hasItem()){
 								$pk = new ItemFrameDropItemPacket();
 								$pk->x = $frame->x;
@@ -397,7 +396,7 @@ class Translator{
 					return null;
 				}
 
-				if($packet->type === UseEntityPacket::INTERACT_AT){
+				if($packet->type === InteractEntityPacket::INTERACT_AT){
 					$pk = new InteractPacket();
 					$pk->target = $packet->target;
 					$pk->action = InteractPacket::ACTION_MOUSEOVER;
@@ -415,10 +414,10 @@ class Translator{
 					$pk->trData->vector2 = new Vector3(0, 0, 0);
 
 					switch($packet->type){
-						case UseEntityPacket::INTERACT:
+						case InteractEntityPacket::INTERACT:
 							$pk->trData->actionType = InventoryTransactionPacket::USE_ITEM_ON_ENTITY_ACTION_INTERACT;
 						break;
-						case UseEntityPacket::ATTACK:
+						case InteractEntityPacket::ATTACK:
 							$pk->trData->actionType = InventoryTransactionPacket::USE_ITEM_ON_ENTITY_ACTION_ATTACK;
 						break;
 						default:
@@ -438,8 +437,8 @@ class Translator{
 
 				return null;
 
-			case InboundPacket::PLAYER_PACKET:
-				/** @var PlayerPacket $packet */
+			case InboundPacket::PLAYER_MOVEMENT_PACKET:
+				/** @var PlayerMovementPacket $packet */
 				$player->onGround = $packet->onGround;
 				return null;
 
@@ -481,8 +480,8 @@ class Translator{
 
 				return $packets;
 
-			case InboundPacket::PLAYER_POSITION_AND_LOOK_PACKET:
-				/** @var protocol\Play\Client\PlayerPositionAndLookPacket $packet */
+			case InboundPacket::PLAYER_POSITION_AND_ROTATION_PACKET:
+				/** @var protocol\Play\Client\PlayerPositionAndRotationPacket $packet */
 				if($player->isImmobile()){
 					$pk = new PlayerPositionAndLookPacket();
 					$pk->x = $player->x;
@@ -519,8 +518,8 @@ class Translator{
 
 				return $packets;
 
-			case InboundPacket::PLAYER_LOOK_PACKET:
-				/** @var PlayerLookPacket $packet */
+			case InboundPacket::PLAYER_ROTATION_PACKET:
+				/** @var PlayerRotationPacket $packet */
 				if($player->isImmobile()){
 					$pk = new PlayerPositionAndLookPacket();
 					$pk->x = $player->x;
@@ -985,6 +984,7 @@ class Translator{
 						$pk->position = 2;
 						break;
 				}
+				$pk->sender = str_repeat("\x00", 16);//Setting both longs to 0 will always display the message regardless of the setting.
 
 				return $pk;
 
@@ -1000,13 +1000,20 @@ class Translator{
 				$packets = [];
 
 				$pk = new JoinGamePacket();
+				$pk->isHardcore = $player->getServer()->isHardcore();
 				$pk->eid = $packet->entityUniqueId;
 				$pk->gamemode = $packet->playerGamemode;
-				$pk->dimension = $player->bigBrother_getDimensionPEToPC($packet->generator);
-				$pk->difficulty = $packet->difficulty;
+				$pk->previousGamemode = -1;
+				$pk->worldNames = ["minecraft:overworld", "minecraft:the_nether", "minecraft:the_end"];
+				$pk->dimensionCodec = $player->getDimensionCodec();
+				$pk->dimension = $player->getDimension();
+
+				//$player->bigBrother_getDimensionPEToPC($packet->generator);
+				$pk->worldName = "minecraft:overworld";//TODO: dimensionとセットなのでここを更新するときはそれ用のdimension.datを手に入れる必要がある
+				$pk->hashedSeed = 0;
 				$pk->maxPlayers = $player->getServer()->getMaxPlayers();
 				$pk->viewDistance = $player->getServer()->getViewDistance();
-				$pk->levelType = "default";
+				$pk->enableRespawnScreen = true;
 				$packets[] = $pk;
 
 				$pk = new SpawnPositionPacket();
@@ -1369,7 +1376,7 @@ class Translator{
 				}
 
 				if($isObject){
-					$pk = new SpawnObjectPacket();
+					$pk = new SpawnEntityPacket();
 					$pk->eid = $packet->entityRuntimeId;
 					$pk->type = $packet->type;
 					$pk->uuid = UUID::fromRandom()->toBinary();
@@ -1392,7 +1399,7 @@ class Translator{
 					$pk->eid = $packet->entityRuntimeId;
 					$pk->metadata = $packet->metadata;
 				}else{
-					$pk = new SpawnMobPacket();
+					$pk = new SpawnLivingEntityPacket();
 					$pk->eid = $packet->entityRuntimeId;
 					$pk->type = $packet->type;
 					$pk->uuid = UUID::fromRandom()->toBinary();
@@ -1457,10 +1464,10 @@ class Translator{
 
 				$packets = [];
 
-				$pk = new SpawnObjectPacket();
+				$pk = new SpawnEntityPacket();
 				$pk->eid = $packet->entityRuntimeId;
 				$pk->uuid = UUID::fromRandom()->toBinary();
-				$pk->type = SpawnObjectPacket::ITEM_STACK;
+				$pk->type = SpawnEntityPacket::ITEM_STACK;
 				$pk->x = $packet->position->x;
 				$pk->y = $packet->position->y;
 				$pk->z = $packet->position->z;
@@ -1624,6 +1631,9 @@ class Translator{
 			case Info::ADD_PAINTING_PACKET:
 				/** @var AddPaintingPacket $packet */
 				$spawnPaintingPos = (new Vector3($packet->position->x, $packet->position->y, $packet->position->z))->floor();
+				$motives = ["Plant" => 5];
+
+				echo $packet->title."\n";
 
 				$pk = new SpawnPaintingPacket();
 				$pk->eid = $packet->entityRuntimeId;
@@ -1631,7 +1641,7 @@ class Translator{
 				$pk->x = $spawnPaintingPos->x;
 				$pk->y = $spawnPaintingPos->y;
 				$pk->z = $spawnPaintingPos->z;
-				$pk->title = $packet->title;
+				$pk->motive = $motives[$packet->title];
 				$pk->direction = $packet->direction;
 
 				return $pk;
@@ -2135,7 +2145,7 @@ class Translator{
 						break;
 						case "minecraft:movement":
 							$entries[] = [
-								"generic.movementSpeed",
+								"generic.movement_speed",
 								$entry->getValue()//TODO: Default Value
 							];
 						break;
@@ -2153,19 +2163,19 @@ class Translator{
 						break;
 						case "minecraft:attack_damage":
 							$entries[] = [
-								"generic.attackDamage",
+								"generic.attack_damage",
 								$entry->getValue()//TODO: Default Value
 							];
 						break;
 						case "minecraft:knockback_resistance":
 							$entries[] = [
-								"generic.knockbackResistance",
+								"generic.knockback_resistance",
 								$entry->getValue()//TODO: Default Value
 							];
 						break;
 						case "minecraft:follow_range":
 							$entries[] = [
-								"generic.followRange",
+								"generic.follow_range",
 								$entry->getValue()//TODO: Default Value
 							];
 						break;
@@ -2237,13 +2247,13 @@ class Translator{
 					if($bedXYZ !== null){
 						/** @var Vector3 $bedXYZ */
 
-						$pk = new UseBedPacket();
+						/*$pk = new UseBedPacket();
 						$pk->eid = $packet->entityRuntimeId;
 						$pk->bedX = $bedXYZ->getX();
 						$pk->bedY = $bedXYZ->getY();
 						$pk->bedZ = $bedXYZ->getZ();
 
-						$packets[] = $pk;
+						$packets[] = $pk;*/
 					}
 				}
 
@@ -2326,7 +2336,7 @@ class Translator{
 
 			case Info::BLOCK_ACTOR_DATA_PACKET:
 				/** @var BlockActorDataPacket $packet */
-				$pk = new UpdateBlockEntityPacket();
+				$pk = new BlockEntityPacket();
 				$pk->x = $packet->x;
 				$pk->y = $packet->y;
 				$pk->z = $packet->z;
@@ -2421,13 +2431,14 @@ class Translator{
 				$pk->isFullChunk = $chunk->isFullChunk();
 				$pk->primaryBitmap = $chunk->getBitMapData();
 				$pk->heightMaps = $chunk->getHeightMaps();
+				$pk->biomes = $chunk->getBiomes();
 				$pk->payload = $chunk->getChunkData();
 				$pk->blockEntities = $blockEntities;
 
 				return $pk;
 
 			case Info::PLAYER_LIST_PACKET:
-				/** @var PlayerInfoPacket $packet */
+				/** @var PlayerListPacket $packet */
 				$pk = new PlayerInfoPacket();
 
 				switch($packet->type){

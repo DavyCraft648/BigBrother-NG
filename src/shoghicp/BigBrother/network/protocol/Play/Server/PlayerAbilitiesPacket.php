@@ -54,16 +54,16 @@ class PlayerAbilitiesPacket extends OutboundPacket{
 	protected function encode() : void{
 		$flags = 0;
 		if($this->isCreative){
-			$flags |= 0b1;
+			$flags |= 0x08;
 		}
 		if($this->isFlying){
-			$flags |= 0b10;
+			$flags |= 0x02;
 		}
 		if($this->canFly){
-			$flags |= 0b100;
+			$flags |= 0x04;
 		}
 		if($this->damageDisabled){
-			$flags |= 0b1000;
+			$flags |= 0x01;
 		}
 		$this->putByte($flags);
 		$this->putFloat($this->flyingSpeed);

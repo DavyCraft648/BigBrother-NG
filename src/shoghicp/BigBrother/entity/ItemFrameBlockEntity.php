@@ -38,7 +38,7 @@ use pocketmine\tile\ItemFrame;
 use pocketmine\utils\UUID;
 use pocketmine\network\mcpe\protocol\MapInfoRequestPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\DestroyEntitiesPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\SpawnObjectPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\SpawnEntityPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\EntityMetadataPacket;
 use shoghicp\BigBrother\utils\ConvertUtils;
 use shoghicp\BigBrother\DesktopPlayer;
@@ -114,10 +114,10 @@ class ItemFrameBlockEntity extends Position{
 	 * @param DesktopPlayer $player
 	 */
 	public function spawnTo(DesktopPlayer $player){
-		$pk = new SpawnObjectPacket();
+		$pk = new SpawnEntityPacket();
 		$pk->eid = $this->eid;
 		$pk->uuid = $this->uuid;
-		$pk->type = SpawnObjectPacket::ITEM_FRAMES;
+		$pk->type = SpawnEntityPacket::ITEM_FRAMES;
 		$pk->x = $this->x;
 		$pk->y = $this->y;
 		$pk->z = $this->z;

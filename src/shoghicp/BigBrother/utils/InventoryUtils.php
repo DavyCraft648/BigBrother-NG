@@ -61,7 +61,7 @@ use pocketmine\tile\Tile;
 use ReflectionClass;
 use shoghicp\BigBrother\DesktopPlayer;
 use shoghicp\BigBrother\network\OutboundPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\ConfirmTransactionPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\WindowConfirmationPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\EntityEquipmentPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\OpenWindowPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\SetSlotPacket;
@@ -743,7 +743,6 @@ class InventoryUtils{
 			}
 		}
 
-		$isCraftingPart = false;
 		if($packet->windowID === 0 or $packet->windowID === 127){//Crafting
 			$minCraftingSlot = 1;
 			if($packet->windowID === 0){
@@ -849,7 +848,6 @@ class InventoryUtils{
 		if($accepted){
 			$pk = new InventoryTransactionPacket();
 			$pk->transactionType = InventoryTransactionPacket::TYPE_NORMAL;
-			$pk->isCraftingPart = $isCraftingPart;
 
 			if($isContainer){
 				$ref = &$this->getItemAndSlot($packet->windowID, $packet->slot, $windowId, $saveInventorySlot);
@@ -873,7 +871,7 @@ class InventoryUtils{
 			}
 		}
 
-		$accepted_pk = new ConfirmTransactionPacket();
+		$accepted_pk = new WindowConfirmationPacket();
 		$accepted_pk->windowID = $packet->windowID;
 		$accepted_pk->actionNumber = $packet->actionNumber;
 		$accepted_pk->accepted = $accepted;

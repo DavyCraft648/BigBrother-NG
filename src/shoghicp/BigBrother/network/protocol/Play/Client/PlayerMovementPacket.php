@@ -27,34 +27,21 @@
 
 declare(strict_types=1);
 
-namespace shoghicp\BigBrother\network\protocol\Play\Server;
+namespace shoghicp\BigBrother\network\protocol\Play\Client;
 
-use shoghicp\BigBrother\network\OutboundPacket;
+use shoghicp\BigBrother\network\InboundPacket;
 
-class SpawnGlobalEntityPacket extends OutboundPacket{
+class PlayerMovementPacket extends InboundPacket{
 
-	const TYPE_LIGHTNING = 1;
-
-	/** @var int */
-	public $eid;
-	/** @var int */
-	public $type;
-	/** @var float */
-	public $x;
-	/** @var float */
-	public $y;
-	/** @var float */
-	public $z;
+	/** @var bool */
+	public $onGround;
 
 	public function pid() : int{
-		return self::SPAWN_GLOBAL_ENTITY_PACKET;
+		return self::PLAYER_MOVEMENT_PACKET;
 	}
 
-	protected function encode() : void{
-		$this->putVarInt($this->eid);
-		$this->putByte($this->type);
-		$this->putDouble($this->x);
-		$this->putDouble($this->y);
-		$this->putDouble($this->z);
+	protected function decode() : void{
+		$this->onGround = $this->getBool();
 	}
+
 }

@@ -147,6 +147,22 @@ class DesktopPlayer extends Player{
 	}
 
 	/**
+	 * Return string of Compound Tag
+	 * @return string
+	 */
+	public function getDimensionCodec(): string{
+		return $this->plugin->getDimensionCodec();
+	}
+
+	/**
+	 * Return string of Compound Tag
+	 * @return string
+	 */
+	public function getDimension(): string{
+		return $this->plugin->getDimension();
+	}
+
+	/**
 	 * @return int dimension
 	 */
 	public function bigBrother_getDimension() : int{
@@ -505,7 +521,7 @@ class DesktopPlayer extends Player{
 			$this->interface->setCompression($this);
 
 			$pk = new LoginSuccessPacket();
-			$pk->uuid = $this->bigBrother_formattedUUID;
+			$pk->uuid = UUID::fromString($this->bigBrother_uuid)->toBinary();
 			$pk->name = $this->bigBrother_username;
 			$this->putRawPacket($pk);
 

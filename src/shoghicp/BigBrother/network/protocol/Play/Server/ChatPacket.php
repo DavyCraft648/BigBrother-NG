@@ -37,6 +37,8 @@ class ChatPacket extends OutboundPacket{
 	public $message;
 	/** @var int */
 	public $position = 0; //0 = chat, 1 = system message, 2 = action bar
+	/** @var string */
+	public $ender;
 
 	public function pid() : int{
 		return self::CHAT_PACKET;
@@ -45,5 +47,6 @@ class ChatPacket extends OutboundPacket{
 	protected function encode() : void{
 		$this->putString($this->message);
 		$this->putByte($this->position);
+		$this->put($this->sender);
 	}
 }

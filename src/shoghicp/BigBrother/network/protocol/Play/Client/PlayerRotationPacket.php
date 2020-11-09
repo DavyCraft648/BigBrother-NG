@@ -27,26 +27,26 @@
 
 declare(strict_types=1);
 
-namespace shoghicp\BigBrother\network\protocol\Play\Server;
+namespace shoghicp\BigBrother\network\protocol\Play\Client;
 
-use shoghicp\BigBrother\network\OutboundPacket;
+use shoghicp\BigBrother\network\InboundPacket;
 
-class ConfirmTransactionPacket extends OutboundPacket{
+class PlayerRotationPacket extends InboundPacket{
 
-	/** @var int */
-	public $windowID;
-	/** @var int */
-	public $actionNumber;
+	/** @var float */
+	public $yaw;
+	/** @var float */
+	public $pitch;
 	/** @var bool */
-	public $accepted;
+	public $onGround;
 
 	public function pid() : int{
-		return self::CONFIRM_TRANSACTION_PACKET;
+		return self::PLAYER_ROTATION_PACKET;
 	}
 
-	protected function encode() : void{
-		$this->putByte($this->windowID);
-		$this->putShort($this->actionNumber);
-		$this->putBool($this->accepted);
+	protected function decode() : void{
+		$this->yaw = $this->getFloat();
+		$this->pitch = $this->getFloat();
+		$this->onGround = $this->getBool();
 	}
 }

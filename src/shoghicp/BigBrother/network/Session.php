@@ -84,6 +84,7 @@ class Session{
 	 */
 	public function write(string $data) : void{
 		if($this->encryptionEnabled){
+			var_dump(strlen($data));
 			@fwrite($this->socket, $this->aes->encrypt($data));
 		}else{
 			@fwrite($this->socket, $data);
@@ -94,16 +95,24 @@ class Session{
 	 * @param int $len
 	 * @return string data read from socket
 	 */
-	public function read(int $len) : string{
+	public function read(int $len) : ?string{
 		if($this->encryptionEnabled){
 			$data = @fread($this->socket, $len);
+			if($data === false){
+				return "";
+			}
+
 			if(strlen($data) > 0){
 				return $this->aes->decrypt($data);
 			}else{
 				return $data;
 			}
 		}else{
-			return @fread($this->socket, $len);
+			$data = @fread($this->socket, $len);
+			if($data === false){
+				return "";
+			}
+			return $data;
 		}
 	}
 
