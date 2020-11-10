@@ -246,6 +246,9 @@ class ConvertUtils{
 	];
 
 	/** @var array */
+	private static $newBlockStateId;
+
+	/** @var array */
 	private static $reverseSpawnEggList;
 
 	public static function init() : void{
@@ -275,6 +278,17 @@ class ConvertUtils{
 		}
 
 		self::$reverseSpawnEggList = array_flip(self::$spawnEggList);
+	}
+
+	public static function loadBlockStateIndex(string $path){
+		self::$newBlockStateId = json_decode(file_get_contents($path), true);
+	}
+
+	public static function getBlockStateIndex(int $blockId, int $blockDamage): int{
+		if(!isset(self::$newBlockStateId[$blockId])){
+			return 0;
+		}
+		return self::$newBlockStateId[$blockId][0];//TODO: blockDamage
 	}
 
 	/**

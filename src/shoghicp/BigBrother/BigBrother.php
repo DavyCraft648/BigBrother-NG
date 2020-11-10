@@ -97,14 +97,16 @@ class BigBrother extends PluginBase implements Listener{
 				ConvertUtils::init();
 
 				$this->saveDefaultConfig();
-				$this->saveResource("server-icon.png", false);
+				$this->saveResource("blockStateMapping.json", true);
 				$this->saveResource("color_index.dat", true);
 				$this->saveResource("dimensionCodec.dat", true);
 				$this->saveResource("dimension.dat", true);
 				$this->saveResource("openssl.cnf", false);
+				$this->saveResource("server-icon.png", false);
 				$this->reloadConfig();
 
 				ColorUtils::loadColorIndex($this->getDataFolder()."color_index.dat");
+				ConvertUtils::loadBlockStateIndex($this->getDataFolder()."blockStateMapping.json");
 
 				$this->dimensionCodec = file_get_contents($this->getDataFolder()."dimensionCodec.dat");
 				$this->dimension = file_get_contents($this->getDataFolder()."dimension.dat");

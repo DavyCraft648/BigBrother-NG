@@ -104,14 +104,15 @@ class DesktopChunk{
 							}
 
 							ConvertUtils::convertBlockData(true, $blockId, $blockData);
-							$block = (int) ($blockId << 4) | $blockData;
+							$stateId = ConvertUtils::getBlockStateIndex($blockId, $blockData);
+							$block = $stateId;
 						}
 
 						if(($key = array_search($block, $palette, true)) === false){
 							$key = count($palette);
 							$palette[$key] = $block;
 						}
-						$data .= chr($key);//bit
+						$data .= chr($key);
 
 						if($x === 7 or $x === 15){//Reset ChunkData
 							$chunkData .= strrev($data);
