@@ -157,8 +157,23 @@ class DesktopChunk{
 	public function generateHeightMaps(){
 		$chunk = $this->level->getChunk($this->chunkX, $this->chunkZ, false);
 
+		$long = 0x00;
+		$longData = [];
+		$shiftCount = 0;
+		foreach($chunk->getHeightMapArray() as $value){
+			$long |= ($value & 0x1fff);
+			$long <<= 9;
+			$shiftCount++;
+			if($shiftCount === 7){
+				$longData[] = $long;
+				$long = 0x00;
+				$shiftCount = 0;
+			}
+		}
+		$longData[] = $long;
+
 		$heightMaps = new CompoundTag("", [
-			new LongArrayTag("MOTION_BLOCKING", array_fill(0, 37, 0)),//TODO: どうやって対応させるか
+			new LongArrayTag("MOTION_BLOCKING", $longData),
 		]);
 		$this->heightMaps = $heightMaps;
 
