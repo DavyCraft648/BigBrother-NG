@@ -34,7 +34,7 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class WindowPropertyPacket extends OutboundPacket{
 
 	/** @var int */
-	public $windowID;
+	public $windowId;
 	/** @var int */
 	public $property;
 	/** @var int */
@@ -45,8 +45,9 @@ class WindowPropertyPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putByte($this->windowID);
+		$this->putByte($this->windowId);
 		$this->putShort($this->property);
 		$this->putShort($this->value);
 	}
+
 }

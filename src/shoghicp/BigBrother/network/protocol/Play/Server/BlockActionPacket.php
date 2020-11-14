@@ -40,7 +40,7 @@ class BlockActionPacket extends OutboundPacket{
 	/** @var int */
 	public $z;
 	/** @var int */
-	public $actionID;
+	public $actionId;
 	/** @var int */
 	public $actionParam;
 	/** @var int */
@@ -52,8 +52,9 @@ class BlockActionPacket extends OutboundPacket{
 
 	protected function encode() : void{
 		$this->putPosition($this->x, $this->y, $this->z);
-		$this->putByte($this->actionID);
+		$this->putByte($this->actionId);
 		$this->putByte($this->actionParam);
 		$this->putVarInt($this->blockType);
 	}
+
 }

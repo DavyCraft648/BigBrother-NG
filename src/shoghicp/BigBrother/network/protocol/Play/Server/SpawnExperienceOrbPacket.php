@@ -55,4 +55,5 @@ class SpawnExperienceOrbPacket extends OutboundPacket{
 		$this->putDouble($this->z);
 		$this->putShort($this->count);
 	}
+
 }

@@ -34,32 +34,36 @@ use shoghicp\BigBrother\network\InboundPacket;
 class PlayerBlockPlacementPacket extends InboundPacket{
 
 	/** @var int */
+	public $hand;
+	/** @var int */
 	public $x;
 	/** @var int */
 	public $y;
 	/** @var int */
 	public $z;
 	/** @var int */
-	public $direction;
-	/** @var int */
-	public $hand;
+	public $face;
 	/** @var float */
-	public $cursorX;
+	public $cursorPositionX;
 	/** @var float */
-	public $cursorY;
+	public $cursorPositionY;
 	/** @var float */
-	public $cursorZ;
+	public $cursorPositionZ;
+	/** @var bool */
+	public $isInsideBlock = false;
 
 	public function pid() : int{
 		return self::PLAYER_BLOCK_PLACEMENT_PACKET;
 	}
 
 	protected function decode() : void{
-		$this->getPosition($this->x, $this->y, $this->z);
-		$this->direction = $this->getVarInt();
 		$this->hand = $this->getVarInt();
-		$this->cursorX = $this->getFloat();
-		$this->cursorY = $this->getFloat();
-		$this->cursorZ = $this->getFloat();
+		$this->getPosition($this->x, $this->y, $this->z);
+		$this->face = $this->getVarInt();
+		$this->cursorPositionX = $this->getFloat();
+		$this->cursorPositionY = $this->getFloat();
+		$this->cursorPositionZ = $this->getFloat();
+		$this->isInsideBlock = $this->getBool();
 	}
+
 }

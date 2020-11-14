@@ -45,8 +45,10 @@ class StatisticsPacket extends OutboundPacket{
 	protected function encode() : void{
 		$this->putVarInt($this->count);
 		foreach($this->statistic as $statistic){
-			$this->putString($statistic[0]);
+			$this->putVarInt($statistic[0]);
 			$this->putVarInt($statistic[1]);
+			$this->putVarInt($statistic[2]);
 		}
 	}
+
 }

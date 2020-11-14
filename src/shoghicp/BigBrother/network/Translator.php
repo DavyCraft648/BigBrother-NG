@@ -33,6 +33,7 @@ use pocketmine\network\mcpe\protocol\ActorEventPacket;
 use pocketmine\network\mcpe\protocol\AddActorPacket;
 use pocketmine\network\mcpe\protocol\AddItemActorPacket;
 use pocketmine\network\mcpe\protocol\BlockActorDataPacket;
+use pocketmine\network\mcpe\protocol\ChunkRadiusUpdatedPacket;
 use pocketmine\network\mcpe\protocol\LevelChunkPacket;
 use pocketmine\network\mcpe\protocol\MoveActorAbsolutePacket;
 use pocketmine\network\mcpe\protocol\PlayerListPacket;
@@ -50,6 +51,9 @@ use shoghicp\BigBrother\network\protocol\Play\Client\PlayerRotationPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\PlayerMovementPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\PlayerPositionPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\UpdateSignPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\UpdateLightPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\UpdateViewDistancePacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\UpdateViewPositionPacket;
 use UnexpectedValueException;
 use const pocketmine\DEBUG;
 use pocketmine\block\Block;
@@ -123,19 +127,19 @@ use shoghicp\BigBrother\network\protocol\Play\Client\ClickWindowPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\CloseWindowPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\CreativeInventoryActionPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\InteractEntityPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\AnimatePacket as STCAnimatePacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\EntityAnimationPacket as STCAnimatePacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\BlockActionPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\BlockChangePacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\BossBarPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\ChangeGameStatePacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\ChatPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ChatMessagePacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\ChunkDataPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\DestroyEntitiesPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\EffectPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\EntityEffectPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\EntityEquipmentPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\EntityHeadLookPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\EntityLookPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\EntityRotationPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\EntityMetadataPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\EntityPropertiesPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\EntityStatusPacket;
@@ -166,7 +170,7 @@ use shoghicp\BigBrother\network\protocol\Play\Server\SpawnPositionPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\StatisticsPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\TimeUpdatePacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\TitlePacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\BlockEntityPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\BlockEntityDataPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\UpdateHealthPacket;
 use shoghicp\BigBrother\utils\ConvertUtils;
 use shoghicp\BigBrother\utils\ColorUtils;
@@ -183,12 +187,12 @@ class Translator{
 	public function interfaceToServer(DesktopPlayer $player, Packet $packet){
 		switch($packet->pid()){
 			case InboundPacket::TELEPORT_CONFIRM_PACKET://Teleport Confirm
-			case InboundPacket::CONFIRM_TRANSACTION_PACKET://Transaction Confirm
+			case InboundPacket::WINDOW_CONFIRMATION_PACKET://Transaction Confirm
 			case InboundPacket::TAB_COMPLETE_PACKET:
 				return null;
 
-			case InboundPacket::CHAT_PACKET:
-				/** @var protocol\Play\Client\ChatPacket $packet */
+			case InboundPacket::CHAT_MESSAGE_PACKET:
+				/** @var protocol\Play\Client\ChatMessagePacket $packet */
 				$pk = new TextPacket();
 				$pk->type = 1;//Chat Type
 				$pk->sourceName = "";
@@ -197,7 +201,7 @@ class Translator{
 
 			case InboundPacket::CLIENT_STATUS_PACKET:
 				/** @var ClientStatusPacket $packet */
-				switch($packet->actionID){
+				switch($packet->actionId){
 					case 0:
 						$pk = new PlayerActionPacket();
 						$pk->entityRuntimeId = $player->getId();
@@ -219,7 +223,7 @@ class Translator{
 						$player->putRawPacket($pk);
 					break;
 					default:
-						echo "ClientStatusPacket: ".$packet->actionID."\n";
+						echo "ClientStatusPacket: ".$packet->actionId."\n";
 					break;
 				}
 				return null;
@@ -227,11 +231,9 @@ class Translator{
 			case InboundPacket::CLIENT_SETTINGS_PACKET:
 				/** @var ClientSettingsPacket $packet */
 				$player->bigBrother_setClientSetting([
-					"Lang" => $packet->lang,
-					"View" => $packet->view,
 					"ChatMode" => $packet->chatMode,
-					"ChatColor" => $packet->chatColor,
-					"SkinSettings" => $packet->skinSetting,
+					"ChatColor" => $packet->chatColors,
+					"SkinSettings" => $packet->displayedSkinParts,
 				]);
 
 				$locale = $packet->lang[0].$packet->lang[1];
@@ -243,7 +245,7 @@ class Translator{
 				$pk = new EntityMetadataPacket();
 				$pk->eid = $player->getId();
 				$pk->metadata = [//Enable Display Skin Parts
-					13 => [0, $packet->skinSetting],
+					16 => [0, $packet->displayedSkinParts],
 					"convert" => true,
 				];
 				$loggedInPlayers = $player->getServer()->getLoggedInPlayers();
@@ -254,7 +256,7 @@ class Translator{
 				}
 
 				$pk = new RequestChunkRadiusPacket();
-				$pk->radius = $packet->view;
+				$pk->radius = $packet->viewDistance;
 
 				return $pk;
 
@@ -273,15 +275,12 @@ class Translator{
 			case InboundPacket::PLUGIN_MESSAGE_PACKET:
 				/** @var PluginMessagePacket $packet */
 				switch($packet->channel){
-					case "REGISTER"://Mods Register
-						$player->bigBrother_setPluginMessageList("Channels", $packet->data);
+					case "minecraft:brand":
+						//TODO: brand
 					break;
-					case "MC|Brand": //ServerType
-						$player->bigBrother_setPluginMessageList("ServerType", $packet->data);
-					break;
-					case "MC|BEdit":
+					/*case "MC|BEdit":
 						$packets = [];
-						/** @var Item $item */
+						/** @var Item $item *//*
 						$item = clone $packet->data[0];
 
 						if(!is_null(($pages = $item->getNamedTagEntry("pages")))){
@@ -309,7 +308,7 @@ class Translator{
 					break;
 					case "MC|BSign":
 						$packets = [];
-						/** @var Item $item */
+						/** @var Item $item *//*
 						$item = clone $packet->data[0];
 
 						if(!is_null(($pages = $item->getNamedTagEntry("pages")))){
@@ -342,10 +341,7 @@ class Translator{
 						$packets[] = $pk;
 
 						return $packets;
-					break;
-					default:
-						echo "PluginChannel: ".$packet->channel."\n";
-					break;
+					break;*/
 				}
 				return null;
 
@@ -354,7 +350,7 @@ class Translator{
 				$frame = ItemFrameBlockEntity::getItemFrameById($player->getLevel(), $packet->target);
 				if($frame !== null){
 					switch($packet->type){
-						case InteractEntityPacket::INTERACT:
+						case InteractEntityPacket::TYPE_INTERACT:
 							$pk = new InventoryTransactionPacket();
 							$pk->transactionType = InventoryTransactionPacket::TYPE_USE_ITEM;
 							$pk->trData = new stdClass();
@@ -369,7 +365,7 @@ class Translator{
 							$pk->trData->clickPos = $frame->asVector3();
 							return $pk;
 						break;
-						case InteractEntityPacket::ATTACK:
+						case InteractEntityPacket::TYPE_ATTACK:
 							if($frame->hasItem()){
 								$pk = new ItemFrameDropItemPacket();
 								$pk->x = $frame->x;
@@ -396,7 +392,7 @@ class Translator{
 					return null;
 				}
 
-				if($packet->type === InteractEntityPacket::INTERACT_AT){
+				if($packet->type === InteractEntityPacket::TYPE_INTERACT_AT){
 					$pk = new InteractPacket();
 					$pk->target = $packet->target;
 					$pk->action = InteractPacket::ACTION_MOUSEOVER;
@@ -414,10 +410,10 @@ class Translator{
 					$pk->trData->vector2 = new Vector3(0, 0, 0);
 
 					switch($packet->type){
-						case InteractEntityPacket::INTERACT:
+						case InteractEntityPacket::TYPE_INTERACT:
 							$pk->trData->actionType = InventoryTransactionPacket::USE_ITEM_ON_ENTITY_ACTION_INTERACT;
 						break;
-						case InteractEntityPacket::ATTACK:
+						case InteractEntityPacket::TYPE_ATTACK:
 							$pk->trData->actionType = InventoryTransactionPacket::USE_ITEM_ON_ENTITY_ACTION_ATTACK;
 						break;
 						default:
@@ -432,7 +428,7 @@ class Translator{
 
 			case InboundPacket::KEEP_ALIVE_PACKET:
 				$pk = new KeepAlivePacket();
-				$pk->id = mt_rand();
+				$pk->keepAliveId = mt_rand();
 				$player->putRawPacket($pk);
 
 				return null;
@@ -452,7 +448,6 @@ class Translator{
 					$pk->yaw = $player->yaw;
 					$pk->pitch = $player->pitch;
 					$pk->onGround = $player->isOnGround();
-
 					$player->putRawPacket($pk);
 
 					return null;
@@ -461,7 +456,7 @@ class Translator{
 				$packets = [];
 
 				$pk = new MovePlayerPacket();
-				$pk->position = new Vector3($packet->x, $packet->y + $player->getEyeHeight(), $packet->z);
+				$pk->position = new Vector3($packet->x, $packet->feetY + $player->getEyeHeight(), $packet->z);
 				$pk->yaw = $player->yaw;
 				$pk->headYaw = $player->yaw;
 				$pk->pitch = $player->pitch;
@@ -472,7 +467,7 @@ class Translator{
 					$pk->entityRuntimeId = $player->getId();
 					$pk->action = PlayerActionPacket::ACTION_JUMP;
 					$pk->x = $packet->x;
-					$pk->y = $packet->y;
+					$pk->y = $packet->feetY;
 					$pk->z = $packet->z;
 					$pk->face = 0;
 					$packets[] = $pk;
@@ -490,7 +485,6 @@ class Translator{
 					$pk->yaw = $player->yaw;
 					$pk->pitch = $player->pitch;
 					$pk->onGround = $player->isOnGround();
-
 					$player->putRawPacket($pk);
 
 					return null;
@@ -499,7 +493,7 @@ class Translator{
 				$packets = [];
 
 				$pk = new MovePlayerPacket();
-				$pk->position = new Vector3($packet->x, $packet->y + $player->getEyeHeight(), $packet->z);
+				$pk->position = new Vector3($packet->x, $packet->feetY + $player->getEyeHeight(), $packet->z);
 				$pk->yaw = $packet->yaw;
 				$pk->headYaw = $packet->yaw;
 				$pk->pitch = $packet->pitch;
@@ -510,7 +504,7 @@ class Translator{
 					$pk->entityRuntimeId = $player->getId();
 					$pk->action = PlayerActionPacket::ACTION_JUMP;
 					$pk->x = $packet->x;
-					$pk->y = $packet->y;
+					$pk->y = $packet->feetY;
 					$pk->z = $packet->z;
 					$pk->face = 0;
 					$packets[] = $pk;
@@ -528,7 +522,6 @@ class Translator{
 					$pk->yaw = $player->yaw;
 					$pk->pitch = $player->pitch;
 					$pk->onGround = $player->isOnGround();
-
 					$player->putRawPacket($pk);
 
 					return null;
@@ -729,7 +722,7 @@ class Translator{
 
 			case InboundPacket::ENTITY_ACTION_PACKET:
 				/** @var EntityActionPacket $packet */
-				switch($packet->actionID){
+				switch($packet->actionId){
 					case 0://Start sneaking
 						$pk = new PlayerActionPacket();
 						$pk->entityRuntimeId = $player->getId();
@@ -781,7 +774,7 @@ class Translator{
 						return $pk;
 					break;
 					default:
-						echo "EntityActionPacket: ".$packet->actionID."\n";
+						echo "EntityActionPacket: ".$packet->actionId."\n";
 					break;
 				}
 
@@ -791,8 +784,8 @@ class Translator{
 				/** @var AdvancementTabPacket $packet */
 				if($packet->status === 0){
 					$pk = new SelectAdvancementTabPacket();
-					$pk->hasTab = true;
-					$pk->tabId = $packet->tabId;
+					$pk->hasId = true;
+					$pk->identifier = $packet->tabId;
 					$player->putRawPacket($pk);
 				}
 
@@ -802,9 +795,9 @@ class Translator{
 				/** @var HeldItemChangePacket $packet */
 				$pk = new MobEquipmentPacket();
 				$pk->entityRuntimeId = $player->getId();
-				$pk->item = $player->getInventory()->getHotbarSlotItem($packet->selectedSlot);
-				$pk->inventorySlot = $packet->selectedSlot;
-				$pk->hotbarSlot = $packet->selectedSlot;
+				$pk->item = $player->getInventory()->getHotbarSlotItem($packet->slot);
+				$pk->inventorySlot = $packet->slot;
+				$pk->hotbarSlot = $packet->slot;
 
 				return $pk;
 
@@ -837,7 +830,7 @@ class Translator{
 
 				return $pk;
 
-			case InboundPacket::ANIMATE_PACKET:
+			case InboundPacket::ANIMATION_PACKET:
 				$pk = new AnimatePacket();
 				$pk->action = 1;
 				$pk->entityRuntimeId = $player->getId();
@@ -864,7 +857,7 @@ class Translator{
 			case InboundPacket::PLAYER_BLOCK_PLACEMENT_PACKET:
 				/** @var PlayerBlockPlacementPacket $packet */
 				$blockClicked = $player->getLevel()->getBlock(new Vector3($packet->x, $packet->y, $packet->z));
-				$blockReplace = $blockClicked->getSide($packet->direction);
+				$blockReplace = $blockClicked->getSide($packet->face);
 
 				if(ItemFrameBlockEntity::exists($player->getLevel(), $blockReplace->getX(), $blockReplace->getY(), $blockReplace->getZ())){
 					$pk = new BlockChangePacket();//Cancel place block
@@ -874,6 +867,7 @@ class Translator{
 					$pk->blockId = Block::AIR;
 					$pk->blockMeta = 0;
 					$player->putRawPacket($pk);
+					//TODO: convert block State Id
 
 					return null;
 				}
@@ -885,7 +879,7 @@ class Translator{
 				$pk->trData->x = $packet->x;
 				$pk->trData->y = $packet->y;
 				$pk->trData->z = $packet->z;
-				$pk->trData->face = $packet->direction;
+				$pk->trData->face = $packet->face;
 				$pk->trData->hotbarSlot = $player->getInventory()->getHeldItemIndex();
 				$pk->trData->itemInHand = $player->getInventory()->getItemInHand();
 				$pk->trData->playerPos = new Vector3($player->getX(), $player->getY(), $player->getZ());
@@ -967,7 +961,7 @@ class Translator{
 					$packet->message = "chat.type.advancement.task";
 				}
 
-				$pk = new ChatPacket();
+				$pk = new ChatMessagePacket();
 				$pk->message = BigBrother::toJSON($packet->message, $packet->type, $packet->parameters);
 				switch($packet->type){
 					case TextPacket::TYPE_CHAT:
@@ -991,8 +985,8 @@ class Translator{
 			case Info::SET_TIME_PACKET:
 				/** @var SetTimePacket $packet */
 				$pk = new TimeUpdatePacket();
-				$pk->age = $packet->time;
-				$pk->time = $packet->time;
+				$pk->worldAge = $packet->time;
+				$pk->dayTime = $packet->time;
 				return $pk;
 
 			case Info::START_GAME_PACKET:
@@ -1001,7 +995,7 @@ class Translator{
 
 				$pk = new JoinGamePacket();
 				$pk->isHardcore = $player->getServer()->isHardcore();
-				$pk->eid = $packet->entityUniqueId;
+				$pk->eid = $packet->entityRuntimeId;
 				$pk->gamemode = $packet->playerGamemode;
 				$pk->previousGamemode = -1;
 				$pk->worldNames = ["minecraft:overworld", "minecraft:the_nether", "minecraft:the_end"];
@@ -1012,19 +1006,33 @@ class Translator{
 				$pk->worldName = "minecraft:overworld";//TODO: dimensionとセットなのでここを更新するときはそれ用のdimension.datを手に入れる必要がある
 				$pk->hashedSeed = 0;
 				$pk->maxPlayers = $player->getServer()->getMaxPlayers();
-				$pk->viewDistance = $player->getServer()->getViewDistance();
+				$pk->viewDistance = 4;//default view Distance is 2 * 2.
 				$pk->enableRespawnScreen = true;
 				$packets[] = $pk;
 
+				$pk = new PluginMessagePacket();
+				$pk->channel = "minecraft:brand";
+				$pk->data[] = "BigBrother";//displayed "BigBrother" server on debug mode
+				$packets[] = $pk;
+
+				$pk = new ServerDifficultyPacket();
+				$pk->difficulty = $packet->difficulty;
+				$packets[] = $pk;
+
 				$pk = new SpawnPositionPacket();
-				$pk->spawnX = $packet->spawnX;
-				$pk->spawnY = $packet->spawnY;
-				$pk->spawnZ = $packet->spawnZ;
+				$pk->x = $packet->spawnX;
+				$pk->y = $packet->spawnY;
+				$pk->z = $packet->spawnZ;
+				$packets[] = $pk;
+
+				$pk = new UpdateViewPositionPacket();
+				$pk->chunkX = $player->getX() >> 4;
+				$pk->chunkZ = $player->getZ() >> 4;
 				$packets[] = $pk;
 
 				$pk = new PlayerAbilitiesPacket();
 				$pk->flyingSpeed = 0.05;
-				$pk->walkingSpeed = 0.1;
+				$pk->viewModifierField = 0.1;
 				$pk->canFly = ($player->getGamemode() & 0x01) > 0;
 				$pk->damageDisabled = ($player->getGamemode() & 0x01) > 0;
 				$pk->isFlying = false;
@@ -1045,6 +1053,10 @@ class Translator{
 				$pk->z = $packet->position->z;
 				$pk->yaw = $packet->yaw;
 				$pk->pitch = $packet->pitch;
+				$packets[] = $pk;
+
+				$pk = new EntityMetadataPacket();
+				$pk->eid = $packet->entityRuntimeId;
 				$pk->metadata = $packet->metadata;
 				$packets[] = $pk;
 
@@ -1084,7 +1096,7 @@ class Translator{
 				$pk = new EntityMetadataPacket();
 				$pk->eid = $packet->entityRuntimeId;
 				$pk->metadata = [//Enable Display Skin Parts
-					13 => [0, $skinFlags],
+					16 => [0, $skinFlags],
 					"convert" => true,
 				];
 				$packets[] = $pk;
@@ -1098,6 +1110,7 @@ class Translator{
 
 			case Info::ADD_ACTOR_PACKET:
 				/** @var AddActorPacket $packet */
+				return null;
 				$packets = [];
 
 				$isObject = false;
@@ -1441,7 +1454,7 @@ class Translator{
 					}
 					$pk = new BossBarPacket();
 					$pk->uuid = $uuid;
-					$pk->actionID = BossBarPacket::TYPE_REMOVE;
+					$pk->actionId = BossBarPacket::TYPE_REMOVE;
 
 					$player->bigBrother_setBossBarData("entityRuntimeId", -1);
 					$player->bigBrother_setBossBarData("uuid", "");
@@ -1449,7 +1462,7 @@ class Translator{
 					$packets[] = $pk;
 				}
 				$pk = new DestroyEntitiesPacket();
-				$pk->ids[] = $packet->entityUniqueId;
+				$pk->entityIds[] = $packet->entityUniqueId;
 
 				$player->bigBrother_removeEntityList($packet->entityUniqueId);
 
@@ -1484,7 +1497,7 @@ class Translator{
 				$pk->eid = $packet->entityRuntimeId;
 				$pk->metadata = [
 					0 => [0, 0],
-					6 => [5, $item],
+					7 => [6, $item],
 					"convert" => true,
 				];
 				$packets[] = $pk;
@@ -1533,7 +1546,7 @@ class Translator{
 					$pk->pitch = $packet->xRot;
 					$packets[] = $pk;
 
-					$pk = new EntityLookPacket();
+					$pk = new EntityRotationPacket();
 					$pk->eid = $packet->entityRuntimeId;
 					$pk->yaw = $packet->yRot;
 					$pk->pitch = $packet->xRot;
@@ -1574,7 +1587,7 @@ class Translator{
 					$pk->pitch = $packet->pitch;
 					$packets[] = $pk;
 
-					$pk = new EntityLookPacket();
+					$pk = new EntityRotationPacket();
 					$pk->eid = $packet->entityRuntimeId;
 					$pk->yaw = $packet->headYaw;
 					$pk->pitch = $packet->pitch;
@@ -1625,6 +1638,7 @@ class Translator{
 				$pk->z = $packet->z;
 				$pk->blockId = $block[0];
 				$pk->blockMeta = $block[1];
+				//TODO: convert block State Id
 
 				return $pk;
 
@@ -1649,10 +1663,11 @@ class Translator{
 			case Info::CHANGE_DIMENSION_PACKET:
 				/** @var ChangeDimensionPacket $packet */
 				$pk = new RespawnPacket();
-				$pk->dimension = $player->bigBrother_getDimensionPEToPC($packet->dimension);
-				$pk->difficulty = $player->getServer()->getDifficulty();
+				$pk->dimension = $player->getDimension();
+				$pk->worldName = "minecraft:overworld";
+				$pk->hashedSeed = 0;
 				$pk->gamemode = $player->getGamemode();
-				$pk->levelType = "default";
+				$pk->previousGamemode = -1;
 
 				$player->bigBrother_respawn();
 
@@ -1661,13 +1676,13 @@ class Translator{
 			case Info::PLAY_SOUND_PACKET:
 				/** @var PlaySoundPacket $packet */
 				$pk = new NamedSoundEffectPacket();
-				$pk->category = 0;
-				$pk->x = (int) $packet->x;
-				$pk->y = (int) $packet->y;
-				$pk->z = (int) $packet->z;
+				$pk->soundCategory = 0;
+				$pk->effectPositionX = (int) $packet->x;
+				$pk->effectPositionY = (int) $packet->y;
+				$pk->effectPositionZ = (int) $packet->z;
 				$pk->volume = $packet->volume * 0.25;
 				$pk->pitch = $packet->pitch;
-				$pk->name = $packet->soundName;
+				$pk->soundName = $packet->soundName;
 
 				return $pk;
 
@@ -1726,13 +1741,13 @@ class Translator{
 
 				if($isSoundEffect){
 					$pk = new NamedSoundEffectPacket();
-					$pk->category = $category;
-					$pk->x = (int) $packet->position->x;
-					$pk->y = (int) $packet->position->y;
-					$pk->z = (int) $packet->position->z;
+					$pk->soundCategory = $category;
+					$pk->effectPositionX = (int) $packet->position->x;
+					$pk->effectPositionY = (int) $packet->position->y;
+					$pk->effectPositionZ = (int) $packet->position->z;
 					$pk->volume = $volume;
 					$pk->pitch = $pitch;
-					$pk->name = $name;
+					$pk->soundName = $name;
 
 					return $pk;
 				}
@@ -1911,16 +1926,16 @@ class Translator{
 
 				if($isSoundEffect){
 					$pk = new NamedSoundEffectPacket();
-					$pk->category = $category;
-					$pk->x = (int) $packet->position->x;
-					$pk->y = (int) $packet->position->y;
-					$pk->z = (int) $packet->position->z;
+					$pk->soundCategory = $category;
+					$pk->effectPositionX = (int) $packet->position->x;
+					$pk->effectPositionY = (int) $packet->position->y;
+					$pk->effectPositionZ = (int) $packet->position->z;
 					$pk->volume = 0.5;
 					$pk->pitch = 1.0;
-					$pk->name = $name;
+					$pk->soundName = $name;
 				}elseif($isParticle){
 					$pk = new ParticlePacket();
-					$pk->id = $id;
+					$pk->particleId = $id;
 					$pk->longDistance = false;
 					$pk->x = $packet->position->x;
 					$pk->y = $packet->position->y;
@@ -1928,9 +1943,9 @@ class Translator{
 					$pk->offsetX = 0;
 					$pk->offsetY = 0;
 					$pk->offsetZ = 0;
-					$pk->data = $packet->data;
-					$pk->count = 1;
-					$pk->addData = $addData;
+					$pk->particleData = $packet->data;
+					$pk->particleCount = 1;
+					$pk->data = $addData;
 				}else{
 					$pk = new EffectPacket();
 					$pk->effectId = $packet->evid;
@@ -1949,7 +1964,7 @@ class Translator{
 				$pk->x = $packet->x;
 				$pk->y = $packet->y;
 				$pk->z = $packet->z;
-				$pk->actionID = $packet->eventType;
+				$pk->actionId = $packet->eventType;
 				$pk->actionParam = $packet->eventData;
 				$pk->blockType = $blockId = $player->getLevel()->getBlock(new Vector3($packet->x, $packet->y, $packet->z))->getId();
 
@@ -1960,40 +1975,40 @@ class Translator{
 				switch($packet->type){
 					case SetTitlePacket::TYPE_CLEAR_TITLE:
 						$pk = new TitlePacket();
-						$pk->actionID = TitlePacket::TYPE_HIDE;
+						$pk->actionId = TitlePacket::TYPE_HIDE;
 
 						return $pk;
 					break;
 					case SetTitlePacket::TYPE_RESET_TITLE:
 						$pk = new TitlePacket();
-						$pk->actionID = TitlePacket::TYPE_RESET;
+						$pk->actionId = TitlePacket::TYPE_RESET;
 
 						return $pk;
 					break;
 					case SetTitlePacket::TYPE_SET_TITLE:
 						$pk = new TitlePacket();
-						$pk->actionID = TitlePacket::TYPE_SET_TITLE;
+						$pk->actionId = TitlePacket::TYPE_SET_TITLE;
 						$pk->data = BigBrother::toJSON($packet->text);
 
 						return $pk;
 					break;
 					case SetTitlePacket::TYPE_SET_SUBTITLE:
 						$pk = new TitlePacket();
-						$pk->actionID = TitlePacket::TYPE_SET_SUB_TITLE;
+						$pk->actionId = TitlePacket::TYPE_SET_SUB_TITLE;
 						$pk->data = BigBrother::toJSON($packet->text);
 
 						return $pk;
 					break;
 					case SetTitlePacket::TYPE_SET_ACTIONBAR_MESSAGE:
 						$pk = new TitlePacket();
-						$pk->actionID = TitlePacket::TYPE_SET_ACTION_BAR;
+						$pk->actionId = TitlePacket::TYPE_SET_ACTION_BAR;
 						$pk->data = BigBrother::toJSON($packet->text);
 
 						return $pk;
 					break;
 					case SetTitlePacket::TYPE_SET_ANIMATION_TIMES:
 						$pk = new TitlePacket();
-						$pk->actionID = TitlePacket::TYPE_SET_SETTINGS;
+						$pk->actionId = TitlePacket::TYPE_SET_SETTINGS;
 						$pk->data = [];
 						$pk->data[0] = $packet->fadeInTime;
 						$pk->data[1] = $packet->stayTime;
@@ -2017,18 +2032,18 @@ class Translator{
 						$packets = [];
 
 						$pk = new EntityStatusPacket();
-						$pk->status = 2;
+						$pk->entityStatus = 2;
 						$pk->eid = $packet->entityRuntimeId;
 						$packets[] = $pk;
 
 						$pk = new NamedSoundEffectPacket();
-						$pk->category = 0;
-						$pk->x = (int) $player->getX();
-						$pk->y = (int) $player->getY();
-						$pk->z = (int) $player->getZ();
+						$pk->soundCategory = 0;
+						$pk->effectPositionX = (int) $player->getX();
+						$pk->effectPositionY = (int) $player->getY();
+						$pk->effectPositionZ = (int) $player->getZ();
 						$pk->volume = 0.5;
 						$pk->pitch = 1.0;
-						$pk->name = "entity.".$type.".hurt";
+						$pk->soundName = "entity.".$type.".hurt";
 						$packets[] = $pk;
 
 						return $packets;
@@ -2039,18 +2054,18 @@ class Translator{
 						$packets = [];
 
 						$pk = new EntityStatusPacket();
-						$pk->status = 3;
+						$pk->entityStatus = 3;
 						$pk->eid = $packet->entityRuntimeId;
 						$packets[] = $pk;
 
 						$pk = new NamedSoundEffectPacket();
-						$pk->category = 0;
-						$pk->x = (int) $player->getX();
-						$pk->y = (int) $player->getY();
-						$pk->z = (int) $player->getZ();
+						$pk->soundCategory = 0;
+						$pk->effectPositionX = (int) $player->getX();
+						$pk->effectPositionY = (int) $player->getY();
+						$pk->effectPositionZ = (int) $player->getZ();
 						$pk->volume = 0.5;
 						$pk->pitch = 1.0;
-						$pk->name = "entity.".$type.".death";
+						$pk->soundName = "entity.".$type.".death";
 						$packets[] = $pk;
 
 						return $packets;
@@ -2118,25 +2133,25 @@ class Translator{
 								$pk = new UpdateHealthPacket();
 								$pk->health = $entry->getValue();//TODO: Default Value
 								$pk->food = (int) $player->getFood();//TODO: Default Value
-								$pk->saturation = $player->getSaturation();//TODO: Default Value
-							}elseif($packet->entityRuntimeId === $player->bigBrother_getBossBarData("entityRuntimeId")){
+								$pk->foodSaturation = $player->getSaturation();//TODO: Default Value
+							}/*elseif($packet->entityRuntimeId === $player->bigBrother_getBossBarData("entityRuntimeId")){
 								$uuid = $player->bigBrother_getBossBarData("uuid");
 								if($uuid === ""){
 									return null;
 								}
 								$pk = new BossBarPacket();
 								$pk->uuid = $uuid;
-								$pk->actionID = BossBarPacket::TYPE_UPDATE_HEALTH;
+								$pk->actionId = BossBarPacket::TYPE_UPDATE_HEALTH;
 								if((int) $entry->getMaxValue() === 0){
 									$pk->health = 0;
 								}else{
 									$pk->health = $entry->getValue() / $entry->getMaxValue();
 								}
-							}else{
+							}*/else{
 								$pk = new EntityMetadataPacket();
 								$pk->eid = $packet->entityRuntimeId;
 								$pk->metadata = [
-									7 => [2, $entry->getValue()],
+									8 => [2, $entry->getValue()],
 									"convert" => true,
 								];
 							}
@@ -2154,7 +2169,7 @@ class Translator{
 						case "minecraft:player.experience":
 							if($packet->entityRuntimeId === $player->getId()){
 								$pk = new SetExperiencePacket();
-								$pk->experience = $entry->getValue();//TODO: Default Value
+								$pk->experienceBar = $entry->getValue();//TODO: Default Value
 								$pk->level = $player->getXpLevel();//TODO: Default Value
 								$pk->totalExperience = $player->getLifetimeTotalXp();//TODO: Default Value
 
@@ -2200,7 +2215,7 @@ class Translator{
 
 				if($packet->entityRuntimeId === $player->getId()){
 					$pk = new HeldItemChangePacket();
-					$pk->selectedSlot = $packet->hotbarSlot;
+					$pk->slot = $packet->hotbarSlot;
 					$packets[] = $pk;
 				}
 
@@ -2236,7 +2251,7 @@ class Translator{
 					}
 					$pk = new BossBarPacket();
 					$pk->uuid = $uuid;
-					$pk->actionID = BossBarPacket::TYPE_UPDATE_TITLE;
+					$pk->actionId = BossBarPacket::TYPE_UPDATE_TITLE;
 					$pk->title = BigBrother::toJSON(str_replace(["\r\n", "\r", "\n"], "", $title));
 
 					$packets[] = $pk;
@@ -2278,15 +2293,15 @@ class Translator{
 				$pk = new UpdateHealthPacket();
 				$pk->health = $packet->health;//TODO: Default Value
 				$pk->food = (int) $player->getFood();//TODO: Default Value
-				$pk->saturation = $player->getSaturation();//TODO: Default Value
+				$pk->foodSaturation = $player->getSaturation();//TODO: Default Value
 				return $pk;
 
 			case Info::SET_SPAWN_POSITION_PACKET:
 				/** @var SetSpawnPositionPacket $packet */
 				$pk = new SpawnPositionPacket();
-				$pk->spawnX = $packet->x;
-				$pk->spawnY = $packet->y;
-				$pk->spawnZ = $packet->z;
+				$pk->x = $packet->x;
+				$pk->y = $packet->y;
+				$pk->z = $packet->z;
 				return $pk;
 
 			case Info::ANIMATE_PACKET:
@@ -2294,18 +2309,18 @@ class Translator{
 				switch($packet->action){
 					case 1:
 						$pk = new STCAnimatePacket();
-						$pk->actionID = 0;
+						$pk->animation = 0;
 						$pk->eid = $packet->entityRuntimeId;
 						return $pk;
 					break;
 					case 3: //Leave Bed
 						$pk = new STCAnimatePacket();
-						$pk->actionID = 2;
+						$pk->animation = 2;
 						$pk->eid = $packet->entityRuntimeId;
 						return $pk;
 					break;
 					default:
-						echo "AnimatePacket: ".$packet->action."\n";
+						echo "AnimationPacket: ".$packet->action."\n";
 					break;
 				}
 				return null;
@@ -2336,7 +2351,7 @@ class Translator{
 
 			case Info::BLOCK_ACTOR_DATA_PACKET:
 				/** @var BlockActorDataPacket $packet */
-				$pk = new BlockEntityPacket();
+				$pk = new BlockEntityDataPacket();
 				$pk->x = $packet->x;
 				$pk->y = $packet->y;
 				$pk->z = $packet->z;
@@ -2346,24 +2361,24 @@ class Translator{
 
 				switch($nbt["id"]){
 					case Tile::BANNER:
-						$pk->actionID = 6;
-						$pk->namedtag = $nbt;
+						$pk->actionId = 6;
+						$pk->nbtData = $nbt;
 					break;
 					case Tile::BED:
-						$pk->actionID = 11;
-						$pk->namedtag = $nbt;
+						$pk->actionId = 11;
+						$pk->nbtData = $nbt;
 					break;
 					case Tile::CHEST:
 					case Tile::ENCHANT_TABLE:
 					case Tile::ENDER_CHEST:
 					case Tile::FURNACE:
-						$pk->actionID = 7;
-						$pk->namedtag = $nbt;
+						$pk->actionId = 7;
+						$pk->nbtData = $nbt;
 					break;
 					case Tile::FLOWER_POT:
-						$pk->actionID = 5;
+						$pk->actionId = 5;
 						/** @var CompoundTag $nbt */
-						$pk->namedtag = ConvertUtils::convertBlockEntity(true, $nbt);
+						$pk->nbtData = ConvertUtils::convertBlockEntity(true, $nbt);
 					break;
 					case Tile::ITEM_FRAME:
 						if(($entity = ItemFrameBlockEntity::getItemFrame($player->getLevel(), $packet->x, $packet->y, $packet->z)) !== null){
@@ -2372,13 +2387,13 @@ class Translator{
 						return null;
 					break;
 					case Tile::SIGN:
-						$pk->actionID = 9;
+						$pk->actionId = 9;
 						/** @var CompoundTag $nbt */
-						$pk->namedtag = ConvertUtils::convertBlockEntity(true, $nbt);
+						$pk->nbtData = ConvertUtils::convertBlockEntity(true, $nbt);
 					break;
 					case Tile::SKULL:
-						$pk->actionID = 4;
-						$pk->namedtag = $nbt;
+						$pk->actionId = 4;
+						$pk->nbtData = $nbt;
 					break;
 					default:
 						echo "BlockEntityDataPacket: ".$nbt["id"]."\n";
@@ -2400,7 +2415,7 @@ class Translator{
 
 				$pk = new PlayerAbilitiesPacket();
 				$pk->flyingSpeed = 0.05;
-				$pk->walkingSpeed = 0.1;
+				$pk->viewModifierField = 0.1;
 				$pk->canFly = ($player->getGamemode() & 0x01) > 0;
 				$pk->damageDisabled = ($player->getGamemode() & 0x01) > 0;
 				$pk->isFlying = false;
@@ -2425,17 +2440,30 @@ class Translator{
 
 				$chunk = new DesktopChunk($player, $packet->getChunkX(), $packet->getChunkZ());
 
+				$packets = [];
+				$pk = new UpdateLightPacket();
+				$pk->chunkX = $packet->getChunkX();
+				$pk->chunkZ = $packet->getChunkZ();
+				$pk->skyLightMask = $chunk->getSkyLightBitMask();
+				$pk->blockLightMask = $chunk->getBlockLightBitMask();
+				$pk->emptySkyLightMask = ~$chunk->getSkyLightBitMask();
+				$pk->emptyBlockLightMask = ~$chunk->getBlockLightBitMask();
+				$pk->skyLight = $chunk->getSkyLight();
+				$pk->blockLight = $chunk->getBlockLight();
+				$packets[] = $pk;
+
 				$pk = new ChunkDataPacket();
 				$pk->chunkX = $packet->getChunkX();
 				$pk->chunkZ = $packet->getChunkZ();
 				$pk->isFullChunk = $chunk->isFullChunk();
-				$pk->primaryBitmap = $chunk->getBitMapData();
+				$pk->primaryBitMask = $chunk->getChunkBitMask();
 				$pk->heightMaps = $chunk->getHeightMaps();
 				$pk->biomes = $chunk->getBiomes();
-				$pk->payload = $chunk->getChunkData();
+				$pk->data = $chunk->getChunkData();
 				$pk->blockEntities = $blockEntities;
+				$packets[] = $pk;
 
-				return $pk;
+				return $packets;
 
 			case Info::PLAYER_LIST_PACKET:
 				/** @var PlayerListPacket $packet */
@@ -2443,7 +2471,7 @@ class Translator{
 
 				switch($packet->type){
 					case 0://Add
-						$pk->actionID = PlayerInfoPacket::TYPE_ADD;
+						$pk->actionId = PlayerInfoPacket::TYPE_ADD;
 
 						$loggedInPlayers = $player->getServer()->getLoggedInPlayers();
 						foreach($packet->entries as $entry){
@@ -2491,7 +2519,7 @@ class Translator{
 						}
 					break;
 					case 1://Remove
-						$pk->actionID = PlayerInfoPacket::TYPE_REMOVE;
+						$pk->actionId = PlayerInfoPacket::TYPE_REMOVE;
 
 						foreach($packet->entries as $entry){
 							$pk->players[] = [
@@ -2507,7 +2535,7 @@ class Translator{
 				/** @var ClientboundMapItemDataPacket $packet */
 				$pk = new MapPacket();
 
-				$pk->itemDamage = $packet->mapId;
+				$pk->mapId = $packet->mapId;
 				$pk->scale = $packet->scale;
 				$pk->columns = $packet->width;
 				$pk->rows = $packet->height;
@@ -2516,6 +2544,12 @@ class Translator{
 
 				$pk->data = ColorUtils::convertColorsToPC($packet->colors, $packet->width, $packet->height);
 
+				return $pk;
+
+			case Info:: CHUNK_RADIUS_UPDATED_PACKET:
+				/** @var ChunkRadiusUpdatedPacket $packet */
+				$pk = new UpdateViewDistancePacket();
+				$pk->viewDistance = $packet->radius * 2;
 				return $pk;
 
 			case Info::BOSS_EVENT_PACKET:
@@ -2533,7 +2567,7 @@ class Translator{
 							return null;
 						}
 						$pk->uuid = UUID::fromRandom()->toBinary();
-						$pk->actionID = BossBarPacket::TYPE_ADD;
+						$pk->actionId = BossBarPacket::TYPE_ADD;
 						if(isset($packet->title) and is_string($packet->title) and strlen($packet->title) > 0){
 							$title = $packet->title;
 						}else{
@@ -2558,7 +2592,7 @@ class Translator{
 							return null;
 						}
 						$pk->uuid = $uuid;
-						$pk->actionID = BossBarPacket::TYPE_REMOVE;
+						$pk->actionId = BossBarPacket::TYPE_REMOVE;
 
 						$player->bigBrother_setBossBarData("entityRuntimeId", -1);
 						$player->bigBrother_setBossBarData("uuid", "");
@@ -2570,7 +2604,7 @@ class Translator{
 							return null;
 						}
 						$pk->uuid = $uuid;
-						$pk->actionID = BossBarPacket::TYPE_UPDATE_COLOR;
+						$pk->actionId = BossBarPacket::TYPE_UPDATE_COLOR;
 						$pk->color = $packet->color;
 
 						return $pk;
@@ -2580,7 +2614,7 @@ class Translator{
 							return null;
 						}
 						$pk->uuid = $uuid;
-						$pk->actionID = BossBarPacket::TYPE_UPDATE_HEALTH;
+						$pk->actionId = BossBarPacket::TYPE_UPDATE_HEALTH;
 						$health = 1.0;
 						if($packet->healthPercent < 100){ //healthPercent is a value between 1 and 100
 							$health = $packet->healthPercent / 100;
@@ -2596,7 +2630,7 @@ class Translator{
 							return null;
 						}
 						$pk->uuid = $uuid;
-						$pk->actionID = BossBarPacket::TYPE_UPDATE_TITLE;
+						$pk->actionId = BossBarPacket::TYPE_UPDATE_TITLE;
 						$pk->title = BigBrother::toJSON(str_replace(["\r\n", "\r", "\n"], "", $packet->title));
 
 						return $pk;
@@ -2639,7 +2673,6 @@ class Translator{
 			case Info::RESOURCE_PACKS_INFO_PACKET:
 			case Info::RESPAWN_PACKET:
 			case Info::ADVENTURE_SETTINGS_PACKET:
-			case Info::CHUNK_RADIUS_UPDATED_PACKET:
 			case Info::AVAILABLE_COMMANDS_PACKET:
 				return null;
 

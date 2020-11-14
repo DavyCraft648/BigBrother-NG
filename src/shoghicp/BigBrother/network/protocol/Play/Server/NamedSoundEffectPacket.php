@@ -34,15 +34,15 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class NamedSoundEffectPacket extends OutboundPacket{
 
 	/** @var string */
-	public $name;
+	public $soundName;
 	/** @var int */
-	public $category;
+	public $soundCategory;
 	/** @var int */
-	public $x;
+	public $effectPositionX;
 	/** @var int */
-	public $y;
+	public $effectPositionY;
 	/** @var int */
-	public $z;
+	public $effectPositionZ;
 	/** @var float */
 	public $volume;
 	/** @var float */
@@ -53,12 +53,13 @@ class NamedSoundEffectPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putString($this->name);
-		$this->putVarInt($this->category);
-		$this->putInt($this->x * 8);
-		$this->putInt($this->y * 8);
-		$this->putInt($this->z * 8);
+		$this->putString($this->soundName);
+		$this->putVarInt($this->soundCategory);
+		$this->putInt($this->effectPositionX * 8);
+		$this->putInt($this->effectPositionY * 8);
+		$this->putInt($this->effectPositionZ * 8);
 		$this->putFloat($this->volume);
 		$this->putFloat($this->pitch);
 	}
+
 }

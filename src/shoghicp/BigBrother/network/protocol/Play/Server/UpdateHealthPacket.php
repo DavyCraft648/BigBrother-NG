@@ -38,7 +38,7 @@ class UpdateHealthPacket extends OutboundPacket{
 	/** @var int */
 	public $food;
 	/** @var float */
-	public $saturation;
+	public $foodSaturation;
 
 	public function pid() : int{
 		return self::UPDATE_HEALTH_PACKET;
@@ -47,6 +47,7 @@ class UpdateHealthPacket extends OutboundPacket{
 	protected function encode() : void{
 		$this->putFloat($this->health);
 		$this->putVarInt($this->food);
-		$this->putFloat($this->saturation);
+		$this->putFloat($this->foodSaturation);
 	}
+
 }

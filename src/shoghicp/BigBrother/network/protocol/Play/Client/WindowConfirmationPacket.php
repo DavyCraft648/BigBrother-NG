@@ -27,26 +27,27 @@
 
 declare(strict_types=1);
 
-namespace shoghicp\BigBrother\network\protocol\Play\Server;
+namespace shoghicp\BigBrother\network\protocol\Play\Client;
 
-use shoghicp\BigBrother\network\OutboundPacket;
+use shoghicp\BigBrother\network\InboundPacket;
 
-class ChatPacket extends OutboundPacket{
+class WindowConfirmationPacket extends InboundPacket{
 
-	/** @var string */
-	public $message;
 	/** @var int */
-	public $position = 0; //0 = chat, 1 = system message, 2 = action bar
-	/** @var string */
-	public $ender;
+	public $windowId;
+	/** @var int */
+	public $actionNumber;
+	/** @var bool */
+	public $accepted;
 
 	public function pid() : int{
-		return self::CHAT_PACKET;
+		return self::WINDOW_CONFIRMATION_PACKET;
 	}
 
-	protected function encode() : void{
-		$this->putString($this->message);
-		$this->putByte($this->position);
-		$this->put($this->sender);
+	protected function decode() : void{
+		$this->windowId = $this->getSignedByte();
+		$this->actionNumber = $this->getSignedShort();
+		$this->accepted = $this->getBool();
 	}
+
 }

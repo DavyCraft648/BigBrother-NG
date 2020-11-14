@@ -27,33 +27,24 @@
 
 declare(strict_types=1);
 
-namespace shoghicp\BigBrother\utils;
+namespace shoghicp\BigBrother\network\protocol\Play\Server;
 
-use pocketmine\network\mcpe\protocol\CraftingDataPacket;
+use shoghicp\BigBrother\network\OutboundPacket;
 
-use shoghicp\BigBrother\DesktopPlayer;
+class UpdateViewPositionPacket extends OutboundPacket{
 
-class RecipeUtils{
+	/** @var int */
+	public $chunkX;
+	/** @var int */
+	public $chunkZ;
 
-	/** @var DesktopPlayer */
-	private $player;
-
-	public function __construct(DesktopPlayer $player){
-		$this->player = $player;
+	public function pid() : int{
+		return self::UPDATE_VIEW_POSITION_PACKET;
 	}
 
-	public function onCraftingData(CraftingDataPacket $packet){
-		return null;
-	}
-
-	public function __a(){
-		/*$pk = new UnlockRecipesPacket();
-		$pk->actionId = 0;
-		$pk->recipes[] = 163;
-		$pk->recipes[] = 438;
-		$pk->recipes[] = 424;
-		$pk->extraRecipes[] = 0;
-		$this->putRawPacket($pk);*/
+	protected function encode() : void{
+		$this->putVarInt($this->chunkX);
+		$this->putVarInt($this->chunkZ);
 	}
 
 }

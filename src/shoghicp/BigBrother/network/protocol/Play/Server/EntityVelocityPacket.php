@@ -52,4 +52,5 @@ class EntityVelocityPacket extends OutboundPacket{
 		$this->putShort((int) round($this->velocityY * 8000));
 		$this->putShort((int) round($this->velocityZ * 8000));
 	}
+
 }

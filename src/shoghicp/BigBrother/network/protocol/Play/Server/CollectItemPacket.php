@@ -34,19 +34,20 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class CollectItemPacket extends OutboundPacket{
 
 	/** @var int */
-	public $eid;
+	public $collectorEntityId;
 	/** @var int */
-	public $target;
+	public $collectedEntityId;
 	/** @var int */
-	public $itemCount;
+	public $pickUpItemCount;
 
 	public function pid() : int{
 		return self::COLLECT_ITEM_PACKET;
 	}
 
 	protected function encode() : void{
-		$this->putVarInt($this->target);
-		$this->putVarInt($this->eid);
-		$this->putVarInt($this->itemCount);
+		$this->putVarInt($this->collectedEntityId);
+		$this->putVarInt($this->collectorEntityId);
+		$this->putVarInt($this->pickUpItemCount);
 	}
+
 }

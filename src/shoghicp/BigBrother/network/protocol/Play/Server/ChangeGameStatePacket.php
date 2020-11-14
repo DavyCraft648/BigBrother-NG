@@ -46,4 +46,5 @@ class ChangeGameStatePacket extends OutboundPacket{
 		$this->putByte($this->reason);
 		$this->putFloat($this->value);
 	}
+
 }

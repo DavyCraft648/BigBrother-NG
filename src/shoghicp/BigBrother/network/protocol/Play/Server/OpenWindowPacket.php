@@ -34,27 +34,20 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class OpenWindowPacket extends OutboundPacket{
 
 	/** @var int */
-	public $windowID;
-	/** @var string */
+	public $windowId;
+	/** @var int */
 	public $inventoryType;
 	/** @var string */
 	public $windowTitle;
-	/** @var int */
-	public $slots;
-	/** @var int */
-	public $entityId = -1;
 
 	public function pid() : int{
 		return self::OPEN_WINDOW_PACKET;
 	}
 
 	protected function encode() : void{
-		$this->putByte($this->windowID);
-		$this->putString($this->inventoryType);
+		$this->putVarInt($this->windowId);
+		$this->putVarInt($this->inventoryType);
 		$this->putString($this->windowTitle);
-		$this->putByte($this->slots);
-		if($this->entityId !== -1){
-			$this->putInt($this->entityId);
-		}
 	}
+
 }

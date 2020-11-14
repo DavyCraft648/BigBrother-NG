@@ -34,13 +34,14 @@ use shoghicp\BigBrother\network\InboundPacket;
 class HeldItemChangePacket extends InboundPacket{
 
 	/** @var int */
-	public $selectedSlot;
+	public $slot;
 
 	public function pid() : int{
 		return self::HELD_ITEM_CHANGE_PACKET;
 	}
 
 	protected function decode() : void{
-		$this->selectedSlot = $this->getSignedShort();
+		$this->slot = $this->getSignedShort();
 	}
+
 }

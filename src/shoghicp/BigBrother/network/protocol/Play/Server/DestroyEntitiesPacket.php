@@ -34,16 +34,17 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class DestroyEntitiesPacket extends OutboundPacket{
 
 	/** @var int[] */
-	public $ids = [];
+	public $entityIds = [];
 
 	public function pid() : int{
 		return self::DESTROY_ENTITIES_PACKET;
 	}
 
 	protected function encode() : void{
-		$this->putVarInt(count($this->ids));
-		foreach($this->ids as $id){
+		$this->putVarInt(count($this->entityIds));
+		foreach($this->entityIds as $id){
 			$this->putVarInt($id);
 		}
 	}
+
 }

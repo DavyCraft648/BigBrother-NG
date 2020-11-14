@@ -34,13 +34,14 @@ use shoghicp\BigBrother\network\InboundPacket;
 class KeepAlivePacket extends InboundPacket{
 
 	/** @var int */
-	public $id;
+	public $keepAliveId;
 
 	public function pid() : int{
 		return self::KEEP_ALIVE_PACKET;
 	}
 
 	protected function decode() : void{
-		$this->id = $this->getLong();
+		$this->keepAliveId = $this->getLong();
 	}
+
 }

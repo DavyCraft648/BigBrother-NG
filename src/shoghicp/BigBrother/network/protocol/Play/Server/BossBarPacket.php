@@ -60,11 +60,11 @@ class BossBarPacket extends OutboundPacket{
 	/** @var string */
 	public $uuid;
 	/** @var int */
-	public $actionID;
+	public $actionId;
 
 	/** @var string */
 	public $title;
-	/** @var float */ 
+	/** @var float */
 	/*
 	* From 0 to 1.
 	* Values greater than 1 do not crash a Notchian client,
@@ -84,8 +84,8 @@ class BossBarPacket extends OutboundPacket{
 
 	protected function encode() : void{
 		$this->put($this->uuid);
-		$this->putVarInt($this->actionID);
-		switch($this->actionID){
+		$this->putVarInt($this->actionId);
+		switch($this->actionId){
 			case self::TYPE_ADD:
 				$this->putString($this->title);
 				$this->putFloat($this->health);
@@ -109,4 +109,5 @@ class BossBarPacket extends OutboundPacket{
 			break;
 		}
 	}
+
 }

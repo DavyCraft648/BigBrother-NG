@@ -31,16 +31,27 @@ namespace shoghicp\BigBrother\network\protocol\Play\Server;
 
 use shoghicp\BigBrother\network\OutboundPacket;
 
-class EntityPacket extends OutboundPacket{
+class EntityAnimationPacket extends OutboundPacket{
+
+	const ANIMATION_SWING_MAIN_ARM = 0;
+	const ANIMATION_TAKE_DAMAGE = 1;
+	const ANIMATION_LEAVE_BED = 2;
+	const ANIMATION_SWING_OFFHAND = 3;
+	const ANIMATION_CRITICAL_EFFECT = 4;
+	const ANIMATION_MAGIC_EFFECT = 5;
 
 	/** @var int */
 	public $eid;
+	/** @var int */
+	public $animation;
 
 	public function pid() : int{
-		return self::ENTITY_PACKET;
+		return self::ENTITY_ANIMATION_PACKET;
 	}
 
 	protected function encode() : void{
 		$this->putVarInt($this->eid);
+		$this->putByte($this->animation);
 	}
+
 }

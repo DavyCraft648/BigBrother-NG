@@ -30,6 +30,7 @@ declare(strict_types=1);
 namespace shoghicp\BigBrother\network\protocol\Play\Server;
 
 use shoghicp\BigBrother\network\OutboundPacket;
+use const pocketmine\DEBUG;
 
 class EntityPropertiesPacket extends OutboundPacket{
 
@@ -50,5 +51,10 @@ class EntityPropertiesPacket extends OutboundPacket{
 			$this->putDouble($entry[1]);
 			$this->putVarInt(0);//TODO: Modifiers
 		}
+
+		if(DEBUG > 4){
+			var_dump($this->entries);
+		}
 	}
+
 }

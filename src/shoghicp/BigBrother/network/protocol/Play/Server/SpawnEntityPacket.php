@@ -108,4 +108,5 @@ class SpawnEntityPacket extends OutboundPacket{
 			$this->putShort((int) round($this->velocityZ * 8000));
 		}
 	}
+
 }

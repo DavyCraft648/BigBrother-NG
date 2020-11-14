@@ -35,6 +35,8 @@ class ServerDifficultyPacket extends OutboundPacket{
 
 	/** @var int */
 	public $difficulty;
+	/** @var bool */
+	public $lockedDifficulty = false;
 
 	public function pid() : int{
 		return self::SERVER_DIFFICULTY_PACKET;
@@ -42,5 +44,7 @@ class ServerDifficultyPacket extends OutboundPacket{
 
 	protected function encode() : void{
 		$this->putByte($this->difficulty);
+		$this->putBool($this->lockedDifficulty);
 	}
+
 }

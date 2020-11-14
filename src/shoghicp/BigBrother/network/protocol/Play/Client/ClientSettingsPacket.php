@@ -36,13 +36,13 @@ class ClientSettingsPacket extends InboundPacket{
 	/** @var string */
 	public $lang;
 	/** @var int */
-	public $view;
+	public $viewDistance;
 	/** @var int */
 	public $chatMode;
 	/** @var int */
-	public $chatColor;
+	public $chatColors;
 	/** @var string */
-	public $skinSetting;
+	public $displayedSkinParts;
 	/** @var int */
 	public $mainHand;
 
@@ -52,10 +52,11 @@ class ClientSettingsPacket extends InboundPacket{
 
 	protected function decode() : void{
 		$this->lang = $this->getString();
-		$this->view = $this->getSignedByte();
+		$this->viewDistance = $this->getSignedByte();
 		$this->chatMode = $this->getVarInt();
-		$this->chatColor = $this->getBool();
-		$this->skinSetting = $this->getByte();
+		$this->chatColors = $this->getBool();
+		$this->displayedSkinParts = $this->getByte();
 		$this->mainHand = $this->getVarInt();
 	}
+
 }

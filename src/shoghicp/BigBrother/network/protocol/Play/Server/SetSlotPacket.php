@@ -35,19 +35,20 @@ use pocketmine\item\Item;
 class SetSlotPacket extends OutboundPacket{
 
 	/** @var int */
-	public $windowID;
+	public $windowId;
 	/** @var int */
 	public $slot;
 	/** @var Item */
-	public $item;
+	public $slotData;
 
 	public function pid() : int{
 		return self::SET_SLOT_PACKET;
 	}
 
 	protected function encode() : void{
-		$this->putByte($this->windowID);
+		$this->putByte($this->windowId);
 		$this->putShort($this->slot);
-		$this->putSlot($this->item);
+		$this->putSlot($this->slotData);
 	}
+
 }

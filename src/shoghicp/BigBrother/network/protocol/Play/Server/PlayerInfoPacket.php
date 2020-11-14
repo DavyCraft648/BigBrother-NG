@@ -38,7 +38,7 @@ class PlayerInfoPacket extends OutboundPacket{
 	const TYPE_REMOVE = 4;
 
 	/** @var int */
-	public $actionID;
+	public $actionId;
 	/** @var array */
 	public $players = [];
 
@@ -47,12 +47,12 @@ class PlayerInfoPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putVarInt($this->actionID);
+		$this->putVarInt($this->actionId);
 		$this->putVarInt(count($this->players));
 		foreach($this->players as $player){
 			$this->put($player[0]);//UUID
 
-			switch($this->actionID){
+			switch($this->actionId){
 				case self::TYPE_ADD:
 					$this->putString($player[1]); //PlayerName
 					$this->putVarInt(count($player[2])); //Count Property
@@ -60,31 +60,32 @@ class PlayerInfoPacket extends OutboundPacket{
 					foreach($player[2] as $propertyData){
 						$this->putString($propertyData["name"]); //Name
 						$this->putString($propertyData["value"]); //Value
+						$this->putBool(isset($propertyData["signature"]));
 						if(isset($propertyData["signature"])){
-							$this->putBool(true); //Is Signed
 							$this->putString($propertyData["signature"]); //Property
-						}else{
-							$this->putBool(false); //Is Signed
 						}
 					}
 
 					$this->putVarInt($player[3]); //Gamemode
 					$this->putVarInt($player[4]); //Ping
 					$this->putBool($player[5]); //has Display name
-					if($player[5] === true){
+					if($player[5]){
 						$this->putString($player[6]); //Display name
 					}
-					break;
+				break;
 				case self::TYPE_UPDATE_NAME:
 					$this->putBool($player[1]); //has Display name
-					$this->putString($player[2]);//Display name
-					break;
+					if($player[1]){
+						$this->putString($player[2]);//Display name
+					}
+				break;
 				case self::TYPE_REMOVE:
-					break;
+				break;
 				default:
-					echo "PlayerInfoPacket: ".$this->actionID."\n";
-					break;
+					echo "PlayerInfoPacket: ".$this->actionId."\n";
+				break;
 			}
 		}
 	}
+
 }

@@ -41,8 +41,6 @@ class BlockChangePacket extends OutboundPacket{
 	public $z;
 	/** @var int */
 	public $blockId;
-	/** @var int */
-	public $blockMeta;
 
 	public function pid() : int{
 		return self::BLOCK_CHANGE_PACKET;
@@ -50,6 +48,7 @@ class BlockChangePacket extends OutboundPacket{
 
 	protected function encode() : void{
 		$this->putPosition($this->x, $this->y, $this->z);
-		$this->putVarInt(($this->blockId << 4) | ($this->blockMeta & 15));
+		$this->putVarInt($this->blockId);
 	}
+
 }

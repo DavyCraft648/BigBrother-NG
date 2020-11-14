@@ -31,19 +31,17 @@ namespace shoghicp\BigBrother\network\protocol\Play\Server;
 
 use shoghicp\BigBrother\network\OutboundPacket;
 
-class AnimatePacket extends OutboundPacket{
+class EntityMovementPacket extends OutboundPacket{
 
 	/** @var int */
 	public $eid;
-	/** @var int */
-	public $actionID;
 
 	public function pid() : int{
-		return self::ANIMATE_PACKET;
+		return self::ENTITY_MOVEMENT_PACKET;
 	}
 
 	protected function encode() : void{
 		$this->putVarInt($this->eid);
-		$this->putByte($this->actionID);
 	}
+
 }

@@ -46,4 +46,5 @@ class UnloadChunkPacket extends OutboundPacket{
 		$this->putInt($this->chunkX);
 		$this->putInt($this->chunkZ);
 	}
+
 }

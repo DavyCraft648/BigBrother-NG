@@ -45,8 +45,8 @@ use shoghicp\BigBrother\network\protocol\Login\EncryptionResponsePacket;
 use shoghicp\BigBrother\network\protocol\Login\LoginStartPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\AdvancementTabPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\TeleportConfirmPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\AnimatePacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\ConfirmTransactionPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\AnimationPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\WindowConfirmationPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\CraftRecipeRequestPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\ClickWindowPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\ClientSettingsPacket;
@@ -54,7 +54,7 @@ use shoghicp\BigBrother\network\protocol\Play\Client\ClientStatusPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\CreativeInventoryActionPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\EntityActionPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\PlayerAbilitiesPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\ChatPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\ChatMessagePacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\CloseWindowPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\HeldItemChangePacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\KeepAlivePacket;
@@ -292,8 +292,8 @@ class ProtocolInterface implements SourceInterface{
 				case InboundPacket::TAB_COMPLETE_PACKET:
 					$pk = new TabCompletePacket();
 				break;
-				case InboundPacket::CHAT_PACKET:
-					$pk = new ChatPacket();
+				case InboundPacket::CHAT_MESSAGE_PACKET:
+					$pk = new ChatMessagePacket();
 				break;
 				case InboundPacket::CLIENT_STATUS_PACKET:
 					$pk = new ClientStatusPacket();
@@ -301,8 +301,8 @@ class ProtocolInterface implements SourceInterface{
 				case InboundPacket::CLIENT_SETTINGS_PACKET:
 					$pk = new ClientSettingsPacket();
 				break;
-				case InboundPacket::CONFIRM_TRANSACTION_PACKET:
-					$pk = new ConfirmTransactionPacket();
+				case InboundPacket::WINDOW_CONFIRMATION_PACKET:
+					$pk = new WindowConfirmationPacket();
 				break;
 				case InboundPacket::CLICK_WINDOW_PACKET:
 					$pk = new ClickWindowPacket();
@@ -355,8 +355,8 @@ class ProtocolInterface implements SourceInterface{
 				case InboundPacket::UPDATE_SIGN_PACKET:
 					$pk = new UpdateSignPacket();
 				break;
-				case InboundPacket::ANIMATE_PACKET:
-					$pk = new AnimatePacket();
+				case InboundPacket::ANIMATION_PACKET:
+					$pk = new AnimationPacket();
 				break;
 				case InboundPacket::PLAYER_BLOCK_PLACEMENT_PACKET:
 					$pk = new PlayerBlockPlacementPacket();

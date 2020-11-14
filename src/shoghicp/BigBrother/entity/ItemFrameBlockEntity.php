@@ -163,7 +163,7 @@ class ItemFrameBlockEntity extends Position{
 	 */
 	public function despawnFrom(DesktopPlayer $player) : void{
 		$pk = new DestroyEntitiesPacket();
-		$pk->ids []= $this->eid;
+		$pk->entityIds[] = $this->eid;
 		$player->putRawPacket($pk);
 	}
 

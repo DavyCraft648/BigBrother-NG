@@ -84,7 +84,6 @@ class Session{
 	 */
 	public function write(string $data) : void{
 		if($this->encryptionEnabled){
-			var_dump(strlen($data));
 			@fwrite($this->socket, $this->aes->encrypt($data));
 		}else{
 			@fwrite($this->socket, $data);

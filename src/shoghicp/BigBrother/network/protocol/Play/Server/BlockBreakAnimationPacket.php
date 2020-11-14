@@ -53,4 +53,5 @@ class BlockBreakAnimationPacket extends OutboundPacket{
 		$this->putPosition($this->x, $this->y, $this->z);
 		$this->putByte($this->destroyStage);
 	}
+
 }

@@ -53,4 +53,5 @@ class PlayerDiggingPacket extends InboundPacket{
 		$this->getPosition($this->x, $this->y, $this->z);
 		$this->face = $this->getSignedByte();
 	}
+
 }

@@ -43,4 +43,5 @@ class TeleportConfirmPacket extends InboundPacket{
 	protected function decode() : void{
 		$this->teleportId = $this->getVarInt();
 	}
+
 }

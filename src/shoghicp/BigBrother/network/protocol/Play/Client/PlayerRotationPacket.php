@@ -49,4 +49,5 @@ class PlayerRotationPacket extends InboundPacket{
 		$this->pitch = $this->getFloat();
 		$this->onGround = $this->getBool();
 	}
+
 }

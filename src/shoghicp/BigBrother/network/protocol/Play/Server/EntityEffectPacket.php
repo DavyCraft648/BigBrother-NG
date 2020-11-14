@@ -55,4 +55,5 @@ class EntityEffectPacket extends OutboundPacket{
 		$this->putVarInt($this->duration);
 		$this->putByte($this->flags);
 	}
+
 }

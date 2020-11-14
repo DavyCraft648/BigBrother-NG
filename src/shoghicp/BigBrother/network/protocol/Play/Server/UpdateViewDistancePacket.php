@@ -27,20 +27,21 @@
 
 declare(strict_types=1);
 
-namespace shoghicp\BigBrother\network\protocol\Play\Client;
+namespace shoghicp\BigBrother\network\protocol\Play\Server;
 
-use shoghicp\BigBrother\network\InboundPacket;
+use shoghicp\BigBrother\network\OutboundPacket;
 
-class ChatPacket extends InboundPacket{
+class UpdateViewDistancePacket extends OutboundPacket{
 
-	/** @var string */
-	public $message;
+	/** @var int */
+	public $viewDistance;
 
 	public function pid() : int{
-		return self::CHAT_PACKET;
+		return self::UPDATE_VIEW_DISTANCE_PACKET;
 	}
 
-	protected function decode() : void{
-		$this->message = $this->getString();
+	protected function encode() : void{
+		$this->putVarInt($this->viewDistance);
 	}
+
 }

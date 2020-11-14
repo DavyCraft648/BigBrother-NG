@@ -45,29 +45,13 @@ class PluginMessagePacket extends InboundPacket{
 	protected function decode() : void{
 		$this->channel = $this->getString();
 		switch($this->channel){
-			case "REGISTER":
-				$channels = bin2hex($this->getString());
-				$channels = str_split($channels, 2);
-				$string = "";
-				foreach($channels as $num => $str){
-					if($str === "00"){
-						$this->data[] = hex2bin($string);
-						$string = "";
-					}else{
-						$string .= $str;
-						if(count($channels) -1 === $num){
-							$this->data[] = hex2bin($string);
-						}
-					}
-				}
-			break;
-			case "MC|Brand":
+			case "minecraft:brand":
 				$this->data[] = $this->getString();
 			break;
-			case "MC|BEdit":
-			case "MC|BSign":
-				$this->data[] = $this->getSlot();
+			case "minecraft:register":
+			case "minecraft:unregister":
 			break;
 		}
 	}
+
 }

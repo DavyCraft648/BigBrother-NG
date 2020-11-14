@@ -50,4 +50,5 @@ class EntityEquipmentPacket extends OutboundPacket{
 		$this->putVarInt($this->slot);
 		$this->putSlot($this->item);
 	}
+
 }

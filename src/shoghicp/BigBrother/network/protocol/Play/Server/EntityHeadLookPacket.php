@@ -46,4 +46,5 @@ class EntityHeadLookPacket extends OutboundPacket{
 		$this->putVarInt($this->eid);
 		$this->putAngle($this->yaw);
 	}
+
 }

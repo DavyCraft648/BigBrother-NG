@@ -47,4 +47,5 @@ class EntityMetadataPacket extends OutboundPacket{
 		$this->putVarInt($this->eid);
 		$this->put(Binary::writeMetadata($this->metadata));
 	}
+
 }

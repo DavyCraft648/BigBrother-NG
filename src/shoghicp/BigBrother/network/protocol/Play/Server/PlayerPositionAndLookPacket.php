@@ -61,4 +61,5 @@ class PlayerPositionAndLookPacket extends OutboundPacket{
 		$this->putByte($this->flags);
 		$this->putVarInt($this->teleportId);
 	}
+
 }

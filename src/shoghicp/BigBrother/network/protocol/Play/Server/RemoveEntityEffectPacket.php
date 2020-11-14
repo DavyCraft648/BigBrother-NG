@@ -46,4 +46,5 @@ class RemoveEntityEffectPacket extends OutboundPacket{
 		$this->putVarInt($this->eid);
 		$this->putByte($this->effectId);
 	}
+
 }

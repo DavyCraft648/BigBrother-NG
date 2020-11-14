@@ -234,7 +234,7 @@ class ServerThread extends Thread{
 
 		register_shutdown_function([$this, "shutdownHandler"]);
 
-		$data = unserialize($this->data);
+		$data = unserialize($this->data, ["allowed_classes" => false]);
 		new ServerManager($this, $this->port, $this->interface, $data["motd"], $data["icon"]);
 	}
 

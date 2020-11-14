@@ -33,7 +33,13 @@ use shoghicp\BigBrother\network\OutboundPacket;
 
 class TabCompletePacket extends OutboundPacket{
 
-	/** @var string[] */
+	/** @var int */
+	public $id;
+	/** @var int */
+	public $start;
+	/** @var int */
+	public $length;
+	/** @var array */
 	public $matches = [];
 
 	public function pid() : int{
@@ -41,9 +47,17 @@ class TabCompletePacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
+		$this->putVarInt($this->id);
+		$this->putVarInt($this->start);
+		$this->putVarInt($this->length);
 		$this->putVarInt(count($this->matches));
 		foreach($this->matches as $match){
-			$this->putString($match);
+			$this->putString($match[0]);
+			$this->putBool($match[1][0]);
+			if($match[1][0]){
+				$this->putString($match[1][1]);
+			}
 		}
 	}
+
 }

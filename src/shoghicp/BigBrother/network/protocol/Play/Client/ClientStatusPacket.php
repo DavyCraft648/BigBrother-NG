@@ -34,13 +34,14 @@ use shoghicp\BigBrother\network\InboundPacket;
 class ClientStatusPacket extends InboundPacket{
 
 	/** @var int */
-	public $actionID;
+	public $actionId;
 
 	public function pid() : int{
 		return self::CLIENT_STATUS_PACKET;
 	}
 
 	protected function decode() : void{
-		$this->actionID = $this->getVarInt();
+		$this->actionId = $this->getVarInt();
 	}
+
 }

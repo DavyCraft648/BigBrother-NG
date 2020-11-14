@@ -30,7 +30,6 @@ declare(strict_types=1);
 namespace shoghicp\BigBrother\network\protocol\Play\Server;
 
 use shoghicp\BigBrother\network\OutboundPacket;
-use shoghicp\BigBrother\utils\Binary;
 
 class SpawnPlayerPacket extends OutboundPacket{
 
@@ -48,8 +47,6 @@ class SpawnPlayerPacket extends OutboundPacket{
 	public $yaw;
 	/** @var float */
 	public $pitch;
-	/** @var array */
-	public $metadata;
 
 	public function pid() : int{
 		return self::SPAWN_PLAYER_PACKET;
@@ -63,6 +60,6 @@ class SpawnPlayerPacket extends OutboundPacket{
 		$this->putDouble($this->z);
 		$this->putAngle($this->yaw);
 		$this->putAngle($this->pitch);
-		$this->put(Binary::writeMetadata($this->metadata));
 	}
+
 }

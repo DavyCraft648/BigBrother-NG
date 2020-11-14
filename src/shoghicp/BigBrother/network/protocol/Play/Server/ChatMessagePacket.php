@@ -27,33 +27,27 @@
 
 declare(strict_types=1);
 
-namespace shoghicp\BigBrother\utils;
+namespace shoghicp\BigBrother\network\protocol\Play\Server;
 
-use pocketmine\network\mcpe\protocol\CraftingDataPacket;
+use shoghicp\BigBrother\network\OutboundPacket;
 
-use shoghicp\BigBrother\DesktopPlayer;
+class ChatMessagePacket extends OutboundPacket{
 
-class RecipeUtils{
+	/** @var string */
+	public $message;
+	/** @var int */
+	public $position = 0; //0 = chat, 1 = system message, 2 = action bar
+	/** @var string */
+	public $sender;
 
-	/** @var DesktopPlayer */
-	private $player;
-
-	public function __construct(DesktopPlayer $player){
-		$this->player = $player;
+	public function pid() : int{
+		return self::CHAT_MESSAGE_PACKET;
 	}
 
-	public function onCraftingData(CraftingDataPacket $packet){
-		return null;
-	}
-
-	public function __a(){
-		/*$pk = new UnlockRecipesPacket();
-		$pk->actionId = 0;
-		$pk->recipes[] = 163;
-		$pk->recipes[] = 438;
-		$pk->recipes[] = 424;
-		$pk->extraRecipes[] = 0;
-		$this->putRawPacket($pk);*/
+	protected function encode() : void{
+		$this->putString($this->message);
+		$this->putByte($this->position);
+		$this->put($this->sender);
 	}
 
 }

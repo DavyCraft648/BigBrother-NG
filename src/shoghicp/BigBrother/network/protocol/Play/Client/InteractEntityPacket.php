@@ -33,25 +33,22 @@ use shoghicp\BigBrother\network\InboundPacket;
 
 class InteractEntityPacket extends InboundPacket{
 
-	const INTERACT    = 0;
-	const ATTACK      = 1;
-	const INTERACT_AT = 2;
+	const TYPE_INTERACT    = 0;
+	const TYPE_ATTACK      = 1;
+	const TYPE_INTERACT_AT = 2;
 
 	/** @var int */
 	public $target;
 	/** @var int */
 	public $type;
-
 	/** @var float */
 	public $targetX;
 	/** @var float */
 	public $targetY;
 	/** @var float */
 	public $targetZ;
-
 	/** @var int */
 	public $hand;
-
 	/** @var bool */
 	public $sneaking;
 
@@ -62,14 +59,15 @@ class InteractEntityPacket extends InboundPacket{
 	protected function decode() : void{
 		$this->target = $this->getVarInt();
 		$this->type = $this->getVarInt();
-		if($this->type === self::INTERACT_AT){
+		if($this->type === self::TYPE_INTERACT_AT){
 			$this->targetX = $this->getFloat();
 			$this->targetY = $this->getFloat();
 			$this->targetZ = $this->getFloat();
 		}
-		if($this->type !== self::ATTACK){
+		if($this->type !== self::TYPE_ATTACK){
 			$this->hand = $this->getVarInt();
 		}
 		$this->sneaking = $this->getBool();
 	}
+
 }

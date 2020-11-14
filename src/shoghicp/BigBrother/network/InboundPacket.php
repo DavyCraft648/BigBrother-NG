@@ -36,11 +36,11 @@ abstract class InboundPacket extends Packet{
 	const TELEPORT_CONFIRM_PACKET = 0x00;
 	//TODO QUERY_BLOCK_NBT_PACKET = 0x01;
 	//TODO SET_DIFFICULTY_PACKET = 0x02;
-	const CHAT_PACKET = 0x03;
+	const CHAT_MESSAGE_PACKET = 0x03;
 	const CLIENT_STATUS_PACKET = 0x04;
 	const CLIENT_SETTINGS_PACKET = 0x05;
 	const TAB_COMPLETE_PACKET = 0x06;
-	const CONFIRM_TRANSACTION_PACKET = 0x07;
+	const WINDOW_CONFIRMATION_PACKET = 0x07;
 	//TODO CLICK_WINDOW_BUTTON_PACKET = 0x08;
 	const CLICK_WINDOW_PACKET = 0x09;
 	const CLOSE_WINDOW_PACKET = 0x0a;
@@ -77,7 +77,7 @@ abstract class InboundPacket extends Packet{
 	const CREATIVE_INVENTORY_ACTION_PACKET = 0x29;
 	//TODO UPDATE_STRUCTURE_BLOCK_PACKET = 0x2a;
 	const UPDATE_SIGN_PACKET = 0x2b;
-	const ANIMATE_PACKET = 0x2c;
+	const ANIMATION_PACKET = 0x2c;
 	//TODO SPECTATE_PACKET = 0x2d;
 	const PLAYER_BLOCK_PLACEMENT_PACKET = 0x2e;
 	const USE_ITEM_PACKET = 0x2f;
@@ -95,4 +95,5 @@ abstract class InboundPacket extends Packet{
 	protected final function encode() : void{
 		throw new ErrorException(get_class($this) . " is subclass of InboundPacket: don't call encode() method");
 	}
+
 }

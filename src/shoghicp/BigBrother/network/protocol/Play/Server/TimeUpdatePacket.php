@@ -34,16 +34,17 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class TimeUpdatePacket extends OutboundPacket{
 
 	/** @var int */
-	public $age;
+	public $worldAge;
 	/** @var int */
-	public $time;
+	public $dayTime;
 
 	public function pid() : int{
 		return self::TIME_UPDATE_PACKET;
 	}
 
 	protected function encode() : void{
-		$this->putLong($this->age);
-		$this->putLong($this->time);
+		$this->putLong($this->worldAge);
+		$this->putLong($this->dayTime);
 	}
+
 }

@@ -59,4 +59,5 @@ class UpdateSignPacket extends InboundPacket{
 		$this->line3 = $this->getString();
 		$this->line4 = $this->getString();
 	}
+
 }

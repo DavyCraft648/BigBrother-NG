@@ -60,4 +60,5 @@ class EntityTeleportPacket extends OutboundPacket{
 		$this->putAngle($this->pitch);
 		$this->putBool($this->onGround);
 	}
+
 }

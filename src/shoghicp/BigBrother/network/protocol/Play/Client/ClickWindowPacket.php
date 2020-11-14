@@ -35,7 +35,7 @@ use pocketmine\item\Item;
 class ClickWindowPacket extends InboundPacket{
 
 	/** @var int */
-	public $windowID;
+	public $windowId;
 	/** @var int */
 	public $slot;
 	/** @var int */
@@ -52,11 +52,12 @@ class ClickWindowPacket extends InboundPacket{
 	}
 
 	protected function decode() : void{
-		$this->windowID = $this->getByte();
+		$this->windowId = $this->getByte();
 		$this->slot = $this->getSignedShort();
 		$this->button = $this->getSignedByte();
 		$this->actionNumber = $this->getSignedShort();
 		$this->mode = $this->getVarInt();
 		$this->clickedItem = $this->getSlot();
 	}
+
 }

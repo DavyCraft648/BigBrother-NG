@@ -34,7 +34,7 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class ParticlePacket extends OutboundPacket{
 
 	/** @var int */
-	public $id;
+	public $particleId;
 	/** @var bool */
 	public $longDistance = false;
 	/** @var float */
@@ -50,29 +50,28 @@ class ParticlePacket extends OutboundPacket{
 	/** @var float */
 	public $offsetZ;
 	/** @var float */
-	public $data;
+	public $particleData;
 	/** @var int */
-	public $count;
-	/** @var array */
-	public $addData = [];
+	public $particleCount;
+	/** @var string */
+	public $data = [];
 
 	public function pid() : int{
 		return self::PARTICLE_PACKET;
 	}
 
 	protected function encode() : void{
-		$this->putInt($this->id);
+		$this->putInt($this->particleId);
 		$this->putBool($this->longDistance);
-		$this->putFloat($this->x);
-		$this->putFloat($this->y);
-		$this->putFloat($this->z);
+		$this->putDouble($this->x);
+		$this->putDouble($this->y);
+		$this->putDouble($this->z);
 		$this->putFloat($this->offsetX);
 		$this->putFloat($this->offsetY);
 		$this->putFloat($this->offsetZ);
-		$this->putFloat($this->data);
-		$this->putInt($this->count);
-		foreach($this->addData as $addData){
-			$this->putVarInt($addData);
-		}
+		$this->putFloat($this->particleData);
+		$this->putInt($this->particleCount);
+		$this->put($this->data);//TODO: なんとかする
 	}
+
 }

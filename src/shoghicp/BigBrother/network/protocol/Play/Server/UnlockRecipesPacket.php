@@ -33,15 +33,31 @@ use shoghicp\BigBrother\network\OutboundPacket;
 
 class UnlockRecipesPacket extends OutboundPacket{
 
+	const ACTION_INIT = 0;
+	const ACTION_ADD = 1;
+	const ACTION_REMOVE = 2;
+
 	/** @var int */
-	public $actionID;
+	public $actionId;
 	/** @var bool */
-	public $isCraftingBookOpen = false;
+	public $craftingRecipeBookOpen = false;
 	/** @var bool */
-	public $isFilteringCraftable = false;
-	/** @var int[] */
+	public $craftingRecipeBookFilterActive = false;
+	/** @var bool */
+	public $smeltingRecipeBookOpen = false;
+	/** @var bool */
+	public $smeltingRecipeBookFilterActive = false;
+	/** @var bool */
+	public $blastFurnaceRecipeBookOpen = false;
+	/** @var bool */
+	public $blastFurnaceRecipeBookFilterActive = false;
+	/** @var bool */
+	public $smokerRecipeBookOpen = false;
+	/** @var bool */
+	public $smokerRecipeBookFilterActive = false;
+	/** @var string[] */
 	public $recipes = [];
-	/** @var int[] */
+	/** @var string[] */
 	public $extraRecipes = [];
 
 	public function pid() : int{
@@ -49,18 +65,25 @@ class UnlockRecipesPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putVarInt($this->actionID);
-		$this->putBool($this->isCraftingBookOpen);
-		$this->putBool($this->isFilteringCraftable);
+		$this->putVarInt($this->actionId);
+		$this->putBool($this->craftingRecipeBookOpen);
+		$this->putBool($this->craftingRecipeBookFilterActive);
+		$this->putBool($this->smeltingRecipeBookOpen);
+		$this->putBool($this->smeltingRecipeBookFilterActive);
+		$this->putBool($this->blastFurnaceRecipeBookOpen);
+		$this->putBool($this->blastFurnaceRecipeBookFilterActive);
+		$this->putBool($this->smokerRecipeBookOpen);
+		$this->putBool($this->smokerRecipeBookFilterActive);
 		$this->putVarInt(count($this->recipes));
 		foreach($this->recipes as $recipeId){
-			$this->putVarInt($recipeId);
+			$this->putString($recipeId);
 		}
-		if($this->actionID === 0){
+		if($this->actionId === self::ACTION_INIT){
 			$this->putVarInt(count($this->extraRecipes));
 			foreach($this->extraRecipes as $recipeId){
-				$this->putVarInt($recipeId);
+				$this->putString($recipeId);
 			}
 		}
 	}
+
 }

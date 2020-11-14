@@ -56,4 +56,5 @@ class EffectPacket extends OutboundPacket{
 		$this->putInt($this->data);
 		$this->putBool($this->disableRelativeVolume);
 	}
+
 }

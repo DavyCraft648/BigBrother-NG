@@ -43,4 +43,5 @@ class PlayDisconnectPacket extends OutboundPacket{
 	protected function encode() : void{
 		$this->putString($this->reason);
 	}
+
 }

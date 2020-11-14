@@ -36,12 +36,12 @@ class MapPacket extends OutboundPacket{
 	public static $code = 0;
 
 	/** @var int */
-	public $itemDamage;
+	public $mapId;
 	/** @var int */
 	public $scale;
 	/** @var bool */
 	public $trackingPosition = false;
-	/** @var resource *///TODO: We must change object type
+	/** @var array *///TODO: We must change object type
 	public $icons = [];
 	/** @var int */
 	public $columns = 0;
@@ -59,18 +59,21 @@ class MapPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putVarInt($this->itemDamage);
+		$this->putVarInt($this->mapId);
 		$this->putByte($this->scale);
 		$this->putBool($this->trackingPosition);
-
-		$this->putVarInt(0);
-		/*$this->putVarInt(count($this->icons));
+		$this->putBool($this->locked);
+		$this->putVarInt(count($this->icons));
 		foreach($this->icons as $icon){
-			$this->putByte($icon->directionAndType);
-			$this->putByte($icon->X);
-			$this->putByte($icon->Z);
-		}*/
-
+			$this->putVarInt($icon->type);
+			$this->putByte($icon->x);
+			$this->putByte($icon->z);
+			$this->putByte($icon->direction);
+			$this->putBool($icon->hasDisplayName);
+			if($icon->hasDisplayName){
+				$this->putString($icon->displayName);
+			}
+		}
 		$this->putByte($this->columns);
 		if($this->columns > 0){
 			$this->putByte($this->rows);
@@ -82,4 +85,5 @@ class MapPacket extends OutboundPacket{
 			$this->put($this->data);
 		}
 	}
+
 }

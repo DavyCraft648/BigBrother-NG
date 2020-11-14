@@ -40,15 +40,15 @@ class ExplosionPacket extends OutboundPacket{
 	/** @var float */
 	public $z;
 	/** @var float */
-	public $radius;
+	public $strength;
 	/** @var array */
 	public $records = [];
 	/** @var float */
-	public $motionX;
+	public $playerMotionX;
 	/** @var float */
-	public $motionY;
+	public $playerMotionY;
 	/** @var float */
-	public $motionZ;
+	public $playerMotionZ;
 
 	public function pid() : int{
 		return self::EXPLOSION_PACKET;
@@ -58,15 +58,16 @@ class ExplosionPacket extends OutboundPacket{
 		$this->putFloat($this->x);
 		$this->putFloat($this->y);
 		$this->putFloat($this->z);
-		$this->putFloat($this->radius);
+		$this->putFloat($this->strength);
 		$this->putInt(count($this->records));
 		foreach($this->records as $record){
 			$this->putByte($record->getX());
 			$this->putByte($record->getY());
 			$this->putByte($record->getZ());
 		}
-		$this->putFloat($this->motionX);
-		$this->putFloat($this->motionY);
-		$this->putFloat($this->motionZ);
+		$this->putFloat($this->playerMotionX);
+		$this->putFloat($this->playerMotionY);
+		$this->putFloat($this->playerMotionZ);
 	}
+
 }

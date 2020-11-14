@@ -31,7 +31,7 @@ namespace shoghicp\BigBrother\network\protocol\Play\Server;
 
 use shoghicp\BigBrother\network\OutboundPacket;
 
-class EntityLookPacket extends OutboundPacket{
+class EntityRotationPacket extends OutboundPacket{
 
 	/** @var int */
 	public $eid;
@@ -43,7 +43,7 @@ class EntityLookPacket extends OutboundPacket{
 	public $onGround;
 
 	public function pid() : int{
-		return self::ENTITY_LOOK_PACKET;
+		return self::ENTITY_ROTATION_PACKET;
 	}
 
 	protected function encode() : void{
@@ -52,4 +52,5 @@ class EntityLookPacket extends OutboundPacket{
 		$this->putAngle($this->pitch);
 		$this->putBool($this->onGround);
 	}
+
 }

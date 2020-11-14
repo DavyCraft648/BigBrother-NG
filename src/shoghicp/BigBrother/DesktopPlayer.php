@@ -100,8 +100,6 @@ class DesktopPlayer extends Player{
 	/** @var array */
 	private $bigBrother_clientSetting = [];
 	/** @var array */
-	private $bigBrother_pluginMessageList = [];
-	/** @var array */
 	private $bigBrother_breakPosition;
 	/** @var array */
 	private $bigBrother_bossBarData = [
@@ -239,21 +237,6 @@ class DesktopPlayer extends Player{
 	/**
 	 * @return array
 	 */
-	public function bigBrother_getPluginMessageList() : array{
-		return $this->bigBrother_pluginMessageList;
-	}
-
-	/**
-	 * @param string $channel
-	 * @param array  $data
-	 */
-	public function bigBrother_setPluginMessageList(string $channel = "", array $data = []) : void{
-		$this->bigBrother_pluginMessageList[$channel] = $data;
-	}
-
-	/**
-	 * @return array
-	 */
 	public function bigBrother_getBreakPosition() : array{
 		return $this->bigBrother_breakPosition;
 	}
@@ -331,7 +314,7 @@ class DesktopPlayer extends Player{
 					0,
 					[
 						1,
-						"minecraft:textures/blocks/stone.png"
+						"minecraft:textures/block/stone.png"
 					],
 					0,
 					0
@@ -365,8 +348,8 @@ class DesktopPlayer extends Player{
 
 		if($first){
 			$pk = new SelectAdvancementTabPacket();
-			$pk->hasTab = true;
-			$pk->tabId = "pocketmine:advancements/root";
+			$pk->hasId = true;
+			$pk->identifier = "pocketmine:advancements/root";
 			$this->putRawPacket($pk);
 		}
 	}
@@ -465,16 +448,16 @@ class DesktopPlayer extends Player{
 		$this->handleDataPacket($pk);
 
 		$pk = new KeepAlivePacket();
-		$pk->id = mt_rand();
+		$pk->keepAliveId = mt_rand();
 		$this->putRawPacket($pk);
 
 		$pk = new TitlePacket(); //for Set SubTitle
-		$pk->actionID = TitlePacket::TYPE_SET_TITLE;
+		$pk->actionId = TitlePacket::TYPE_SET_TITLE;
 		$pk->data = BigBrother::toJSONInternal("");
 		$this->putRawPacket($pk);
 
 		$pk = new TitlePacket();
-		$pk->actionID = TitlePacket::TYPE_SET_SUB_TITLE;
+		$pk->actionId = TitlePacket::TYPE_SET_SUB_TITLE;
 		$pk->data = BigBrother::toJSONInternal(TextFormat::YELLOW . TextFormat::BOLD . "This is a beta version of BigBrother.");
 		$this->putRawPacket($pk);
 
@@ -839,4 +822,7 @@ class DesktopPlayer extends Player{
 	public function putRawPacket(Packet $packet) : void{
 		$this->interface->putRawPacket($this, $packet);
 	}
+
+
+
 }

@@ -31,22 +31,17 @@ namespace shoghicp\BigBrother\network\protocol\Play\Client;
 
 use shoghicp\BigBrother\network\InboundPacket;
 
-class ConfirmTransactionPacket extends InboundPacket{
+class ChatMessagePacket extends InboundPacket{
 
-	/** @var int */
-	public $windowID;
-	/** @var int */
-	public $actionNumber;
-	/** @var bool */
-	public $accepted;
+	/** @var string */
+	public $message;
 
 	public function pid() : int{
-		return self::CONFIRM_TRANSACTION_PACKET;
+		return self::CHAT_MESSAGE_PACKET;
 	}
 
 	protected function decode() : void{
-		$this->windowID = $this->getSignedByte();
-		$this->actionNumber = $this->getSignedShort();
-		$this->accepted = $this->getBool();
+		$this->message = $this->getString();
 	}
+
 }

@@ -34,7 +34,7 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class SetExperiencePacket extends OutboundPacket{
 
 	/** @var float */
-	public $experience;
+	public $experienceBar;
 	/** @var int */
 	public $level;
 	/** @var int */
@@ -45,8 +45,9 @@ class SetExperiencePacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putFloat($this->experience);
+		$this->putFloat($this->experienceBar);
 		$this->putVarInt($this->level);
 		$this->putVarInt($this->totalExperience);
 	}
+
 }

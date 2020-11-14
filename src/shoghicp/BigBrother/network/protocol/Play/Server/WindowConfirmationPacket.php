@@ -34,7 +34,7 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class WindowConfirmationPacket extends OutboundPacket{
 
 	/** @var int */
-	public $windowID;
+	public $windowId;
 	/** @var int */
 	public $actionNumber;
 	/** @var bool */
@@ -45,7 +45,7 @@ class WindowConfirmationPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putByte($this->windowID);
+		$this->putByte($this->windowId);
 		$this->putShort($this->actionNumber);
 		$this->putBool($this->accepted);
 	}

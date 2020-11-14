@@ -30,29 +30,48 @@ declare(strict_types=1);
 namespace shoghicp\BigBrother\network\protocol\Play\Server;
 
 use shoghicp\BigBrother\network\OutboundPacket;
-use shoghicp\BigBrother\utils\ConvertUtils;
-use pocketmine\nbt\tag\NamedTag;
 
-class BlockEntityPacket extends OutboundPacket{
+class UpdateLightPacket extends OutboundPacket{
 
 	/** @var int */
-	public $x;
+	public $chunkX;
 	/** @var int */
-	public $y;
+	public $chunkZ;
+	/** @var bool */
+	public $trustEdges = false;
 	/** @var int */
-	public $z;
+	public $skyLightMask;
 	/** @var int */
-	public $actionID;
-	/** @var NamedTag */
-	public $namedtag;
+	public $blockLightMask;
+	/** @var int */
+	public $emptySkyLightMask;
+	/** @var int */
+	public $emptyBlockLightMask;
+	/** @var string[] */
+	public $skyLight;
+	/** @var string[] */
+	public $blockLight;
 
 	public function pid() : int{
-		return self::BLOCK_ENTITY_PACKET;
+		return self::UPDATE_LIGHT_PACKET;
 	}
 
 	protected function encode() : void{
-		$this->putPosition($this->x, $this->y, $this->z);
-		$this->putByte($this->actionID);
-		$this->put(ConvertUtils::convertNBTDataFromPEtoPC($this->namedtag));
+		$this->putVarInt($this->chunkX);
+		$this->putVarInt($this->chunkZ);
+		$this->putBool($this->trustEdges);
+		$this->putVarInt($this->skyLightMask);
+		$this->putVarInt($this->blockLightMask);
+		$this->putVarInt($this->emptySkyLightMask);
+		$this->putVarInt($this->emptyBlockLightMask);
+		foreach($this->skyLight as $skyLight){
+			$this->putVarInt(strlen($skyLight));
+			$this->put($skyLight);
+		}
+		foreach($this->blockLight as $blockLight){
+			$this->putVarInt(strlen($blockLight));
+			$this->put($blockLight);
+		}
 	}
+
 }

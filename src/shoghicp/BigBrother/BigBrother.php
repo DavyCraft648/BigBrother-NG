@@ -33,6 +33,7 @@ use InvalidArgumentException;
 use phpseclib\Crypt\RSA;
 use phpseclib\Crypt\AES;
 
+use pocketmine\event\player\PlayerMoveEvent;
 use pocketmine\plugin\PluginBase;
 use pocketmine\network\mcpe\protocol\ProtocolInfo as Info;
 use pocketmine\network\mcpe\protocol\TextPacket;
@@ -44,6 +45,7 @@ use pocketmine\event\block\BlockBreakEvent;
 use pocketmine\event\Listener;
 use pocketmine\utils\TextFormat;
 
+use shoghicp\BigBrother\network\protocol\Play\Server\UpdateViewPositionPacket;
 use shoghicp\BigBrother\network\ServerManager;
 use shoghicp\BigBrother\network\ProtocolInterface;
 use shoghicp\BigBrother\network\Translator;
@@ -303,10 +305,11 @@ class BigBrother extends PluginBase implements Listener{
 		$player = $event->getPlayer();
 		if($player instanceof DesktopPlayer){
 			$pk = new RespawnPacket();
-			$pk->dimension = $player->bigBrother_getDimension();
-			$pk->difficulty = $player->getServer()->getDifficulty();
+			$pk->dimension = $this->getDimension();
+			$pk->worldName = "minecraft:overworld";
+			$pk->hashedSeed = 0;
 			$pk->gamemode = $player->getGamemode();
-			$pk->levelType = "default";
+			$pk->previousGamemode = -1;
 			$player->putRawPacket($pk);
 
 			$player->bigBrother_respawn();
@@ -358,6 +361,29 @@ class BigBrother extends PluginBase implements Listener{
 		$player = $event->getPlayer();
 		if($player instanceof DesktopPlayer){
 			$event->setInstaBreak(true);//ItemFrame and other blocks
+		}
+	}
+
+	/**
+	 * @param PlayerMoveEvent $event
+	 *
+	 * @priority NORMAL
+	 */
+	public function onPlayerMove(PlayerMoveEvent $event) : void{
+		$player = $event->getPlayer();
+		if($player instanceof DesktopPlayer){
+			$from = $event->getFrom();
+			$to = $event->getTo();
+			$fromChunkX = $from->getFloorX() >> 8;
+			$fromChunkZ = $from->getFloorZ() >> 8;
+			$toChunkX = $to->getFloorX() >> 8;
+			$toChunkZ = $to->getFloorZ() >> 8;
+			if($fromChunkX !== $toChunkX || $fromChunkZ !== $toChunkZ || $from->getFloorY() !== $to->getFloorY()){
+				$pk = new UpdateViewPositionPacket();
+				$pk->chunkX = $to->getX() >> 4;
+				$pk->chunkZ = $to->getZ() >> 4;
+				$player->putRawPacket($pk);
+			}
 		}
 	}
 

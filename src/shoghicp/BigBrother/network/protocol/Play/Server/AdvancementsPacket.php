@@ -34,7 +34,7 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class AdvancementsPacket extends OutboundPacket{
 
 	/** @var bool */
-	public $doClear = false;
+	public $clear = false;
 	/** @var array */
 	public $advancements = [];
 	/** @var array */
@@ -47,10 +47,10 @@ class AdvancementsPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putBool($this->doClear);
+		$this->putBool($this->clear);
 		$this->putVarInt(count($this->advancements));
 		foreach($this->advancements as $advancement){
-			$this->putString($advancement[0]);//id
+			$this->putString($advancement[0]);//identifier
 			$this->putBool($advancement[1][0]);//has parent
 			if($advancement[1][0]){
 				$this->putString($advancement[1][1]);//parent id
@@ -98,4 +98,5 @@ class AdvancementsPacket extends OutboundPacket{
 			}
 		}
 	}
+
 }

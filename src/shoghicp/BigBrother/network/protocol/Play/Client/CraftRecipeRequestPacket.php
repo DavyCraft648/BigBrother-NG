@@ -34,9 +34,9 @@ use shoghicp\BigBrother\network\InboundPacket;
 class CraftRecipeRequestPacket extends InboundPacket{
 
 	/** @var int */
-	public $windowID;
-	/** @var int */
-	public $recipeId = -1;
+	public $windowId;
+	/** @var string */
+	public $recipeId;
 	/** @var bool */
 	public $isMakeAll = false;
 
@@ -45,8 +45,9 @@ class CraftRecipeRequestPacket extends InboundPacket{
 	}
 
 	protected function decode() : void{
-		$this->windowID = $this->getSignedByte();
-		$this->recipeId = $this->getVarInt();
+		$this->windowId = $this->getSignedByte();
+		$this->recipeId = $this->getString();
 		$this->isMakeAll = $this->getBool();
 	}
+
 }

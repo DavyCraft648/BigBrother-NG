@@ -27,33 +27,33 @@
 
 declare(strict_types=1);
 
-namespace shoghicp\BigBrother\utils;
+namespace shoghicp\BigBrother\network\protocol\Play\Server;
 
-use pocketmine\network\mcpe\protocol\CraftingDataPacket;
+use shoghicp\BigBrother\network\OutboundPacket;
+use shoghicp\BigBrother\utils\ConvertUtils;
+use pocketmine\nbt\tag\NamedTag;
 
-use shoghicp\BigBrother\DesktopPlayer;
+class BlockEntityDataPacket extends OutboundPacket{
 
-class RecipeUtils{
+	/** @var int */
+	public $x;
+	/** @var int */
+	public $y;
+	/** @var int */
+	public $z;
+	/** @var int */
+	public $actionId;
+	/** @var NamedTag */
+	public $nbtData;
 
-	/** @var DesktopPlayer */
-	private $player;
-
-	public function __construct(DesktopPlayer $player){
-		$this->player = $player;
+	public function pid() : int{
+		return self::BLOCK_ENTITY_DATA_PACKET;
 	}
 
-	public function onCraftingData(CraftingDataPacket $packet){
-		return null;
-	}
-
-	public function __a(){
-		/*$pk = new UnlockRecipesPacket();
-		$pk->actionId = 0;
-		$pk->recipes[] = 163;
-		$pk->recipes[] = 438;
-		$pk->recipes[] = 424;
-		$pk->extraRecipes[] = 0;
-		$this->putRawPacket($pk);*/
+	protected function encode() : void{
+		$this->putPosition($this->x, $this->y, $this->z);
+		$this->putByte($this->actionId);
+		$this->put(ConvertUtils::convertNBTDataFromPEtoPC($this->nbtData));
 	}
 
 }

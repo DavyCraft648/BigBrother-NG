@@ -106,14 +106,10 @@ abstract class Packet extends stdClass{
 	protected function putSlot(Item $item) : void{
 		ConvertUtils::convertItemData(true, $item);
 
-		$this->putBool(false);
-		/*if($item->getID() === 0){
-			$this->putShort(-1);
-		}else{
-			$this->putShort($item->getID());
+		/*$this->putBool(!$item->isNull());
+		if(!$item->isNull()){
+			//$this->putVarInt();
 			$this->putByte($item->getCount());
-			$this->putShort($item->getDamage());
-
 			if($item->hasCompoundTag()){
 				$itemNBT = clone $item->getNamedTag();
 				$this->put(ConvertUtils::convertNBTDataFromPEtoPC($itemNBT));
@@ -121,6 +117,7 @@ abstract class Packet extends stdClass{
 				$this->put("\x00");//TAG_End
 			}
 		}*/
+		$this->putBool(false);
 	}
 
 	protected function getShort() : int{
@@ -246,4 +243,5 @@ abstract class Packet extends stdClass{
 		$this->offset = $offset;
 		$this->decode();
 	}
+
 }

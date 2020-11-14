@@ -36,7 +36,7 @@ class EntityStatusPacket extends OutboundPacket{
 	/** @var int */
 	public $eid;
 	/** @var int */
-	public $status;
+	public $entityStatus;
 
 	public function pid() : int{
 		return self::ENTITY_STATUS_PACKET;
@@ -44,6 +44,7 @@ class EntityStatusPacket extends OutboundPacket{
 
 	protected function encode() : void{
 		$this->putInt($this->eid);
-		$this->putByte($this->status);
+		$this->putByte($this->entityStatus);
 	}
+
 }

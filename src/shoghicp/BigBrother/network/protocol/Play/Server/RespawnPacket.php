@@ -33,23 +33,36 @@ use shoghicp\BigBrother\network\OutboundPacket;
 
 class RespawnPacket extends OutboundPacket{
 
-	/** @var int */
+	/** @var string */
 	public $dimension;
+	/** @var string */
+	public $worldName;
 	/** @var int */
-	public $difficulty;
+	public $hashedSeed;
 	/** @var int */
 	public $gamemode;
-	/** @var string */
-	public $levelType;
+	/** @var int */
+	public $previousGamemode;
+	/** @var bool */
+	public $isDebug = false;
+	/** @var bool */
+	public $isFlat = false;
+	/** @var bool */
+	public $copyMetadata = false;
 
 	public function pid() : int{
 		return self::RESPAWN_PACKET;
 	}
 
 	protected function encode() : void{
-		$this->putInt($this->dimension);
-		$this->putByte($this->difficulty);
+		$this->put($this->dimension);
+		$this->putString($this->worldName);
+		$this->putLong($this->hashedSeed);
 		$this->putByte($this->gamemode);
-		$this->putString($this->levelType);
+		$this->putByte($this->previousGamemode);
+		$this->putBool($this->isDebug);
+		$this->putBool($this->isFlat);
+		$this->putBool($this->copyMetadata);
 	}
+
 }

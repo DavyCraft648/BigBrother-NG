@@ -34,18 +34,18 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class PlayerAbilitiesPacket extends OutboundPacket{
 
 	/** @var bool */
-	public $damageDisabled;
+	public $damageDisabled = false;
 	/** @var bool */
-	public $canFly;
+	public $canFly = false;
 	/** @var bool */
 	public $isFlying = false;
 	/** @var bool */
-	public $isCreative;
+	public $isCreative = false;
 
 	/** @var float */
 	public $flyingSpeed;
 	/** @var float */
-	public $walkingSpeed;
+	public $viewModifierField;
 
 	public function pid() : int{
 		return self::PLAYER_ABILITIES_PACKET;
@@ -67,6 +67,7 @@ class PlayerAbilitiesPacket extends OutboundPacket{
 		}
 		$this->putByte($flags);
 		$this->putFloat($this->flyingSpeed);
-		$this->putFloat($this->walkingSpeed);
+		$this->putFloat($this->viewModifierField);
 	}
+
 }

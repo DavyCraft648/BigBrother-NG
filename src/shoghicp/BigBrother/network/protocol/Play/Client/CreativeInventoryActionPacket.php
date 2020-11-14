@@ -37,7 +37,7 @@ class CreativeInventoryActionPacket extends InboundPacket{
 	/** @var int */
 	public $slot;
 	/** @var Item */
-	public $item;
+	public $clickedItem;
 
 	public function pid() : int{
 		return self::CREATIVE_INVENTORY_ACTION_PACKET;
@@ -45,6 +45,7 @@ class CreativeInventoryActionPacket extends InboundPacket{
 
 	protected function decode() : void{
 		$this->slot = $this->getSignedShort();
-		$this->item = $this->getSlot();
+		$this->clickedItem = $this->getSlot();
 	}
+
 }

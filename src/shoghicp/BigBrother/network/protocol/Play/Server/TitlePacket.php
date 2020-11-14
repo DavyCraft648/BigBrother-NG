@@ -41,7 +41,7 @@ class TitlePacket extends OutboundPacket{
 	const TYPE_RESET = 5;
 
 	/** @var int */
-	public $actionID;
+	public $actionId;
 	/** @var string|int[] */
 	public $data = null;
 
@@ -50,8 +50,8 @@ class TitlePacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putVarInt($this->actionID);
-		switch($this->actionID){
+		$this->putVarInt($this->actionId);
+		switch($this->actionId){
 			case self::TYPE_SET_TITLE:
 			case self::TYPE_SET_SUB_TITLE:
 			case self::TYPE_SET_ACTION_BAR:
@@ -64,4 +64,5 @@ class TitlePacket extends OutboundPacket{
 			break;
 		}
 	}
+
 }

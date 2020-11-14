@@ -33,29 +33,18 @@ use shoghicp\BigBrother\network\InboundPacket;
 
 class TabCompletePacket extends InboundPacket{
 
+	/** @var int */
+	public $transactionId;
 	/** @var string */
 	public $text;
-	/** @var bool */
-	public $assumeCommand;
-	/** @var bool */
-	public $hasPosition;
-	/** @var int */
-	public $x;
-	/** @var int */
-	public $y;
-	/** @var int */
-	public $z;
 
 	public function pid() : int{
 		return self::TAB_COMPLETE_PACKET;
 	}
 
 	protected function decode() : void{
+		$this->transactionId = $this->getVarInt();
 		$this->text = $this->getString();
-		$this->assumeCommand = $this->getBool();
-		$this->hasPosition = $this->getBool();
-		if($this->hasPosition){
-			$this->getPosition($this->x, $this->y, $this->z);
-		}
 	}
+
 }

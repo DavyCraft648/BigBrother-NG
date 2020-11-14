@@ -36,7 +36,7 @@ class PlayerPositionPacket extends InboundPacket{
 	/** @var float */
 	public $x;
 	/** @var float */
-	public $y;
+	public $feetY;
 	/** @var float */
 	public $z;
 	/** @var bool */
@@ -48,8 +48,9 @@ class PlayerPositionPacket extends InboundPacket{
 
 	protected function decode() : void{
 		$this->x = $this->getDouble();
-		$this->y = $this->getDouble();
+		$this->feetY = $this->getDouble();
 		$this->z = $this->getDouble();
 		$this->onGround = $this->getBool();
 	}
+
 }

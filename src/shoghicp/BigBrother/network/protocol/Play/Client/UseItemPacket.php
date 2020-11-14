@@ -43,4 +43,5 @@ class UseItemPacket extends InboundPacket{
 	protected function decode() : void{
 		$this->hand = $this->getVarInt();
 	}
+
 }

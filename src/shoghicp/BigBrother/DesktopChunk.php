@@ -47,13 +47,23 @@ class DesktopChunk{
 	/** @var Level */
 	private $level;
 	/** @var int */
-	private $bitMap;
+	private $chunkBitmask;
+	/** @var bool */
+	private $isFullChunk = false;
 	/** @var string */
 	private $chunkData;
 	/** @var CompoundTag */
 	private $heightMaps;
-	/** @var int[] */
+	/** @var string */
 	private $biomes;
+	/** @var int */
+	private $skyLightBitMask;
+	/** @var int */
+	private $blockLightBitMask;
+	/** @var string[] */
+	private $skyLight = [];
+	/** @var string[] */
+	private $blockLight = [];
 
 	/**
 	 * @param DesktopPlayer $player
@@ -65,7 +75,7 @@ class DesktopChunk{
 		$this->chunkX = $chunkX;
 		$this->chunkZ = $chunkZ;
 		$this->level = $player->getLevel();
-		$this->bitMap = 0;
+		$this->chunkBitmask = 0;
 
 		$this->generateChunk();
 		$this->generateHeightMaps();
@@ -73,6 +83,7 @@ class DesktopChunk{
 
 	public function generateChunk() : void{
 		$chunk = $this->level->getChunk($this->chunkX, $this->chunkZ, false);
+		$this->isFullChunk = count($chunk->getSubChunks()) === 16;
 
 		$payload = "";
 		foreach($chunk->getSubChunks() as $num => $subChunk){
@@ -80,7 +91,9 @@ class DesktopChunk{
 				continue;
 			}
 
-			$this->bitMap |= 0x01 << $num;
+			$this->chunkBitmask |= (0x01 << $num);
+			$this->skyLightBitMask |= (0x01 << $num + 1);
+			$this->blockLightBitMask |= (0x01 << $num + 1);
 
 			$palette = [];
 			$blockCount = 0;
@@ -135,6 +148,8 @@ class DesktopChunk{
 					}
 				}
 			}
+			$this->skyLight[] = $skyLightData;
+			$this->blockLight[] = $blockLightData;
 
 			/* Bits Per Block & Palette Length */
 			$payload .= Binary::writeShort($blockCount).Binary::writeByte($bitsPerBlock).Binary::writeComputerVarInt(count($palette));
@@ -161,8 +176,8 @@ class DesktopChunk{
 		$longData = [];
 		$shiftCount = 0;
 		foreach($chunk->getHeightMapArray() as $value){
-			$long |= ($value & 0x1fff);
 			$long <<= 9;
+			$long |= ($value & 0x1fff);
 			$shiftCount++;
 			if($shiftCount === 7){
 				$longData[] = $long;
@@ -187,15 +202,15 @@ class DesktopChunk{
 	/**
 	 * @return int
 	 */
-	public function getBitMapData() : int{
-		return $this->bitMap;
+	public function getChunkBitMask() : int{
+		return $this->chunkBitmask;
 	}
 
 	/**
 	 * @return bool
 	 */
 	public function isFullChunk(): bool{
-		return true;
+		return $this->isFullChunk;
 	}
 
 	/**
@@ -209,8 +224,24 @@ class DesktopChunk{
 		return $this->heightMaps;
 	}
 
-	public function getBiomes(){
+	public function getBiomes(): string{
 		return $this->biomes;
+	}
+
+	public function getSkyLightBitMask(): int{
+		return $this->skyLightBitMask;
+	}
+
+	public function getBlockLightBitMask(): int{
+		return $this->blockLightBitMask;
+	}
+
+	public function getSkyLight(): array{
+		return $this->skyLight;
+	}
+
+	public function getBlockLight(): array{
+		return $this->blockLight;
 	}
 
 }

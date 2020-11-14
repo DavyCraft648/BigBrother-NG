@@ -32,6 +32,7 @@ namespace shoghicp\BigBrother\utils;
 use phpseclib\Math\BigInteger;
 use pocketmine\item\Item;
 use shoghicp\BigBrother\network\Session;
+use const pocketmine\DEBUG;
 
 class Binary extends \pocketmine\utils\Binary{
 
@@ -62,6 +63,10 @@ class Binary extends \pocketmine\utils\Binary{
 			$data = ConvertUtils::convertPEToPCMetadata($data);
 		}
 
+		if(DEBUG > 4){
+			var_dump($data);
+		}
+
 		$m = "";
 
 		foreach($data as $bottom => $d){
@@ -71,7 +76,7 @@ class Binary extends \pocketmine\utils\Binary{
 
 			assert(is_int($bottom));
 			$m .= self::writeByte($bottom);
-			$m .= self::writeByte($d[0]);
+			$m .= self::writeComputerVarInt($d[0]);
 
 			switch($d[0]){
 				case 0://Byte
@@ -85,11 +90,17 @@ class Binary extends \pocketmine\utils\Binary{
 				break;
 				case 3://String
 				case 4://Chat
-					var_dump(strlen($d[1]));
 					$m .= self::writeComputerVarInt(strlen($d[1])) . $d[1];
 				break;
-				case 5://Slot
+				case 5://OptChat
+					$m .= self::writeBool($d[1][0]);
+					if($d[1][0]){
+						$m .= self::writeComputerVarInt(strlen($d[1][1])) . $d[1][1];
+					}
+				break;
+				case 6://Slot
 					/** @var Item $item */
+					$m .= self::writeBool(false);
 					/*$item = $d[1];
 					if($item->getId() === 0){
 						$m .= self::writeBool(false);
@@ -105,7 +116,6 @@ class Binary extends \pocketmine\utils\Binary{
 							$m .= "\x00";//TAG_End
 						}
 					}*/
-					self::writeBool(false);
 				break;
 				case 7://Boolean
 					$m .= self::writeByte($d[1] ? 1 : 0);
