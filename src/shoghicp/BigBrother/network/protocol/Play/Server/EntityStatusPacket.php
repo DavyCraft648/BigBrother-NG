@@ -34,7 +34,7 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class EntityStatusPacket extends OutboundPacket{
 
 	/** @var int */
-	public $eid;
+	public $entityId;
 	/** @var int */
 	public $entityStatus;
 
@@ -43,7 +43,7 @@ class EntityStatusPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putInt($this->eid);
+		$this->putInt($this->entityId);
 		$this->putByte($this->entityStatus);
 	}
 

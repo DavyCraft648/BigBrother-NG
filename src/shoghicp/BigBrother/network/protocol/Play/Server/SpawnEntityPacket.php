@@ -62,7 +62,7 @@ class SpawnEntityPacket extends OutboundPacket{
 	const DRAGON_FIREBALL   = 93;
 
 	/** @var int */
-	public $eid;
+	public $entityId;
 	/** @var string */
 	public $uuid;
 	/** @var int */
@@ -93,7 +93,7 @@ class SpawnEntityPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putVarInt($this->eid);
+		$this->putVarInt($this->entityId);
 		$this->put($this->uuid);
 		$this->putVarInt($this->type);
 		$this->putDouble($this->x);

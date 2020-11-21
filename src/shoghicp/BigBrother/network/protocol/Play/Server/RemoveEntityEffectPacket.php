@@ -34,7 +34,7 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class RemoveEntityEffectPacket extends OutboundPacket{
 
 	/** @var int */
-	public $eid;
+	public $entityId;
 	/** @var int */
 	public $effectId;
 
@@ -43,7 +43,7 @@ class RemoveEntityEffectPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putVarInt($this->eid);
+		$this->putVarInt($this->entityId);
 		$this->putByte($this->effectId);
 	}
 

@@ -34,7 +34,7 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class EntityRotationPacket extends OutboundPacket{
 
 	/** @var int */
-	public $eid;
+	public $entityId;
 	/** @var int */
 	public $yaw;
 	/** @var int */
@@ -47,7 +47,7 @@ class EntityRotationPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putVarInt($this->eid);
+		$this->putVarInt($this->entityId);
 		$this->putAngle($this->yaw);
 		$this->putAngle($this->pitch);
 		$this->putBool($this->onGround);

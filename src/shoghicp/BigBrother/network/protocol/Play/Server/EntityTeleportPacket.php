@@ -33,7 +33,7 @@ use shoghicp\BigBrother\network\OutboundPacket;
 
 class EntityTeleportPacket extends OutboundPacket{
 	/** @var int */
-	public $eid;
+	public $entityId;
 	/** @var float */
 	public $x;
 	/** @var float */
@@ -52,7 +52,7 @@ class EntityTeleportPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putVarInt($this->eid);
+		$this->putVarInt($this->entityId);
 		$this->putDouble($this->x);
 		$this->putDouble($this->y);
 		$this->putDouble($this->z);

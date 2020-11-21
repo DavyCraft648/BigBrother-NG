@@ -458,7 +458,7 @@ class DesktopPlayer extends Player{
 
 		$pk = new TitlePacket();
 		$pk->actionId = TitlePacket::TYPE_SET_SUB_TITLE;
-		$pk->data = BigBrother::toJSONInternal(TextFormat::YELLOW . TextFormat::BOLD . "This is a beta version of BigBrother.");
+		$pk->data = BigBrother::toJSONInternal(TextFormat::YELLOW."This is a beta version of BigBrother.");
 		$this->putRawPacket($pk);
 
 		$this->sendAdvancements(true);

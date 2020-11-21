@@ -115,7 +115,7 @@ class ItemFrameBlockEntity extends Position{
 	 */
 	public function spawnTo(DesktopPlayer $player){
 		$pk = new SpawnEntityPacket();
-		$pk->eid = $this->eid;
+		$pk->entityId = $this->eid;
 		$pk->uuid = $this->uuid;
 		$pk->type = SpawnEntityPacket::ITEM_FRAMES;
 		$pk->x = $this->x;
@@ -131,7 +131,7 @@ class ItemFrameBlockEntity extends Position{
 		$player->putRawPacket($pk);
 
 		$pk = new EntityMetadataPacket();
-		$pk->eid = $this->eid;
+		$pk->entityId = $this->eid;
 		$pk->metadata = ["convert" => true];
 
 		$tile = $this->getLevel()->getTile($this);

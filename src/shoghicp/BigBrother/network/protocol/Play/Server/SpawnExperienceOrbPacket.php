@@ -34,7 +34,7 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class SpawnExperienceOrbPacket extends OutboundPacket{
 
 	/** @var int */
-	public $eid;
+	public $entityId;
 	/** @var float */
 	public $x;
 	/** @var float */
@@ -49,7 +49,7 @@ class SpawnExperienceOrbPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putVarInt($this->eid);
+		$this->putVarInt($this->entityId);
 		$this->putDouble($this->x);
 		$this->putDouble($this->y);
 		$this->putDouble($this->z);

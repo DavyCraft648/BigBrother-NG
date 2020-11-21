@@ -34,7 +34,7 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class JoinGamePacket extends OutboundPacket{
 
 	/** @var int */
-	public $eid;
+	public $entityId;
 	/** @var bool */
 	public $isHardcore = false;
 	/** @var int */
@@ -69,7 +69,7 @@ class JoinGamePacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putInt($this->eid);
+		$this->putInt($this->entityId);
 		$this->putBool($this->isHardcore);
 		$this->putByte($this->gamemode);
 		$this->putByte($this->previousGamemode);

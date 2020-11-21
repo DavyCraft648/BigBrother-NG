@@ -34,14 +34,14 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class EntityMovementPacket extends OutboundPacket{
 
 	/** @var int */
-	public $eid;
+	public $entityId;
 
 	public function pid() : int{
 		return self::ENTITY_MOVEMENT_PACKET;
 	}
 
 	protected function encode() : void{
-		$this->putVarInt($this->eid);
+		$this->putVarInt($this->entityId);
 	}
 
 }

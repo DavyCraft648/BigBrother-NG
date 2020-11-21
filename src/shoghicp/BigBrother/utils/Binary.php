@@ -129,6 +129,13 @@ class Binary extends \pocketmine\utils\Binary{
 					$long = (($d[1][0] & 0x3FFFFFF) << 38) | (($d[1][1] & 0xFFF) << 26) | ($d[1][2] & 0x3FFFFFF);
 					$m .= self::writeLong($long);
 				break;
+				case 10://OptPos
+					$m .= self::writeBool($d[1][0]);
+					if($d[1][0]){
+						$long = (($d[1][1][0] & 0x3FFFFFF) << 38) | (($d[1][1][1] & 0xFFF) << 26) | ($d[1][1][2] & 0x3FFFFFF);
+						$m .= self::writeLong($long);
+					}
+				break;
 			}
 		}
 

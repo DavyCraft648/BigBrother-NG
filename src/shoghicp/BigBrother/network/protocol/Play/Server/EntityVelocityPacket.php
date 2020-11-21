@@ -34,7 +34,7 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class EntityVelocityPacket extends OutboundPacket{
 
 	/** @var int */
-	public $eid;
+	public $entityId;
 	/** @var float */
 	public $velocityX;
 	/** @var float */
@@ -47,7 +47,7 @@ class EntityVelocityPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putVarInt($this->eid);
+		$this->putVarInt($this->entityId);
 		$this->putShort((int) round($this->velocityX * 8000));
 		$this->putShort((int) round($this->velocityY * 8000));
 		$this->putShort((int) round($this->velocityZ * 8000));

@@ -34,7 +34,7 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class SpawnLivingEntityPacket extends OutboundPacket{
 
 	/** @var int */
-	public $eid;
+	public $entityId;
 	/** @var string */
 	public $uuid;
 	/** @var int */
@@ -65,7 +65,7 @@ class SpawnLivingEntityPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putVarInt($this->eid);
+		$this->putVarInt($this->entityId);
 		$this->put($this->uuid);
 		$this->putVarInt($this->type);
 		$this->putDouble($this->x);

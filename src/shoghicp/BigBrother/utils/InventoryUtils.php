@@ -248,11 +248,11 @@ class InventoryUtils{
 	public function onWindowOpen(ContainerOpenPacket $packet) : ?OutboundPacket{
 		switch($packet->type){
 			case WindowTypes::CONTAINER:
-				$type = "minecraft:chest";
+				$type = "minecraft:generic_9x3";
 				$title = "chest";
 			break;
 			case WindowTypes::WORKBENCH:
-				$type = "minecraft:crafting_table";
+				$type = "minecraft:crafting";
 				$title = "crafting";
 			break;
 			case WindowTypes::FURNACE:
@@ -260,7 +260,7 @@ class InventoryUtils{
 				$title = "furnace";
 			break;
 			case WindowTypes::ENCHANTMENT:
-				$type = "minecraft:enchanting_table";
+				$type = "minecraft:enchantment";
 				$title = "enchant";
 			break;
 			case WindowTypes::ANVIL:
@@ -274,19 +274,17 @@ class InventoryUtils{
 				$pk->windowId = $packet->windowId;
 				$this->player->handleDataPacket($pk);
 
-				return null;
-			break;
+			return null;
 		}
 
-		$slots = 0;
 		$saveSlots = 0;
 		if(($tile = $this->player->getLevel()->getTile(new Vector3((int) $packet->x, (int) $packet->y, (int) $packet->z))) instanceof Tile){
 			if($tile instanceof TileEnderChest){
-				$slots = $saveSlots = $this->player->getEnderChestInventory()->getSize();
 				$title = "enderchest";
 			}elseif($tile instanceof InventoryHolder){
 				$slots = $saveSlots = $tile->getInventory()->getSize();
 				if($title === "chest" and $slots === 54){
+					$type = "minecraft:generic_9x6";
 					$title = "chestDouble";
 				}
 			}
@@ -294,15 +292,13 @@ class InventoryUtils{
 
 		if($title === "crafting"){
 			$saveSlots = 10;
-			$slots = 0;
 		}elseif($title === "repair"){
 			$saveSlots = 3;
-			$slots = 0;
 		}
 
 		$pk = new OpenWindowPacket();
 		$pk->windowId = $packet->windowId;
-		$pk->inventoryType = $type;//TODo: Fix it
+		$pk->inventoryType = $type;
 		$pk->windowTitle = json_encode(["translate" => "container.".$title]);
 
 		$this->windowInfo[$packet->windowId] = ["type" => $packet->type, "slots" => $saveSlots, "items" => []];
@@ -1028,28 +1024,28 @@ class InventoryUtils{
 		$packets = [];
 
 		$pk = new EntityEquipmentPacket();
-		$pk->eid = $packet->entityRuntimeId;
+		$pk->entityId = $packet->entityRuntimeId;
 		$pk->slot = 5;
 		$pk->item = $packet->head;
 		$packets[] = $pk;
 		$this->playerArmorSlot[0] = $pk->item;
 
 		$pk = new EntityEquipmentPacket();
-		$pk->eid = $packet->entityRuntimeId;
+		$pk->entityId = $packet->entityRuntimeId;
 		$pk->slot = 4;
 		$pk->item = $packet->chest;
 		$packets[] = $pk;
 		$this->playerArmorSlot[1] = $pk->item;
 
 		$pk = new EntityEquipmentPacket();
-		$pk->eid = $packet->entityRuntimeId;
+		$pk->entityId = $packet->entityRuntimeId;
 		$pk->slot = 3;
 		$pk->item = $packet->legs;
 		$packets[] = $pk;
 		$this->playerArmorSlot[2] = $pk->item;
 
 		$pk = new EntityEquipmentPacket();
-		$pk->eid = $packet->entityRuntimeId;
+		$pk->entityId = $packet->entityRuntimeId;
 		$pk->slot = 2;
 		$pk->item = $packet->feet;
 		$packets[] = $pk;

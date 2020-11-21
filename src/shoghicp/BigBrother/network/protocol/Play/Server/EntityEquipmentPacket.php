@@ -35,7 +35,7 @@ use pocketmine\item\Item;
 class EntityEquipmentPacket extends OutboundPacket{
 
 	/** @var int */
-	public $eid;
+	public $entityId;
 	/** @var int */
 	public $slot;
 	/** @var Item */
@@ -46,7 +46,7 @@ class EntityEquipmentPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putVarInt($this->eid);
+		$this->putVarInt($this->entityId);
 		$this->putVarInt($this->slot);
 		$this->putSlot($this->item);
 	}

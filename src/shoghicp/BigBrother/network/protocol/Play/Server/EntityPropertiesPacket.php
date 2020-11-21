@@ -35,7 +35,7 @@ use const pocketmine\DEBUG;
 class EntityPropertiesPacket extends OutboundPacket{
 
 	/** @var int */
-	public $eid;
+	public $entityId;
 	/** @var array */
 	public $entries = [];
 
@@ -44,7 +44,7 @@ class EntityPropertiesPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putVarInt($this->eid);
+		$this->putVarInt($this->entityId);
 		$this->putInt(count($this->entries));
 		foreach($this->entries as $entry){
 			$this->putString($entry[0]);

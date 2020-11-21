@@ -34,7 +34,7 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class BlockBreakAnimationPacket extends OutboundPacket{
 
 	/** @var int */
-	public $eid;
+	public $entityId;
 	/** @var int */
 	public $x;
 	/** @var int */
@@ -49,7 +49,7 @@ class BlockBreakAnimationPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putVarInt($this->eid);
+		$this->putVarInt($this->entityId);
 		$this->putPosition($this->x, $this->y, $this->z);
 		$this->putByte($this->destroyStage);
 	}

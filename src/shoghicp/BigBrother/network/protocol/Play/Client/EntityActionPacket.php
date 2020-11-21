@@ -34,7 +34,7 @@ use shoghicp\BigBrother\network\InboundPacket;
 class EntityActionPacket extends InboundPacket{
 
 	/** @var int */
-	public $eid;
+	public $entityId;
 	/** @var int */
 	public $actionId;
 	/** @var int */
@@ -45,7 +45,7 @@ class EntityActionPacket extends InboundPacket{
 	}
 
 	protected function decode() : void{
-		$this->eid = $this->getVarInt();
+		$this->entityId = $this->getVarInt();
 		$this->actionId = $this->getVarInt();
 		$this->jumpBoost = $this->getVarInt();
 	}

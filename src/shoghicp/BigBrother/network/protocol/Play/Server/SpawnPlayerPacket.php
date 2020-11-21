@@ -34,7 +34,7 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class SpawnPlayerPacket extends OutboundPacket{
 
 	/** @var int */
-	public $eid;
+	public $entityId;
 	/** @var string */
 	public $uuid;
 	/** @var float */
@@ -53,7 +53,7 @@ class SpawnPlayerPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putVarInt($this->eid);
+		$this->putVarInt($this->entityId);
 		$this->put($this->uuid);
 		$this->putDouble($this->x);
 		$this->putDouble($this->y);

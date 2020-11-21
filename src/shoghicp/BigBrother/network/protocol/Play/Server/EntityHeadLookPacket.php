@@ -34,7 +34,7 @@ use shoghicp\BigBrother\network\OutboundPacket;
 class EntityHeadLookPacket extends OutboundPacket{
 
 	/** @var int */
-	public $eid;
+	public $entityId;
 	/** @var int */
 	public $yaw;
 
@@ -43,7 +43,7 @@ class EntityHeadLookPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putVarInt($this->eid);
+		$this->putVarInt($this->entityId);
 		$this->putAngle($this->yaw);
 	}
 

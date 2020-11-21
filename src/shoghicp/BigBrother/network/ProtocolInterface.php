@@ -289,9 +289,6 @@ class ProtocolInterface implements SourceInterface{
 				case InboundPacket::TELEPORT_CONFIRM_PACKET:
 					$pk = new TeleportConfirmPacket();
 				break;
-				case InboundPacket::TAB_COMPLETE_PACKET:
-					$pk = new TabCompletePacket();
-				break;
 				case InboundPacket::CHAT_MESSAGE_PACKET:
 					$pk = new ChatMessagePacket();
 				break;
@@ -300,6 +297,9 @@ class ProtocolInterface implements SourceInterface{
 				break;
 				case InboundPacket::CLIENT_SETTINGS_PACKET:
 					$pk = new ClientSettingsPacket();
+				break;
+				case InboundPacket::TAB_COMPLETE_PACKET:
+					$pk = new TabCompletePacket();
 				break;
 				case InboundPacket::WINDOW_CONFIRMATION_PACKET:
 					$pk = new WindowConfirmationPacket();
@@ -319,9 +319,6 @@ class ProtocolInterface implements SourceInterface{
 				case InboundPacket::KEEP_ALIVE_PACKET:
 					$pk = new KeepAlivePacket();
 				break;
-				case InboundPacket::PLAYER_MOVEMENT_PACKET:
-					$pk = new PlayerMovementPacket();
-				break;
 				case InboundPacket::PLAYER_POSITION_PACKET:
 					$pk = new PlayerPositionPacket();
 				break;
@@ -330,6 +327,9 @@ class ProtocolInterface implements SourceInterface{
 				break;
 				case InboundPacket::PLAYER_ROTATION_PACKET:
 					$pk = new PlayerRotationPacket();
+				break;
+				case InboundPacket::PLAYER_MOVEMENT_PACKET:
+					$pk = new PlayerMovementPacket();
 				break;
 				case InboundPacket::CRAFT_RECIPE_REQUEST_PACKET:
 					$pk = new CraftRecipeRequestPacket();

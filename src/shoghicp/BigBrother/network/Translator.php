@@ -243,7 +243,7 @@ class Translator{
 				$player->setLocale($locale);
 
 				$pk = new EntityMetadataPacket();
-				$pk->eid = $player->getId();
+				$pk->entityId = $player->getId();
 				$pk->metadata = [//Enable Display Skin Parts
 					16 => [0, $packet->displayedSkinParts],
 					"convert" => true,
@@ -363,14 +363,15 @@ class Translator{
 							$pk->trData->itemInHand = $player->getInventory()->getItemInHand();
 							$pk->trData->playerPos = $player->asVector3();
 							$pk->trData->clickPos = $frame->asVector3();
+
 							return $pk;
-						break;
 						case InteractEntityPacket::TYPE_ATTACK:
 							if($frame->hasItem()){
 								$pk = new ItemFrameDropItemPacket();
 								$pk->x = $frame->x;
 								$pk->y = $frame->y;
 								$pk->z = $frame->z;
+
 								return $pk;
 							}else{
 								$pk = new InventoryTransactionPacket();
@@ -385,10 +386,11 @@ class Translator{
 								$pk->trData->itemInHand = $player->getInventory()->getItemInHand();
 								$pk->trData->playerPos = $player->asVector3();
 								$pk->trData->clickPos = $frame->asVector3();
+
 								return $pk;
 							}
-						break;
 					}
+
 					return null;
 				}
 
@@ -423,7 +425,6 @@ class Translator{
 					}
 				}
 
-
 				return $pk;
 
 			case InboundPacket::KEEP_ALIVE_PACKET:
@@ -436,6 +437,7 @@ class Translator{
 			case InboundPacket::PLAYER_MOVEMENT_PACKET:
 				/** @var PlayerMovementPacket $packet */
 				$player->onGround = $packet->onGround;
+
 				return null;
 
 			case InboundPacket::PLAYER_POSITION_PACKET:
@@ -995,7 +997,7 @@ class Translator{
 
 				$pk = new JoinGamePacket();
 				$pk->isHardcore = $player->getServer()->isHardcore();
-				$pk->eid = $packet->entityRuntimeId;
+				$pk->entityId = $packet->entityRuntimeId;
 				$pk->gamemode = $packet->playerGamemode;
 				$pk->previousGamemode = -1;
 				$pk->worldNames = ["minecraft:overworld", "minecraft:the_nether", "minecraft:the_end"];
@@ -1046,7 +1048,7 @@ class Translator{
 				$packets = [];
 
 				$pk = new SpawnPlayerPacket();
-				$pk->eid = $packet->entityRuntimeId;
+				$pk->entityId = $packet->entityRuntimeId;
 				$pk->uuid = $packet->uuid->toBinary();
 				$pk->x = $packet->position->x;
 				$pk->y = $packet->position->y;
@@ -1056,12 +1058,12 @@ class Translator{
 				$packets[] = $pk;
 
 				$pk = new EntityMetadataPacket();
-				$pk->eid = $packet->entityRuntimeId;
+				$pk->entityId = $packet->entityRuntimeId;
 				$pk->metadata = $packet->metadata;
 				$packets[] = $pk;
 
 				$pk = new EntityTeleportPacket();
-				$pk->eid = $packet->entityRuntimeId;
+				$pk->entityId = $packet->entityRuntimeId;
 				$pk->x = $packet->position->x;
 				$pk->y = $packet->position->y;
 				$pk->z = $packet->position->z;
@@ -1070,13 +1072,13 @@ class Translator{
 				$packets[] = $pk;
 
 				$pk = new EntityEquipmentPacket();
-				$pk->eid = $packet->entityRuntimeId;
+				$pk->entityId = $packet->entityRuntimeId;
 				$pk->slot = 0;//main hand
 				$pk->item = $packet->item;
 				$packets[] = $pk;
 
 				$pk = new EntityHeadLookPacket();
-				$pk->eid = $packet->entityRuntimeId;
+				$pk->entityId = $packet->entityRuntimeId;
 				$pk->yaw = $packet->yaw;
 				$packets[] = $pk;
 
@@ -1094,7 +1096,7 @@ class Translator{
 				}
 
 				$pk = new EntityMetadataPacket();
-				$pk->eid = $packet->entityRuntimeId;
+				$pk->entityId = $packet->entityRuntimeId;
 				$pk->metadata = [//Enable Display Skin Parts
 					16 => [0, $skinFlags],
 					"convert" => true,
@@ -1299,7 +1301,7 @@ class Translator{
 						$entity = $player->getLevel()->getEntity($packet->entityRuntimeId);
 
 						$pk = new SpawnExperienceOrbPacket();
-						$pk->eid = $packet->entityRuntimeId;
+						$pk->entityId = $packet->entityRuntimeId;
 						$pk->x = $packet->position->x;
 						$pk->y = $packet->position->y;
 						$pk->z = $packet->position->z;
@@ -1390,7 +1392,7 @@ class Translator{
 
 				if($isObject){
 					$pk = new SpawnEntityPacket();
-					$pk->eid = $packet->entityRuntimeId;
+					$pk->entityId = $packet->entityRuntimeId;
 					$pk->type = $packet->type;
 					$pk->uuid = UUID::fromRandom()->toBinary();
 					$pk->x = $packet->position->x;
@@ -1409,11 +1411,11 @@ class Translator{
 					$packets[] = $pk;
 
 					$pk = new EntityMetadataPacket();
-					$pk->eid = $packet->entityRuntimeId;
+					$pk->entityId = $packet->entityRuntimeId;
 					$pk->metadata = $packet->metadata;
 				}else{
 					$pk = new SpawnLivingEntityPacket();
-					$pk->eid = $packet->entityRuntimeId;
+					$pk->entityId = $packet->entityRuntimeId;
 					$pk->type = $packet->type;
 					$pk->uuid = UUID::fromRandom()->toBinary();
 					$pk->x = $packet->position->x;
@@ -1428,7 +1430,7 @@ class Translator{
 				$packets[] = $pk;
 
 				$pk = new EntityTeleportPacket();
-				$pk->eid = $packet->entityRuntimeId;
+				$pk->entityId = $packet->entityRuntimeId;
 				$pk->x = $packet->position->x;
 				$pk->y = $packet->position->y;
 				$pk->z = $packet->position->z;
@@ -1478,7 +1480,7 @@ class Translator{
 				$packets = [];
 
 				$pk = new SpawnEntityPacket();
-				$pk->eid = $packet->entityRuntimeId;
+				$pk->entityId = $packet->entityRuntimeId;
 				$pk->uuid = UUID::fromRandom()->toBinary();
 				$pk->type = SpawnEntityPacket::ITEM_STACK;
 				$pk->x = $packet->position->x;
@@ -1494,7 +1496,7 @@ class Translator{
 				$packets[] = $pk;
 
 				$pk = new EntityMetadataPacket();
-				$pk->eid = $packet->entityRuntimeId;
+				$pk->entityId = $packet->entityRuntimeId;
 				$pk->metadata = [
 					0 => [0, 0],
 					7 => [6, $item],
@@ -1538,7 +1540,7 @@ class Translator{
 					$packets = [];
 
 					$pk = new EntityTeleportPacket();
-					$pk->eid = $packet->entityRuntimeId;
+					$pk->entityId = $packet->entityRuntimeId;
 					$pk->x = $packet->position->x;
 					$pk->y = $packet->position->y - $baseOffset;
 					$pk->z = $packet->position->z;
@@ -1547,14 +1549,14 @@ class Translator{
 					$packets[] = $pk;
 
 					$pk = new EntityRotationPacket();
-					$pk->eid = $packet->entityRuntimeId;
+					$pk->entityId = $packet->entityRuntimeId;
 					$pk->yaw = $packet->yRot;
 					$pk->pitch = $packet->xRot;
 					$pk->onGround = $isOnGround;
 					$packets[] = $pk;
 
 					$pk = new EntityHeadLookPacket();
-					$pk->eid = $packet->entityRuntimeId;
+					$pk->entityId = $packet->entityRuntimeId;
 					$pk->yaw = $packet->yRot;
 					$packets[] = $pk;
 
@@ -1579,7 +1581,7 @@ class Translator{
 					$packets = [];
 
 					$pk = new EntityTeleportPacket();
-					$pk->eid = $packet->entityRuntimeId;
+					$pk->entityId = $packet->entityRuntimeId;
 					$pk->x = $packet->position->x;
 					$pk->y = $packet->position->y - $player->getEyeHeight();
 					$pk->z = $packet->position->z;
@@ -1588,14 +1590,14 @@ class Translator{
 					$packets[] = $pk;
 
 					$pk = new EntityRotationPacket();
-					$pk->eid = $packet->entityRuntimeId;
+					$pk->entityId = $packet->entityRuntimeId;
 					$pk->yaw = $packet->headYaw;
 					$pk->pitch = $packet->pitch;
 					$pk->onGround = $packet->onGround;
 					$packets[] = $pk;
 
 					$pk = new EntityHeadLookPacket();
-					$pk->eid = $packet->entityRuntimeId;
+					$pk->entityId = $packet->entityRuntimeId;
 					$pk->yaw = $packet->headYaw;
 					$packets[] = $pk;
 
@@ -1650,7 +1652,7 @@ class Translator{
 				echo $packet->title."\n";
 
 				$pk = new SpawnPaintingPacket();
-				$pk->eid = $packet->entityRuntimeId;
+				$pk->entityId = $packet->entityRuntimeId;
 				$pk->uuid = UUID::fromRandom()->toBinary();
 				$pk->x = $spawnPaintingPos->x;
 				$pk->y = $spawnPaintingPos->y;
@@ -2033,7 +2035,7 @@ class Translator{
 
 						$pk = new EntityStatusPacket();
 						$pk->entityStatus = 2;
-						$pk->eid = $packet->entityRuntimeId;
+						$pk->entityId = $packet->entityRuntimeId;
 						$packets[] = $pk;
 
 						$pk = new NamedSoundEffectPacket();
@@ -2055,7 +2057,7 @@ class Translator{
 
 						$pk = new EntityStatusPacket();
 						$pk->entityStatus = 3;
-						$pk->eid = $packet->entityRuntimeId;
+						$pk->entityId = $packet->entityRuntimeId;
 						$packets[] = $pk;
 
 						$pk = new NamedSoundEffectPacket();
@@ -2093,7 +2095,7 @@ class Translator{
 						}
 
 						$pk = new EntityEffectPacket();
-						$pk->eid = $packet->entityRuntimeId;
+						$pk->entityId = $packet->entityRuntimeId;
 						$pk->effectId = $packet->effectId;
 						$pk->amplifier = $packet->amplifier;
 						$pk->duration = $packet->duration;
@@ -2103,7 +2105,7 @@ class Translator{
 					break;
 					case MobEffectPacket::EVENT_REMOVE:
 						$pk = new RemoveEntityEffectPacket();
-						$pk->eid = $packet->entityRuntimeId;
+						$pk->entityId = $packet->entityRuntimeId;
 						$pk->effectId = $packet->effectId;
 
 						return $pk;
@@ -2134,22 +2136,9 @@ class Translator{
 								$pk->health = $entry->getValue();//TODO: Default Value
 								$pk->food = (int) $player->getFood();//TODO: Default Value
 								$pk->foodSaturation = $player->getSaturation();//TODO: Default Value
-							}/*elseif($packet->entityRuntimeId === $player->bigBrother_getBossBarData("entityRuntimeId")){
-								$uuid = $player->bigBrother_getBossBarData("uuid");
-								if($uuid === ""){
-									return null;
-								}
-								$pk = new BossBarPacket();
-								$pk->uuid = $uuid;
-								$pk->actionId = BossBarPacket::TYPE_UPDATE_HEALTH;
-								if((int) $entry->getMaxValue() === 0){
-									$pk->health = 0;
-								}else{
-									$pk->health = $entry->getValue() / $entry->getMaxValue();
-								}
-							}*/else{
+							}else{
 								$pk = new EntityMetadataPacket();
-								$pk->eid = $packet->entityRuntimeId;
+								$pk->entityId = $packet->entityRuntimeId;
 								$pk->metadata = [
 									8 => [2, $entry->getValue()],
 									"convert" => true,
@@ -2202,7 +2191,7 @@ class Translator{
 
 				if(count($entries) > 0){
 					$pk = new EntityPropertiesPacket();
-					$pk->eid = $packet->entityRuntimeId;
+					$pk->entityId = $packet->entityRuntimeId;
 					$pk->entries = $entries;
 					$packets[] = $pk;
 				}
@@ -2220,7 +2209,7 @@ class Translator{
 				}
 
 				$pk = new EntityEquipmentPacket();
-				$pk->eid = $packet->entityRuntimeId;
+				$pk->entityId = $packet->entityRuntimeId;
 				$pk->slot = 0;//main hand
 				$pk->item = $packet->item;
 
@@ -2240,30 +2229,13 @@ class Translator{
 				/** @var SetActorDataPacket $packet */
 				$packets = [];
 
-				if($packet->entityRuntimeId === $player->bigBrother_getBossBarData("entityRuntimeId")){
-					$uuid = $player->bigBrother_getBossBarData("uuid");
-					if($uuid === ""){
-						return null;
-					}
-					$title = "";
-					if(isset($packet->metadata[Entity::DATA_NAMETAG])){
-						$title = $packet->metadata[Entity::DATA_NAMETAG][1];
-					}
-					$pk = new BossBarPacket();
-					$pk->uuid = $uuid;
-					$pk->actionId = BossBarPacket::TYPE_UPDATE_TITLE;
-					$pk->title = BigBrother::toJSON(str_replace(["\r\n", "\r", "\n"], "", $title));
-
-					$packets[] = $pk;
-				}
-
 				if(isset($packet->metadata[Player::DATA_PLAYER_BED_POSITION])){
 					$bedXYZ = $packet->metadata[Player::DATA_PLAYER_BED_POSITION][1];
 					if($bedXYZ !== null){
 						/** @var Vector3 $bedXYZ */
 
 						/*$pk = new UseBedPacket();
-						$pk->eid = $packet->entityRuntimeId;
+						$pk->entityId = $packet->entityRuntimeId;
 						$pk->bedX = $bedXYZ->getX();
 						$pk->bedY = $bedXYZ->getY();
 						$pk->bedZ = $bedXYZ->getZ();
@@ -2273,7 +2245,7 @@ class Translator{
 				}
 
 				$pk = new EntityMetadataPacket();
-				$pk->eid = $packet->entityRuntimeId;
+				$pk->entityId = $packet->entityRuntimeId;
 				$pk->metadata = $packet->metadata;
 				$packets[] = $pk;
 
@@ -2282,7 +2254,7 @@ class Translator{
 			case Info::SET_ACTOR_MOTION_PACKET:
 				/** @var SetActorMotionPacket $packet */
 				$pk = new EntityVelocityPacket();
-				$pk->eid = $packet->entityRuntimeId;
+				$pk->entityId = $packet->entityRuntimeId;
 				$pk->velocityX = $packet->motion->x;
 				$pk->velocityY = $packet->motion->y;
 				$pk->velocityZ = $packet->motion->z;
@@ -2310,13 +2282,13 @@ class Translator{
 					case 1:
 						$pk = new STCAnimatePacket();
 						$pk->animation = 0;
-						$pk->eid = $packet->entityRuntimeId;
+						$pk->entityId = $packet->entityRuntimeId;
 						return $pk;
 					break;
 					case 3: //Leave Bed
 						$pk = new STCAnimatePacket();
 						$pk->animation = 2;
-						$pk->eid = $packet->entityRuntimeId;
+						$pk->entityId = $packet->entityRuntimeId;
 						return $pk;
 					break;
 					default:
@@ -2585,8 +2557,7 @@ class Translator{
 						$player->bigBrother_setBossBarData("entityRuntimeId", $packet->bossEid);
 						$player->bigBrother_setBossBarData("uuid", $pk->uuid);
 
-						return $pk;
-					break;
+					return $pk;
 					case BossEventPacket::TYPE_HIDE:
 						if($uuid === ""){
 							return null;
@@ -2597,8 +2568,7 @@ class Translator{
 						$player->bigBrother_setBossBarData("entityRuntimeId", -1);
 						$player->bigBrother_setBossBarData("uuid", "");
 
-						return $pk;
-					break;
+					return $pk;
 					case BossEventPacket::TYPE_TEXTURE:
 						if($uuid === ""){
 							return null;
@@ -2607,8 +2577,7 @@ class Translator{
 						$pk->actionId = BossBarPacket::TYPE_UPDATE_COLOR;
 						$pk->color = $packet->color;
 
-						return $pk;
-					break;
+					return $pk;
 					case BossEventPacket::TYPE_HEALTH_PERCENT:
 						if($uuid === ""){
 							return null;
@@ -2623,8 +2592,7 @@ class Translator{
 						}
 						$pk->health = $health;
 
-						return $pk;
-					break;
+					return $pk;
 					case BossEventPacket::TYPE_TITLE:
 						if($uuid === ""){
 							return null;
@@ -2633,8 +2601,7 @@ class Translator{
 						$pk->actionId = BossBarPacket::TYPE_UPDATE_TITLE;
 						$pk->title = BigBrother::toJSON(str_replace(["\r\n", "\r", "\n"], "", $packet->title));
 
-						return $pk;
-					break;
+					return $pk;
 					default:
 						echo "BossEventPacket: ".$packet->eventType."\n";
 					break;
@@ -2674,6 +2641,10 @@ class Translator{
 			case Info::RESPAWN_PACKET:
 			case Info::ADVENTURE_SETTINGS_PACKET:
 			case Info::AVAILABLE_COMMANDS_PACKET:
+			case Info::AVAILABLE_ACTOR_IDENTIFIERS_PACKET:
+			case Info::NETWORK_CHUNK_PUBLISHER_UPDATE_PACKET:
+			case Info::BIOME_DEFINITION_LIST_PACKET:
+			case Info::CREATIVE_CONTENT_PACKET:
 				return null;
 
 			default:

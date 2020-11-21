@@ -33,6 +33,7 @@ use pocketmine\item\Item;
 use pocketmine\block\Block;
 use pocketmine\entity\Human;
 use pocketmine\entity\projectile\Projectile;
+use pocketmine\math\Vector3;
 use pocketmine\nbt\NBT;
 use pocketmine\nbt\tag\ByteArrayTag;
 use pocketmine\nbt\tag\ByteTag;
@@ -708,9 +709,15 @@ class ConvertUtils{
 				case Human::DATA_POTION_AMBIENT:
 					$newData[9] = [7, $d[1] ? true : false];
 				break;
+				case Human::DATA_PLAYER_BED_POSITION:
+					if($d[1] instanceof Vector3){
+						$newData[13] = [10, [true, [$d[1]->getX(), $d[1]->getY(), $d[1]->getZ()]]];
+					}else{
+						$newData[13] = [10, [false]];
+					}
+				break;
 				case Human::DATA_VARIANT:
 				case Human::DATA_PLAYER_FLAGS:
-				case Human::DATA_PLAYER_BED_POSITION:
 				case Human::DATA_LEAD_HOLDER_EID:
 				case Human::DATA_SCALE:
 				case Human::DATA_MAX_AIR:

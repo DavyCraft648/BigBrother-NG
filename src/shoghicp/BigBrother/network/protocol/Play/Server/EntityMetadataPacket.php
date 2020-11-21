@@ -35,7 +35,7 @@ use shoghicp\BigBrother\utils\Binary;
 class EntityMetadataPacket extends OutboundPacket{
 
 	/** @var int */
-	public $eid;
+	public $entityId;
 	/** @var array */
 	public $metadata;
 
@@ -44,7 +44,7 @@ class EntityMetadataPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putVarInt($this->eid);
+		$this->putVarInt($this->entityId);
 		$this->put(Binary::writeMetadata($this->metadata));
 	}
 

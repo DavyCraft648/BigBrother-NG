@@ -41,7 +41,7 @@ class EntityAnimationPacket extends OutboundPacket{
 	const ANIMATION_MAGIC_EFFECT = 5;
 
 	/** @var int */
-	public $eid;
+	public $entityId;
 	/** @var int */
 	public $animation;
 
@@ -50,7 +50,7 @@ class EntityAnimationPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
-		$this->putVarInt($this->eid);
+		$this->putVarInt($this->entityId);
 		$this->putByte($this->animation);
 	}
 
