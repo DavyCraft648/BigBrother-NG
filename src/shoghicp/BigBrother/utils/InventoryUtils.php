@@ -743,7 +743,6 @@ class InventoryUtils{
 			}
 		}
 
-		$isCraftingPart = false;
 		if($packet->windowID === 0 or $packet->windowID === 127){//Crafting
 			$minCraftingSlot = 1;
 			if($packet->windowID === 0){
@@ -849,7 +848,6 @@ class InventoryUtils{
 		if($accepted){
 			$pk = new InventoryTransactionPacket();
 			$pk->transactionType = InventoryTransactionPacket::TYPE_NORMAL;
-			$pk->isCraftingPart = $isCraftingPart;
 
 			if($isContainer){
 				$ref = &$this->getItemAndSlot($packet->windowID, $packet->slot, $windowId, $saveInventorySlot);

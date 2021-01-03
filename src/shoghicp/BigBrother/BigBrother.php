@@ -401,6 +401,7 @@ class BigBrother extends PluginBase implements Listener{
 	 *
 	 * @internal
 	 * @param string|string[] $string
+	 * @return string
 	 */
 	public static function toJSONInternal($string) : string{
 		if(!is_array($string)){
