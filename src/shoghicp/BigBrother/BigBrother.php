@@ -455,9 +455,9 @@ class BigBrother extends PluginBase implements Listener{
 	/**
 	 * Returns an JSON-formatted string with colors/markup
 	 *
+	 * @internal
 	 * @param string|string[] $string
 	 * @return string
-	 * @internal
 	 */
 	public static function toJSONInternal($string) : string{
 		if(!is_array($string)){

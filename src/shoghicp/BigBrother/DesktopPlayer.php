@@ -394,20 +394,20 @@ class DesktopPlayer extends Player{
 	}
 
 	/**
-	 * @param int $chunkX
-	 * @param int $chunkZ
+	 * @param int $x
+	 * @param int $z
 	 * @param Level|null $level
 	 * @override
 	 */
-	protected function unloadChunk(int $chunkX, int $chunkZ, ?Level $level = null){
-		parent::unloadChunk($chunkX, $chunkZ, $level);
+	protected function unloadChunk(int $x, int $z, ?Level $level = null){
+		parent::unloadChunk($x, $z, $level);
 
 		$pk = new UnloadChunkPacket();
-		$pk->chunkX = $chunkX;
-		$pk->chunkZ = $chunkZ;
+		$pk->chunkX = $x;
+		$pk->chunkZ = $z;
 		$this->putRawPacket($pk);
 
-		foreach(ItemFrameBlockEntity::getItemFramesInChunk($level ?? $this->level, $chunkX, $chunkZ) as $frame){
+		foreach(ItemFrameBlockEntity::getItemFramesInChunk($level ?? $this->level, $x, $z) as $frame){
 			/** @var ItemFrameBlockEntity $frame */
 			$frame->despawnFrom($this);
 		}
@@ -663,10 +663,10 @@ class DesktopPlayer extends Player{
 				/**
 				 * @override
 				 * @param Server $server
-				 * @param mixed $message
+				 * @param mixed $progress
 				 */
-				public function onProgressUpdate(Server $server, $message){
-					$server->getLogger()->error($message);
+				public function onProgressUpdate(Server $server, $progress){
+					$server->getLogger()->error($progress);
 				}
 
 				/**
@@ -771,10 +771,10 @@ class DesktopPlayer extends Player{
 						/**
 						 * @override
 						 * @param Server $server
-						 * @param mixed $message
+						 * @param mixed $progress
 						 */
-						public function onProgressUpdate(Server $server, $message){
-							$server->getLogger()->error($message);
+						public function onProgressUpdate(Server $server, $progress){
+							$server->getLogger()->error($progress);
 						}
 
 						/**
