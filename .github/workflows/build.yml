@@ -62,7 +62,6 @@ jobs:
 
       - name: build
         run: |
-          composer install
           composer build
 
       - name: upload artifact
