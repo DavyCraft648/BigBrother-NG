@@ -1,3 +1,14 @@
 {
-  "image": "ghcr.io/bigbrotherteam/bigbrother/php"
+  "dockerComposeFile": "../docker-compose.yml",
+  "workspaceFolder": "/usr/local/src/BigBrother",
+  "service": "vscode",
+  "shutdownAction": "stopCompose",
+  "postCreateCommand": "apt-get -y install docker docker-compose",
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash"
+  },
+  "extensions": [
+    "editorconfig.editorconfig",
+    "felixfbecker.php-intellisense"
+  ]
 }

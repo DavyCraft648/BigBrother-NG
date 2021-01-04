@@ -4,7 +4,7 @@ jobs:
   docker:
     name: build docker image
     runs-on: ubuntu-latest
-    if: ${{ github.repository_owner == 'BigBrotherTeam' }}
+    if: ${{ github.repository_owner == 'BigBrotherTeam' && github.ref == 'refs/head/base' }}
     strategy:
       matrix:
         php:
@@ -66,7 +66,7 @@ jobs:
 
       - name: upload artifact
         uses: actions/upload-artifact@v2
-        if: ${{ matrix.php == '7.4.13' }}
+        if: ${{ matrix.php == '7.4.13' && github.ref != 'refs/heads/base' }}
         with:
           name: BigBrother.phar
           path: build/BigBrother.phar
