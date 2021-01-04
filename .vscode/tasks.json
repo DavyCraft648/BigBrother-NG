@@ -4,7 +4,7 @@
     {
       "label": "build",
       "type": "shell",
-      "command": "composer build",
+      "command": "composer build && cp -f build/BigBrother.phar plugins/BigBrother.phar && docker-compose restart pmmp",
       "group": {
         "kind": "build",
         "isDefault": true
