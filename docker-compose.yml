@@ -1,0 +1,20 @@
+version: '3'
+services:
+  vscode:
+    image: ghcr.io/bigbrotherteam/bigbrother/php
+    command: sleep infinity
+    working_dir: /usr/local/src/BigBrother
+    volumes:
+      - .:/usr/local/src/BigBrother
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  pmmp:
+    image: pmmp/pocketmine-mp
+    user: root
+    volumes:
+      - ./data:/data
+      - ./plugins:/plugins
+    ports:
+      - 19132:19132/tcp
+      - 19132:19132/udp
+      - 25565:25565/tcp
