@@ -1,11 +1,10 @@
 FROM php:7-zts
 
 RUN apt update
-RUN apt-get install -y git curl libyaml-dev libzip-dev
+RUN apt-get install -y git curl unzip libyaml-dev
 
 RUN docker-php-ext-install sockets
 RUN docker-php-ext-install bcmath
-RUN docker-php-ext-install zip
 
 RUN pecl install channel://pecl.php.net/yaml-2.0.4
 RUN docker-php-ext-enable yaml
