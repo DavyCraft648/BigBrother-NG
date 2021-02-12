@@ -230,7 +230,7 @@ class ProtocolInterface implements SourceInterface{
 	 * @param bool       $needACK
 	 * @param bool       $immediate
 	 *
-	 * @return int|null identifier if $needAck === true else null
+	 * @return int|null
 	 * @override
 	 */
 	public function putPacket(Player $player, DataPacket $packet, bool $needACK = false, bool $immediate = true){

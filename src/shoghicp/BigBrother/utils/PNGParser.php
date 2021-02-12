@@ -242,7 +242,7 @@ class PNGParser{
 		}
 	}
 
-	private function getData(BinaryStream $stream){
+	private function getData(BinaryStream $stream): int{
 		switch($this->bitDepth){
 			/*case 1:
 
@@ -261,22 +261,20 @@ class PNGParser{
 
 					return $this->usedBit & 0x0f;
 				}
-			break;
 			case 8:
 				return $stream->getByte();
-			break;
 			case 16:
 				return $stream->getShort();
-			break;
 			default:
 				echo "Sorry, i can't parse png file. getData: ".$this->bitDepth."\n";
 				echo "Report to BigBrotherTeam!\n";
 			break;
 		}
+
 		return 0;
 	}
 
-	private function calculateColor($color1, $color2){
+	private function calculateColor($color1, $color2): int{
 		return ($color1 + $color2) % 256;
 	}
 

@@ -94,25 +94,18 @@ class Session{
 	 * @param int $len
 	 * @return string data read from socket
 	 */
-	public function read(int $len) : ?string{
-		if($this->encryptionEnabled){
-			$data = @fread($this->socket, $len);
-			if($data === false){
-				return "";
-			}
-
-			if(strlen($data) > 0){
-				return $this->aes->decrypt($data);
-			}else{
-				return $data;
-			}
-		}else{
-			$data = @fread($this->socket, $len);
-			if($data === false){
-				return "";
+	public function read(int $len): string{
+		$data = @fread($this->socket, $len);
+		if($data !== false){
+			if($this->encryptionEnabled){
+				if(strlen($data) > 0){
+					return $this->aes->decrypt($data);
+				}
 			}
 			return $data;
 		}
+
+		return "";
 	}
 
 	/**
@@ -238,9 +231,9 @@ class Session{
 			if($pid === 0x00){
 				$protocol = Binary::readComputerVarInt($buffer, $offset);
 				$len = Binary::readComputerVarInt($buffer, $offset);
-				$hostname = substr($buffer, $offset, $len);
+				//host name
 				$offset += $len;
-				$serverPort = Binary::readShort(substr($buffer, $offset, 2));
+				//server port
 				$offset += 2;
 				$nextState = Binary::readComputerVarInt($buffer, $offset);
 

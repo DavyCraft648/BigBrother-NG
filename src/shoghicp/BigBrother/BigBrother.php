@@ -131,12 +131,8 @@ class BigBrother extends PluginBase implements Listener{
 					$this->getLogger()->info("BigBrother.phar; revision: ".$revision);
 				}
 
-				if(is_file($composer = $this->getFile() . "vendor/autoload.php")){
-					$this->getLogger()->info("Registering Composer autoloader...");
-					__require($composer);
-				}else{
+				if(!$this->setupComposer()){
 					$this->getLogger()->critical("Composer autoloader not found");
-					$this->getLogger()->critical("Please initialize composer dependencies before running");
 					$this->getServer()->getPluginManager()->disablePlugin($this);
 					return;
 				}
@@ -189,7 +185,7 @@ class BigBrother extends PluginBase implements Listener{
 					$this->rsa->setPrivateKeyFormat(RSA::PRIVATE_FORMAT_PKCS1);
 					$this->rsa->setPublicKeyFormat(RSA::PUBLIC_FORMAT_PKCS8);
 					$this->rsa->setEncryptionMode(RSA::ENCRYPTION_PKCS1);
-					$keys = $this->rsa->createKey(1024);
+					$keys = $this->rsa->createKey();//1024 bits
 					$this->privateKey = $keys["privatekey"];
 					$this->publicKey = $keys["publickey"];
 					$this->rsa->loadKey($this->privateKey);
@@ -233,7 +229,7 @@ class BigBrother extends PluginBase implements Listener{
 	/**
 	 * @return bool
 	 */
-	public function isOnlineMode(){
+	public function isOnlineMode(): bool{
 		return $this->onlineMode;
 	}
 
@@ -260,7 +256,7 @@ class BigBrother extends PluginBase implements Listener{
 	 * @param int $timeout
 	 * @return array|null
 	 */
-	public function getProfileCache(string $username, int $timeout = 60){
+	public function getProfileCache(string $username, int $timeout = 60): ?array{
 		if(isset($this->profileCache[$username]) && (microtime(true) - $this->profileCache[$username]["timestamp"] < $timeout)){
 			return $this->profileCache[$username]["profile"];
 		}else{
@@ -361,6 +357,31 @@ class BigBrother extends PluginBase implements Listener{
 		$player = $event->getPlayer();
 		if($player instanceof DesktopPlayer){
 			$event->setInstaBreak(true);//ItemFrame and other blocks
+		}
+	}
+
+	private function setupComposer() : bool{
+		$base = $this->getFile();
+		$data = $this->getDataFolder();
+		$setup = $data . 'composer-setup.php';
+		$composer = $data . 'composer.phar';
+		$autoload = $base . 'vendor/autoload.php';
+
+		if(!$this->isPhar() and !is_file($autoload)){
+			$this->getLogger()->info("Trying to setup composer...");
+			copy('https://getcomposer.org/installer', $setup);
+			exec(join(' ', [PHP_BINARY, $setup, '--install-dir', $data]));
+
+			$this->getLogger()->info("Trying to install composer dependencies...");
+			exec(join(' ', [PHP_BINARY, $composer, 'install', '-d', $base, '--no-dev', '-o']));
+		}
+
+		if(is_file($autoload)){
+			$this->getLogger()->info("Registering Composer autoloader...");
+			__require($autoload);
+			return true;
+		}else{
+			return false;
 		}
 	}
 

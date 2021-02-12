@@ -41,6 +41,8 @@ use pocketmine\network\mcpe\protocol\RemoveActorPacket;
 use pocketmine\network\mcpe\protocol\SetActorDataPacket;
 use pocketmine\network\mcpe\protocol\SetActorMotionPacket;
 use pocketmine\network\mcpe\protocol\TakeItemActorPacket;
+use pocketmine\network\mcpe\protocol\types\ContainerIds;
+use pocketmine\network\mcpe\protocol\types\NetworkInventoryAction;
 use shoghicp\BigBrother\network\protocol\Play\Client\AdvancementTabPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\ClientSettingsPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\ClientStatusPacket;
@@ -65,7 +67,6 @@ use pocketmine\nbt\NetworkLittleEndianNBTStream;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\IntTag;
 use pocketmine\nbt\tag\StringTag;
-use pocketmine\event\player\PlayerDropItemEvent;
 use pocketmine\network\mcpe\protocol\AddPaintingPacket;
 use pocketmine\network\mcpe\protocol\AddPlayerPacket;
 use pocketmine\network\mcpe\protocol\AdventureSettingsPacket;
@@ -212,7 +213,6 @@ class Translator{
 						$pk->face = 0;
 
 						return $pk;
-					break;
 					case 1:
 						//TODO: stat https://gist.github.com/Alvin-LB/8d0d13db00b3c00fd0e822a562025eff
 						$statistic = [];
@@ -305,7 +305,6 @@ class Translator{
 						}
 
 						return $packets;
-					break;
 					case "MC|BSign":
 						$packets = [];
 						/** @var Item $item *//*
@@ -421,7 +420,6 @@ class Translator{
 						default:
 							echo "[Translator] UseItemPacket\n";
 							return null;
-						break;
 					}
 				}
 
@@ -616,7 +614,6 @@ class Translator{
 
 							return $packets;
 						}
-					break;
 					case 1:
 						$player->bigBrother_setBreakPosition([new Vector3(0, 0, 0), 0]);
 
@@ -629,7 +626,6 @@ class Translator{
 						$pk->face = $packet->face;
 
 						return $pk;
-					break;
 					case 2:
 						if($player->getGamemode() !== 1){
 							$player->bigBrother_setBreakPosition([new Vector3(0, 0, 0), 0]);
@@ -675,30 +671,48 @@ class Translator{
 					break;
 					case 3:
 					case 4:
-						$item = $player->getInventory()->getItemInHand();
-						$dropItem = Item::get(Item::AIR, 0, 0);
+						$newItem = clone $player->getInventory()->getItemInHand();
+						$oldItem = clone $newItem;
 
-						if($packet->status === 4){
-							if(!$item->isNull()){
-								$dropItem = $item->pop();
+						if(!$newItem->isNull()){
+							if($packet->status === 4){
+								$dropItem = $newItem->pop();
+							}else{
+								$dropItem = clone $newItem;
+								$newItem = Item::get(Item::AIR, 0, 0);
 							}
-						}else{
-							list($dropItem, $item) = [$item, $dropItem];//swap
-						}
-						$ev = new PlayerDropItemEvent($player, $item);
-						$ev->call();
-						if($ev->isCancelled()){
-							return null;
-						}
 
-						$player->getInventory()->setItemInHand($item);
-						$player->getInventory()->sendHeldItem($player->getViewers());
-						if(!$dropItem->isNull()){
-							$player->dropItem($dropItem);
+							$actions = [];
+							$action = new NetworkInventoryAction();
+							$action->sourceType = NetworkInventoryAction::SOURCE_WORLD;
+							$action->sourceFlags = 0;
+							$action->inventorySlot = 0;
+							$action->oldItem = Item::get(Item::AIR, 0, 0);
+							$action->newItem = $dropItem;
+							$actions[] = $action;
+
+							$action = new NetworkInventoryAction();
+							$action->sourceType = NetworkInventoryAction::SOURCE_CONTAINER;
+							$action->windowId = ContainerIds::INVENTORY;
+							$action->inventorySlot = $player->getInventory()->getHeldItemIndex();
+							$action->oldItem = $oldItem;
+							$action->newItem = $newItem;
+							$actions[] = $action;
+
+							$packets = [];
+							$pk = new InventoryTransactionPacket();
+							$pk->transactionType = InventoryTransactionPacket::TYPE_NORMAL;
+							$pk->actions = $actions;
+							$packets[] = $pk;
+
+							$pk = new InventoryTransactionPacket();
+							$pk->transactionType = InventoryTransactionPacket::TYPE_MISMATCH;//inventory refresh.
+							$packets[] = $pk;
+
+							return $packets;
 						}
 
 						return null;
-					break;
 					case 5:
 						$pk = new InventoryTransactionPacket();
 						$pk->transactionType = InventoryTransactionPacket::TYPE_RELEASE_ITEM;
@@ -714,7 +728,6 @@ class Translator{
 						}
 
 						return $pk;
-					break;
 					default:
 						echo "PlayerDiggingPacket: ".$packet->status."\n";
 					break;
@@ -724,57 +737,34 @@ class Translator{
 
 			case InboundPacket::ENTITY_ACTION_PACKET:
 				/** @var EntityActionPacket $packet */
+				$pk = new PlayerActionPacket();
+				$pk->entityRuntimeId = $player->getId();
+				$pk->x = 0;
+				$pk->y = 0;
+				$pk->z = 0;
+				$pk->face = 0;
+
 				switch($packet->actionId){
 					case 0://Start sneaking
-						$pk = new PlayerActionPacket();
-						$pk->entityRuntimeId = $player->getId();
 						$pk->action = PlayerActionPacket::ACTION_START_SNEAK;
-						$pk->x = 0;
-						$pk->y = 0;
-						$pk->z = 0;
-						$pk->face = 0;
+
 						return $pk;
-					break;
 					case 1://Stop sneaking
-						$pk = new PlayerActionPacket();
-						$pk->entityRuntimeId = $player->getId();
 						$pk->action = PlayerActionPacket::ACTION_STOP_SNEAK;
-						$pk->x = 0;
-						$pk->y = 0;
-						$pk->z = 0;
-						$pk->face = 0;
+
 						return $pk;
-					break;
 					case 2://leave bed
-						$pk = new PlayerActionPacket();
-						$pk->entityRuntimeId = $player->getId();
 						$pk->action = PlayerActionPacket::ACTION_STOP_SLEEPING;
-						$pk->x = 0;
-						$pk->y = 0;
-						$pk->z = 0;
-						$pk->face = 0;
+
 						return $pk;
-					break;
 					case 3://Start sprinting
-						$pk = new PlayerActionPacket();
-						$pk->entityRuntimeId = $player->getId();
 						$pk->action = PlayerActionPacket::ACTION_START_SPRINT;
-						$pk->x = 0;
-						$pk->y = 0;
-						$pk->z = 0;
-						$pk->face = 0;
+
 						return $pk;
-					break;
 					case 4://Stop sprinting
-						$pk = new PlayerActionPacket();
-						$pk->entityRuntimeId = $player->getId();
 						$pk->action = PlayerActionPacket::ACTION_STOP_SPRINT;
-						$pk->x = 0;
-						$pk->y = 0;
-						$pk->z = 0;
-						$pk->face = 0;
+
 						return $pk;
-					break;
 					default:
 						echo "EntityActionPacket: ".$packet->actionId."\n";
 					break;
@@ -1308,7 +1298,6 @@ class Translator{
 						$pk->count = $entity->namedtag["Value"];
 
 						return $pk;
-					break;
 					/*
 					case 71://EnderCrystal
 						//Spawn Object
@@ -1371,7 +1360,6 @@ class Translator{
 						$pk->y = $packet->position->y;
 						$pk->z = $packet->position->z;
 						return $pk;
-					break;
 					/*case 94://BlazeFireball
 						//Spawn Object
 					break;
@@ -1476,6 +1464,8 @@ class Translator{
 				/** @var AddItemActorPacket $packet */
 				$item = clone $packet->item;
 				ConvertUtils::convertItemData(true, $item);
+				$metadata = ConvertUtils::convertPEToPCMetadata($packet->metadata);
+				$metadata[6] = [5, $item];
 
 				$packets = [];
 
@@ -1490,18 +1480,14 @@ class Translator{
 				$pk->pitch = 0;
 				$pk->data = 1;
 				$pk->sendVelocity = true;
-				$pk->velocityX = 0;
-				$pk->velocityY = 0;
-				$pk->velocityZ = 0;
+				$pk->velocityX = $packet->motion->x;
+				$pk->velocityY = $packet->motion->y;
+				$pk->velocityZ = $packet->motion->z;
 				$packets[] = $pk;
 
 				$pk = new EntityMetadataPacket();
-				$pk->entityId = $packet->entityRuntimeId;
-				$pk->metadata = [
-					0 => [0, 0],
-					7 => [6, $item],
-					"convert" => true,
-				];
+				$pk->eid = $packet->entityRuntimeId;
+				$pk->metadata = $metadata;
 				$packets[] = $pk;
 
 				return $packets;
@@ -1732,13 +1718,11 @@ class Translator{
 					break;
 					case LevelSoundEventPacket::SOUND_PLACE://unused
 						return null;
-					break;
 					default:
 						if(DEBUG > 3){
 							echo "LevelSoundEventPacket: ".$packet->sound."\n";
 						}
 						return null;
-					break;
 				}
 
 				if($isSoundEffect){
@@ -1855,7 +1839,6 @@ class Translator{
 							default:
 								echo "[LevelEventPacket] Unknown DoorSound\n";
 								return null;
-							break;
 						}
 					break;
 					case LevelEventPacket::EVENT_ADD_PARTICLE_MASK | Particle::TYPE_CRITICAL:
@@ -1906,16 +1889,13 @@ class Translator{
 					case LevelEventPacket::EVENT_PARTICLE_PUNCH_BLOCK:
 						//TODO: BreakAnimation
 						return null;
-					break;
 					case LevelEventPacket::EVENT_BLOCK_START_BREAK:
 						//TODO: set BreakTime
 						return null;
-					break;
 					case LevelEventPacket::EVENT_BLOCK_STOP_BREAK:
 						//TODO: remove BreakTime
 
 						return null;
-					break;
 					default:
 						if(($packet->evid & LevelEventPacket::EVENT_ADD_PARTICLE_MASK) === LevelEventPacket::EVENT_ADD_PARTICLE_MASK){
 							$packet->evid ^= LevelEventPacket::EVENT_ADD_PARTICLE_MASK;
@@ -1923,7 +1903,6 @@ class Translator{
 
 						echo "LevelEventPacket: ".$packet->evid."\n";
 						return null;
-					break;
 				}
 
 				if($isSoundEffect){
@@ -1980,34 +1959,29 @@ class Translator{
 						$pk->actionId = TitlePacket::TYPE_HIDE;
 
 						return $pk;
-					break;
 					case SetTitlePacket::TYPE_RESET_TITLE:
 						$pk = new TitlePacket();
 						$pk->actionId = TitlePacket::TYPE_RESET;
 
 						return $pk;
-					break;
 					case SetTitlePacket::TYPE_SET_TITLE:
 						$pk = new TitlePacket();
 						$pk->actionId = TitlePacket::TYPE_SET_TITLE;
 						$pk->data = BigBrother::toJSON($packet->text);
 
 						return $pk;
-					break;
 					case SetTitlePacket::TYPE_SET_SUBTITLE:
 						$pk = new TitlePacket();
 						$pk->actionId = TitlePacket::TYPE_SET_SUB_TITLE;
 						$pk->data = BigBrother::toJSON($packet->text);
 
 						return $pk;
-					break;
 					case SetTitlePacket::TYPE_SET_ACTIONBAR_MESSAGE:
 						$pk = new TitlePacket();
 						$pk->actionId = TitlePacket::TYPE_SET_ACTION_BAR;
 						$pk->data = BigBrother::toJSON($packet->text);
 
 						return $pk;
-					break;
 					case SetTitlePacket::TYPE_SET_ANIMATION_TIMES:
 						$pk = new TitlePacket();
 						$pk->actionId = TitlePacket::TYPE_SET_SETTINGS;
@@ -2017,7 +1991,6 @@ class Translator{
 						$pk->data[2] = $packet->fadeOutTime;
 
 						return $pk;
-					break;
 					default:
 						echo "SetTitlePacket: ".$packet->type."\n";
 					break;
@@ -2049,7 +2022,6 @@ class Translator{
 						$packets[] = $pk;
 
 						return $packets;
-					break;
 					case ActorEventPacket::DEATH_ANIMATION:
 						$type = $player->bigBrother_getEntityList($packet->entityRuntimeId);
 
@@ -2071,7 +2043,6 @@ class Translator{
 						$packets[] = $pk;
 
 						return $packets;
-					break;
 					case ActorEventPacket::RESPAWN:
 						//unused
 					break;
@@ -2102,14 +2073,12 @@ class Translator{
 						$pk->flags = $flags;
 
 						return $pk;
-					break;
 					case MobEffectPacket::EVENT_REMOVE:
 						$pk = new RemoveEntityEffectPacket();
 						$pk->entityId = $packet->entityRuntimeId;
 						$pk->effectId = $packet->effectId;
 
 						return $pk;
-					break;
 					default:
 						echo "MobEffectPacket: ".$packet->eventId."\n";
 					break;
@@ -2284,13 +2253,11 @@ class Translator{
 						$pk->animation = 0;
 						$pk->entityId = $packet->entityRuntimeId;
 						return $pk;
-					break;
 					case 3: //Leave Bed
 						$pk = new STCAnimatePacket();
 						$pk->animation = 2;
 						$pk->entityId = $packet->entityRuntimeId;
 						return $pk;
-					break;
 					default:
 						echo "AnimationPacket: ".$packet->action."\n";
 					break;
@@ -2357,7 +2324,6 @@ class Translator{
 							$entity->spawnTo($player);//Update Item Frame
 						}
 						return null;
-					break;
 					case Tile::SIGN:
 						$pk->actionId = 9;
 						/** @var CompoundTag $nbt */
@@ -2370,7 +2336,6 @@ class Translator{
 					default:
 						echo "BlockEntityDataPacket: ".$nbt["id"]."\n";
 						return null;
-					break;
 				}
 
 				return $pk;
@@ -2557,7 +2522,7 @@ class Translator{
 						$player->bigBrother_setBossBarData("entityRuntimeId", $packet->bossEid);
 						$player->bigBrother_setBossBarData("uuid", $pk->uuid);
 
-					return $pk;
+						return $pk;
 					case BossEventPacket::TYPE_HIDE:
 						if($uuid === ""){
 							return null;
@@ -2568,7 +2533,7 @@ class Translator{
 						$player->bigBrother_setBossBarData("entityRuntimeId", -1);
 						$player->bigBrother_setBossBarData("uuid", "");
 
-					return $pk;
+						return $pk;
 					case BossEventPacket::TYPE_TEXTURE:
 						if($uuid === ""){
 							return null;
@@ -2577,7 +2542,7 @@ class Translator{
 						$pk->actionId = BossBarPacket::TYPE_UPDATE_COLOR;
 						$pk->color = $packet->color;
 
-					return $pk;
+						return $pk;
 					case BossEventPacket::TYPE_HEALTH_PERCENT:
 						if($uuid === ""){
 							return null;
@@ -2592,7 +2557,7 @@ class Translator{
 						}
 						$pk->health = $health;
 
-					return $pk;
+						return $pk;
 					case BossEventPacket::TYPE_TITLE:
 						if($uuid === ""){
 							return null;
@@ -2601,7 +2566,7 @@ class Translator{
 						$pk->actionId = BossBarPacket::TYPE_UPDATE_TITLE;
 						$pk->title = BigBrother::toJSON(str_replace(["\r\n", "\r", "\n"], "", $packet->title));
 
-					return $pk;
+						return $pk;
 					default:
 						echo "BossEventPacket: ".$packet->eventType."\n";
 					break;

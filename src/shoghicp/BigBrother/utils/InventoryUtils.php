@@ -47,11 +47,8 @@ use pocketmine\network\mcpe\protocol\types\NetworkInventoryAction;
 use pocketmine\network\mcpe\protocol\types\WindowTypes;
 
 use pocketmine\entity\object\ItemEntity;
-use pocketmine\entity\projectile\Arrow;
 use pocketmine\inventory\transaction\action\CreativeInventoryAction;
 use pocketmine\inventory\transaction\action\SlotChangeAction;
-use pocketmine\event\inventory\InventoryPickupItemEvent;
-use pocketmine\event\inventory\InventoryPickupArrowEvent;
 use pocketmine\inventory\InventoryHolder;
 use pocketmine\item\Item;
 use pocketmine\math\Vector3;
@@ -274,7 +271,7 @@ class InventoryUtils{
 				$pk->windowId = $packet->windowId;
 				$this->player->handleDataPacket($pk);
 
-			return null;
+				return null;
 		}
 
 		$saveSlots = 0;
@@ -369,7 +366,6 @@ class InventoryUtils{
 				}
 
 				return $pk;
-			break;
 			case ContainerIds::ARMOR:
 				$pk->windowId = ContainerIds::INVENTORY;
 				$pk->slotData = $packet->item->getItemStack();
@@ -378,7 +374,6 @@ class InventoryUtils{
 				$this->playerArmorSlot[$packet->inventorySlot] = $packet->item->getItemStack();
 
 				return $pk;
-			break;
 			case ContainerIds::HOTBAR:
 			case ContainerIds::UI://TODO
 			break;
@@ -501,7 +496,9 @@ class InventoryUtils{
 					$packets[] = $pk;
 				}
 
-				$this->playerArmorSlot = $packet->items;
+				for($i = 0; $i < 4; ++$i){
+					$this->playerArmorSlot[$i] = $packet->items[$i]->getItemStack();
+				}
 			break;
 			//case ContainerIds::CREATIVE:
 			case ContainerIds::HOTBAR:
@@ -978,42 +975,17 @@ class InventoryUtils{
 	 */
 	public function onTakeItemEntity(TakeItemActorPacket $packet) : ?OutboundPacket{
 		$itemCount = 1;
-		$item = Item::get(0);
-
-		$entity = $this->player->getLevel()->getEntity($packet->target);
+		$entity = $this->player->getLevel()->getEntity($packet->target);//TODO: support fake entity
 		if($entity instanceof ItemEntity){
-			$ev = new InventoryPickupItemEvent($this->player->getInventory(), $entity);
-			$ev->call();
-
-			if($ev->isCancelled()){
-				return null;
-			}
-			$item = $entity->getItem();
-			$itemCount = $item->getCount();
+			$itemCount = $entity->getItem()->getCount();
 		}
 
-		if($entity instanceof Arrow){
-			$ev = new InventoryPickupArrowEvent($this->player->getInventory(), $entity);
-			$ev->call();
+		$pk = new CollectItemPacket();
+		$pk->collectorEntityId = $packet->eid;
+		$pk->collectedEntityId = $packet->target;
+		$pk->pickUpItemCount = $itemCount;
 
-			if($ev->isCancelled()){
-				return null;
-			}
-			$item = Item::get(Item::ARROW);
-		}
-
-		if($this->player->getInventory()->canAddItem($item)){
-			$pk = new CollectItemPacket();
-			$pk->collectorEntityId = $packet->eid;
-			$pk->collectedEntityId = $packet->target;
-			$pk->pickUpItemCount = $itemCount;
-
-			$this->player->getInventory()->sendHeldItem($this->player->getViewers());
-
-			return $pk;
-		}
-
-		return null;
+		return $pk;
 	}
 
 	/**

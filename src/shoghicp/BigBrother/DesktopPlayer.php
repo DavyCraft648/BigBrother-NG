@@ -378,15 +378,15 @@ class DesktopPlayer extends Player{
 	}
 
 	/**
-	 * @param int $chunkX
-	 * @param int $chunkZ
+	 * @param int $x
+	 * @param int $z
 	 * @param BatchPacket $payload
 	 * @override
 	 */
-	public function sendChunk(int $chunkX, int $chunkZ, BatchPacket $payload){
-		parent::sendChunk($chunkX, $chunkZ, $payload);
+	public function sendChunk(int $x, int $z, BatchPacket $payload){
+		parent::sendChunk($x, $z, $payload);
 		if($this->spawned){
-			foreach(ItemFrameBlockEntity::getItemFramesInChunk($this->level, $chunkX, $chunkZ) as $frame){
+			foreach(ItemFrameBlockEntity::getItemFramesInChunk($this->level, $x, $z) as $frame){
 				/** @var ItemFrameBlockEntity $frame */
 				$frame->spawnTo($this);
 			}
