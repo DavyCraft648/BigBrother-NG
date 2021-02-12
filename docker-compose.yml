@@ -11,7 +11,10 @@ services:
   pmmp:
     image: pmmp/pocketmine-mp
     user: root
+    environment:
+      PHP_INI_SCAN_DIR: /etc/php/conf.d
     volumes:
+      - .devcontainer/php.ini:/etc/php/conf.d/php-bigbros.ini
       - ./data:/data
       - ./plugins:/plugins
     ports:
