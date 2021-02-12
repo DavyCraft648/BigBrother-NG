@@ -328,8 +328,7 @@ class BigBrother extends PluginBase implements Listener{
 		}
 	}
 
-	private function setupComposer() : bool
-	{
+	private function setupComposer() : bool{
 		$base = $this->getFile();
 		$data = $this->getDataFolder();
 		$setup = $data . 'composer-setup.php';
