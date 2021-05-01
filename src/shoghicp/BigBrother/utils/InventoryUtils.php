@@ -59,6 +59,8 @@ use pocketmine\tile\EnderChest as TileEnderChest;
 use pocketmine\tile\Tile;
 
 use ReflectionClass;
+use ReflectionException;
+use UnexpectedValueException;
 use shoghicp\BigBrother\DesktopPlayer;
 use shoghicp\BigBrother\network\OutboundPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\WindowConfirmationPacket;
@@ -1129,7 +1131,7 @@ class InventoryUtils{
 	/**
 	 * @param InventoryTransactionPacket  $packet
 	 * @return bool
-	 * @throws \UnexpectedValueException|\ReflectionException
+	 * @throws UnexpectedValueException|ReflectionException
 	 */
 	public function checkInventoryTransactionPacket(InventoryTransactionPacket $packet) : bool{
 		$errors = 0;
