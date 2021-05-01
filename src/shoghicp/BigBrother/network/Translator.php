@@ -2180,7 +2180,7 @@ class Translator{
 				$pk = new EntityEquipmentPacket();
 				$pk->entityId = $packet->entityRuntimeId;
 				$pk->slot = 0;//main hand
-				$pk->item = $packet->item;
+				$pk->item = $packet->item->getItemStack();
 
 				if(count($packets) > 0){
 					$packets[] = $pk;
