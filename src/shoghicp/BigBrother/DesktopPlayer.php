@@ -562,7 +562,7 @@ class DesktopPlayer extends Player{
 			$pk->clientData["DeviceOS"] = 0;
 			$pk->clientData["GameVersion"] = "";
 			$pk->clientData["GuiScale"] = 1;
-
+            $pk->clientData["PlayFabId"] = $this->bigBrother_formattedUUID;
 			$pk->clientData["AnimatedImageData"] = [];
 			$pk->clientData["PersonaPieces"] = [];
 			$pk->clientData["PieceTintColors"] = [];
