@@ -267,7 +267,7 @@ class BigBrother extends PluginBase implements Listener{
 
 	/**
 	 * @param string $username
-	 * @param array profile
+	 * @param array $profile
 	 */
 	public function setProfileCache(string $username, array $profile) : void{
 		$this->profileCache[$username] = [
@@ -673,7 +673,7 @@ class BigBrother extends PluginBase implements Listener{
  * prevents access to $this/self from included file
  * @param string $file
  * @return void
- * @phpstan-var void|mixed
+ * @phpstan-return void|mixed
  */
 function __require(string $file){
 	/** @noinspection PhpIncludeInspection */

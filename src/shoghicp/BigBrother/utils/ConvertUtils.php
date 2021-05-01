@@ -482,6 +482,7 @@ class ConvertUtils{
 	 *
 	 * @param bool $isComputer
 	 * @param Item &$item
+	 * @phpstan-param Item $item
 	 */
 	public static function convertItemData(bool $isComputer, Item &$item) : void{
 		self::$timingConvertItem->startTiming();
@@ -609,6 +610,8 @@ class ConvertUtils{
 	 * @param bool $isComputer
 	 * @param int  &$blockId to convert
 	 * @param int  &$blockData to convert
+	 * @phpstan-param int $blockId
+	 * @phpstan-param int $blockData
 	 */
 	public static function convertBlockData(bool $isComputer, int &$blockId, int &$blockData) : void{
 		self::$timingConvertBlock->startTiming();
@@ -746,6 +749,7 @@ class ConvertUtils{
 	 * Why Mojang change the directions??
 	 *
 	 * @param int &$blockData
+	 * @phpstan-param int $blockData
 	 *
 	 * #blamemojang
 	 */
@@ -771,6 +775,7 @@ class ConvertUtils{
 	 * Why Mojang change the directions??
 	 *
 	 * @param int &$blockData
+	 * @phpstan-param int $blockData
 	 *
 	 * #blamemojang
 	 */
