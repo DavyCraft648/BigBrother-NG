@@ -368,7 +368,7 @@ class Translator{
 								ItemStackWrapper::legacy($player->getInventory()->getItemInHand()),
 								$player->asVector3(),
 								$frame->asVector3(),
-								RuntimeBlockMapping::toStaticRuntimeId($player->getLevel()->getBlockIdAt($frame->x, $frame->y, $frame->z),$player->getLevel()->getBlockdataAt($frame->x, $frame->y, $frame->z)),
+								RuntimeBlockMapping::toStaticRuntimeId($player->getLevel()->getBlockIdAt($frame->x, $frame->y, $frame->z),$player->getLevel()->getBlockdataAt($frame->x, $frame->y, $frame->z))
 							);
 
 							return $pk;
@@ -393,7 +393,7 @@ class Translator{
 									ItemStackWrapper::legacy($player->getInventory()->getItemInHand()),
 									$player->asVector3(),
 									$frame->asVector3(),
-									RuntimeBlockMapping::toStaticRuntimeId($player->getLevel()->getBlockIdAt($frame->x, $frame->y, $frame->z),$player->getLevel()->getBlockdataAt($frame->x, $frame->y, $frame->z)),
+									RuntimeBlockMapping::toStaticRuntimeId($player->getLevel()->getBlockIdAt($frame->x, $frame->y, $frame->z),$player->getLevel()->getBlockdataAt($frame->x, $frame->y, $frame->z))
 								);
 
 								return $pk;
@@ -575,7 +575,7 @@ class Translator{
 								ItemStackWrapper::legacy($player->getInventory()->getItemInHand()),
 								new Vector3($player->getX(), $player->getY(), $player->getZ()),
 								new Vector3($packet->x, $packet->y, $packet->z),
-								RuntimeBlockMapping::toStaticRuntimeId($player->getLevel()->getBlockIdAt($packet->x, $packet->y, $packet->z),$player->getLevel()->getBlockdataAt($packet->x, $packet->y, $packet->z)),
+								RuntimeBlockMapping::toStaticRuntimeId($player->getLevel()->getBlockIdAt($packet->x, $packet->y, $packet->z),$player->getLevel()->getBlockdataAt($packet->x, $packet->y, $packet->z))
 							);
 
 							return $pk;
