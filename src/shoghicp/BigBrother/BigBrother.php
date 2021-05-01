@@ -95,7 +95,7 @@ class BigBrother extends PluginBase implements Listener{
 		}
 
 		if($enable){
-			if(Info::CURRENT_PROTOCOL === 422){
+			if(Info::CURRENT_PROTOCOL === 431){
 				ConvertUtils::init();
 
 				$this->saveDefaultConfig();
@@ -673,6 +673,7 @@ class BigBrother extends PluginBase implements Listener{
  * prevents access to $this/self from included file
  * @param string $file
  * @return void
+ * @phpstan-var void|mixed
  */
 function __require(string $file){
 	/** @noinspection PhpIncludeInspection */

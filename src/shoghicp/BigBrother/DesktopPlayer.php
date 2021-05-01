@@ -236,6 +236,7 @@ class DesktopPlayer extends Player{
 
 	/**
 	 * @return array
+	 * @phpstan-return array{Vector3, int}
 	 */
 	public function bigBrother_getBreakPosition() : array{
 		return $this->bigBrother_breakPosition;
@@ -671,7 +672,7 @@ class DesktopPlayer extends Player{
 
 				/**
 				 * @override
-				 * @param $server
+				 * @param Server $server
 				 */
 				public function onCompletion(Server $server){
 					$result = $this->getResult();
@@ -803,7 +804,6 @@ class DesktopPlayer extends Player{
 	/**
 	 * @param DataPacket $packet
 	 * @override
-	 * @throws
 	 */
 	public function handleDataPacket(DataPacket $packet){
 		if($this->isConnected() === false){
