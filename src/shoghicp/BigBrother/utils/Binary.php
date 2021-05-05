@@ -54,6 +54,14 @@ class Binary extends \pocketmine\utils\Binary{
 		return substr($uuid, 0, 8) ."-". substr($uuid, 8, 4) ."-". substr($uuid, 12, 4) ."-". substr($uuid, 16, 4) ."-". substr($uuid, 20);
 	}
 
+	public static function hexentities($str){//debug
+		$return = '';
+		for($i = 0, $iMax = strlen($str); $i < $iMax; $i++) {
+			$return .= '&#x'.bin2hex(substr($str, $i, 1)).';';
+		}
+		return $return;
+	}
+
 	/**
 	 * @param array $data
 	 * @return string
@@ -78,6 +86,8 @@ class Binary extends \pocketmine\utils\Binary{
 			$m .= self::writeByte($bottom);
 			$m .= self::writeComputerVarInt($d[0]);
 
+
+
 			switch($d[0]){
 				case 0://Byte
 					$m .= self::writeByte($d[1]);
@@ -91,6 +101,10 @@ class Binary extends \pocketmine\utils\Binary{
 				case 3://String
 				case 4://Chat
 				//case 4://component
+					if(is_array($d[1])){
+						$m .= self::writeComputerVarInt(strlen($d[1][1])) . $d[1][1];
+						break;
+					}
 					$m .= self::writeComputerVarInt(strlen($d[1])) . $d[1];
 				break;
 				//case 5://option component

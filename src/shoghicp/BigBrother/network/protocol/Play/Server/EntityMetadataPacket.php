@@ -50,7 +50,15 @@ class EntityMetadataPacket extends OutboundPacket{
 		}
 		$this->putVarInt($this->entityId);
 		$this->put(Binary::writeMetadata($this->metadata));
-		//sleep(2);
+		var_dump(self::hexentities(Binary::writeMetadata($this->metadata)));
+		sleep(1);
 	}
 
+	public static function hexentities($str){//debug
+		$return = '';
+		for($i = 0, $iMax = strlen($str); $i < $iMax; $i++) {
+			$return .= ''.bin2hex(substr($str, $i, 1)).'; ';
+		}
+		return $return;
+	}
 }
