@@ -484,7 +484,7 @@ class ConvertUtils{
 	 * @param Item &$item
 	 * @phpstan-param Item $item
 	 */
-	public static function convertItemData(bool $isComputer, Item &$item) : void{
+	public static function convertItemData(bool $isComputer, Item &$item) : void{//TODO: change return item
 		self::$timingConvertItem->startTiming();
 
 		$itemId = $item->getId();
@@ -680,7 +680,7 @@ class ConvertUtils{
 					}
 
 					if(((int) $d[1] & (1 << Human::DATA_FLAG_CAN_SHOW_NAMETAG)) > 0){
-						$newData[3] = [7, true];
+						$newData[3] = [7, true];//
 					}
 
 					if(((int) $d[1] & (1 << Human::DATA_FLAG_ALWAYS_SHOW_NAMETAG)) > 0){

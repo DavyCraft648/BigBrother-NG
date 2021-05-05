@@ -1501,10 +1501,10 @@ class Translator{
 
 			case Info::ADD_ITEM_ACTOR_PACKET:
 				/** @var AddItemActorPacket $packet */
-				$item = clone $packet->item;
+				$item = clone $packet->item->getItemStack();
 				ConvertUtils::convertItemData(true, $item);
 				$metadata = ConvertUtils::convertPEToPCMetadata($packet->metadata);
-				$metadata[6] = [5, $item];
+				$metadata[6] = [6, $item];//6
 
 				$packets = [];
 
@@ -1525,7 +1525,7 @@ class Translator{
 				$packets[] = $pk;
 
 				$pk = new EntityMetadataPacket();
-				$pk->eid = $packet->entityRuntimeId;
+				$pk->entityId = $packet->entityRuntimeId;
 				$pk->metadata = $metadata;
 				$packets[] = $pk;
 
@@ -2254,6 +2254,7 @@ class Translator{
 
 				$pk = new EntityMetadataPacket();
 				$pk->entityId = $packet->entityRuntimeId;
+				var_dump($packet->metadata);
 				$pk->metadata = $packet->metadata;
 				$packets[] = $pk;
 

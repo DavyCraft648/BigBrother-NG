@@ -178,7 +178,7 @@ class BigBrother extends PluginBase implements Listener{
 					return;
 				}
 
-				$this->onlineMode = (bool) $this->getConfig()->get("online-mode");
+				$this->onlineMode = (bool) ($this->getConfig()->get("online-mode") | $this->getConfig()->get("xbox-auth"));//
 				if($this->onlineMode){
 					$this->getLogger()->info("Server is being started in the background");
 					$this->getLogger()->info("Generating keypair");

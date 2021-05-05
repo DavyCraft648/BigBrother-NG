@@ -563,6 +563,7 @@ class DesktopPlayer extends Player{
 			$pk->clientData["DeviceOS"] = 0;
 			$pk->clientData["GameVersion"] = "";
 			$pk->clientData["GuiScale"] = 1;
+			$pk->clientData["PlayFabId"] = $this->bigBrother_formattedUUID;
 
 			$pk->clientData["AnimatedImageData"] = [];
 			$pk->clientData["PersonaPieces"] = [];
@@ -695,6 +696,7 @@ class DesktopPlayer extends Player{
 	public function bigBrother_handleAuthentication(string $username, bool $onlineMode = false) : void{
 		if($this->bigBrother_status === 0){
 			$this->bigBrother_username = $username;
+			var_dump($onlineMode);
 			if($onlineMode){
 				$pk = new EncryptionRequestPacket();
 				$pk->serverID = "";
@@ -703,6 +705,7 @@ class DesktopPlayer extends Player{
 				$this->putRawPacket($pk);
 			}else{
 				if(!is_null(($info = $this->plugin->getProfileCache($username)))){
+					var_dump($info);
 					$this->bigBrother_authenticate($info["id"], $info["properties"]);
 				}else{
 					$this->getServer()->getAsyncPool()->submitTask(new class($this->plugin, $this, $username) extends AsyncTask{
@@ -728,6 +731,7 @@ class DesktopPlayer extends Player{
 							$info = null;
 
 							$response = Internet::getURL("https://api.mojang.com/users/profiles/minecraft/".$this->username, 10, [], $err, $header, $status);
+							var_dump($response);
 							if($status === 204){
 								$this->publishProgress("UserNotFound: failed to fetch profile for '$this->username'; status=$status; err=$err; response_header=".json_encode($header));
 								$this->setResult([

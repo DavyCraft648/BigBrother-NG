@@ -30,6 +30,7 @@ declare(strict_types=1);
 namespace shoghicp\BigBrother\network;
 
 use pocketmine\item\Item;
+use pocketmine\utils\UUID;
 use shoghicp\BigBrother\utils\Binary;
 use shoghicp\BigBrother\utils\ConvertUtils;
 use shoghicp\BigBrother\utils\ComputerItem;
@@ -242,6 +243,13 @@ abstract class Packet extends stdClass{
 		$this->buffer = $buffer;
 		$this->offset = $offset;
 		$this->decode();
+	}
+
+	public function putUUID(UUID $uuid){
+		$parts = $uuid->getParts();
+
+		$this->putLong(($parts[0] << 32) | $parts[1]);
+		$this->putLong(($parts[1] << 32) | $parts[2]);
 	}
 
 }

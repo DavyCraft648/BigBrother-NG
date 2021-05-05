@@ -44,8 +44,13 @@ class EntityMetadataPacket extends OutboundPacket{
 	}
 
 	protected function encode() : void{
+		$trace = debug_backtrace();
+		foreach($trace as $line) {
+			error_log("{$line["file"]}: line {$line["line"]}");
+		}
 		$this->putVarInt($this->entityId);
 		$this->put(Binary::writeMetadata($this->metadata));
+		//sleep(2);
 	}
 
 }
