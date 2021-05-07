@@ -30,6 +30,7 @@ declare(strict_types=1);
 namespace shoghicp\BigBrother\utils;
 
 use InvalidArgumentException;
+use pocketmine\item\ItemFactory;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 use pocketmine\network\mcpe\protocol\types\inventory\NormalTransactionData;
 use pocketmine\utils\BinaryStream;
@@ -896,7 +897,11 @@ class InventoryUtils{
 	 * @return DataPacket|null
 	 */
 	public function onCreativeInventoryAction(CreativeInventoryActionPacket $packet) : ?DataPacket{
-		if($packet->slot === 65535){
+		$trace = debug_backtrace();
+		foreach($trace as $line) {
+			error_log("{$line["file"]}: line {$line["line"]}");
+		}
+		if($packet->slot === 65535){ //...?
 			$dropItem = Item::get(Item::AIR, 0, 0);
 
 			foreach($this->player->getInventory()->getContents() as $slot => $item){
@@ -916,7 +921,11 @@ class InventoryUtils{
 
 			return null;
 		}else{
-			if($packet->slot === -1){//DropItem
+			//$newItem = ItemFactory::get(0);
+			//$oldItem = ItemFactory::get(0);
+
+
+			if($packet->slot === -1){//DropItem //...? //...?
 				$this->player->dropItem($packet->clickedItem);
 
 				return null;
@@ -956,7 +965,7 @@ class InventoryUtils{
 			}
 
 			/** @var NetworkInventoryAction[] $actions */
-			$actions = [];
+			$actions = [$action];
 
 			if(!$oldItem->isNull() and !$oldItem->equalsExact($newItem)){
 				$action = $this->addNetworkInventoryAction(NetworkInventoryAction::SOURCE_CREATIVE, -1, NetworkInventoryAction::ACTION_MAGIC_SLOT_CREATIVE_DELETE_ITEM, Item::get(Item::AIR, 0, 0), $oldItem);

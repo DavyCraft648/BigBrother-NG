@@ -99,16 +99,10 @@ class Binary extends \pocketmine\utils\Binary{
 					$m .= self::writeFloat($d[1]);
 				break;
 				case 3://String
-				case 4://Chat
-				//case 4://component
-					if(is_array($d[1])){
-						$m .= self::writeComputerVarInt(strlen($d[1][1])) . $d[1][1];
-						break;
-					}
+				case 4://component
 					$m .= self::writeComputerVarInt(strlen($d[1])) . $d[1];
 				break;
-				//case 5://option component
-				case 5://OptChat
+				case 5://Optcomponent
 					$m .= self::writeBool($d[1][0]);
 					if($d[1][0]){
 						$m .= self::writeComputerVarInt(strlen($d[1][1])) . $d[1][1];
@@ -116,7 +110,6 @@ class Binary extends \pocketmine\utils\Binary{
 
 				break;
 				case 6://Slot
-
 					// @var Item $item
 					$item = $d[1];
 					if($item->getId() === 0){

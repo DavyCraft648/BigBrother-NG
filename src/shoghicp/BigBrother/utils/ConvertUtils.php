@@ -701,10 +701,11 @@ class ConvertUtils{
 					$newData[1] = [1, $d[1]];
 				break;
 				case Human::DATA_NAMETAG://Custom name
-					if(BigBrother::toJSONInternal(str_replace("\n", "", $d[1])) === "[]"){
+					$nametag = str_replace("\n", "", $d[1]);
+					if($nametag === ""){
 						$newData[2] = [5, [false]];
 					}else{
-						$newData[2] = [5, [true, BigBrother::toJSONInternal(str_replace("\n", "", $d[1]))]];//TODO
+						$newData[2] = [5, [true, BigBrother::toJSONInternal($nametag)]];//TODO
 					}
 				break;
 				case Human::DATA_FUSE_LENGTH://TNT

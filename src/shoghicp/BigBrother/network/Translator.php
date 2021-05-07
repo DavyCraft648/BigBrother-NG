@@ -826,6 +826,7 @@ class Translator{
 
 			case InboundPacket::CREATIVE_INVENTORY_ACTION_PACKET:
 				/** @var CreativeInventoryActionPacket $packet */
+				var_dump($packet);
 				$pk = $player->getInventoryUtils()->onCreativeInventoryAction($packet);
 
 				return $pk;
@@ -1504,7 +1505,7 @@ class Translator{
 				$item = clone $packet->item->getItemStack();
 				ConvertUtils::convertItemData(true, $item);
 				$metadata = ConvertUtils::convertPEToPCMetadata($packet->metadata);
-				$metadata[6] = [6, $item];//6
+				$metadata[6] = [7, $item];//6
 
 				$packets = [];
 
@@ -1592,7 +1593,7 @@ class Translator{
 				/** @var MovePlayerPacket $packet */
 				if($packet->entityRuntimeId === $player->getId()){
 					if($player->spawned){//for Loading Chunks
-						$pk = new PlayerPositionAndLookPacket();
+						$pk = new PlayerPositionAndLookPacket();//
 						$pk->x = $packet->position->x;
 						$pk->y = $packet->position->y - $player->getEyeHeight();
 						$pk->z = $packet->position->z;
