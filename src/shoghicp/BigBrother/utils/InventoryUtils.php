@@ -30,6 +30,8 @@ declare(strict_types=1);
 namespace shoghicp\BigBrother\utils;
 
 use InvalidArgumentException;
+use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
+use pocketmine\network\mcpe\protocol\types\inventory\NormalTransactionData;
 use const pocketmine\DEBUG;
 use pocketmine\inventory\ShapedRecipe;
 use pocketmine\inventory\ShapelessRecipe;
@@ -843,7 +845,7 @@ class InventoryUtils{
 		$pk = null;
 		if($accepted){
 			$pk = new InventoryTransactionPacket();
-			$pk->transactionType = InventoryTransactionPacket::TYPE_NORMAL;
+			$actions = [];
 
 			if($isContainer){
 				$ref = &$this->getItemAndSlot($packet->windowID, $packet->slot, $windowId, $saveInventorySlot);
@@ -854,17 +856,20 @@ class InventoryUtils{
 				}
 
 				$action = $this->addNetworkInventoryAction(NetworkInventoryAction::SOURCE_CONTAINER, $windowId, $saveInventorySlot, $oldItem, $item);
-				$pk->actions[] = $action;
+				$actions[] = $action;
 			}
 
 			foreach($otherAction as $action){
-				$pk->actions[] = $action;
+				$actions[] = $action;
 			}
 
 			if(!$heldItem->equalsExact($this->playerHeldItem)){
 				$action = $this->addNetworkInventoryAction(NetworkInventoryAction::SOURCE_CONTAINER, ContainerIds::UI, 0, $heldItem, $this->playerHeldItem);
-				$pk->actions[] = $action;
+				$actions[] = $action;
 			}
+			$pk->trData = NormalTransactionData::new(
+				$actions
+			);
 		}
 
 		$accepted_pk = new ConfirmTransactionPacket();
@@ -947,24 +952,26 @@ class InventoryUtils{
 					$this->playerInventorySlot[$inventorySlot] = $newItem;
 				}
 
+				$this->player->getInventory()->setItem($inventorySlot, $newItem);
+
 				$action = $this->addNetworkInventoryAction(NetworkInventoryAction::SOURCE_CONTAINER, ContainerIds::INVENTORY, $saveInventorySlot, $oldItem, $newItem);
 			}
 
 			$pk = new InventoryTransactionPacket();
-			$pk->transactionType = InventoryTransactionPacket::TYPE_NORMAL;
-			$pk->actions[] = $action;
+			$actions = [];
 
 			if(!$oldItem->isNull() and !$oldItem->equalsExact($newItem)){
 				$action = $this->addNetworkInventoryAction(NetworkInventoryAction::SOURCE_CREATIVE, -1, NetworkInventoryAction::ACTION_MAGIC_SLOT_CREATIVE_DELETE_ITEM, Item::get(Item::AIR, 0, 0), $oldItem);
 
-				$pk->actions[] = $action;
+				$actions[] = $action;
 			}
 
 			if(!$newItem->isNull() and !$oldItem->equalsExact($newItem)){
 				$action = $this->addNetworkInventoryAction(NetworkInventoryAction::SOURCE_CREATIVE, -1, NetworkInventoryAction::ACTION_MAGIC_SLOT_CREATIVE_CREATE_ITEM, $newItem, Item::get(Item::AIR, 0, 0));
 
-				$pk->actions[] = $action;
+				$actions[] = $action;
 			}
+			$pk->trData = NormalTransactionData::new($actions);
 
 			$this->checkInventoryTransactionPacket($pk);
 
@@ -1114,8 +1121,8 @@ class InventoryUtils{
 		$action->sourceType = $sourceType;
 		$action->windowId = $windowId;
 		$action->inventorySlot = $inventorySlot;
-		$action->oldItem = $oldItem;
-		$action->newItem = $newItem;
+		$action->oldItem = ItemStackWrapper::legacy($oldItem);
+		$action->newItem = ItemStackWrapper::legacy($newItem);
 
 		return $action;
 	}
@@ -1128,7 +1135,7 @@ class InventoryUtils{
 	public function checkInventoryTransactionPacket(InventoryTransactionPacket $packet) : bool{
 		$errors = 0;
 		$actions = [];
-		foreach($packet->actions as $actionNumber => $networkInventoryAction){
+		foreach($packet->trData->getActions() as $actionNumber => $networkInventoryAction){
 			$action = $networkInventoryAction->createInventoryAction($this->player);
 
 			if($action === null){

@@ -30,6 +30,7 @@ declare(strict_types=1);
 namespace shoghicp\BigBrother\network;
 
 use pocketmine\item\Item;
+use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 use shoghicp\BigBrother\utils\Binary;
 use shoghicp\BigBrother\utils\ConvertUtils;
 use shoghicp\BigBrother\utils\ComputerItem;
@@ -103,7 +104,10 @@ abstract class Packet extends stdClass{
 		}
 	}
 
-	protected function putSlot(Item $item) : void{
+	protected function putSlot($item) : void{
+		if($item instanceof ItemStackWrapper) {
+			$item = $item->getItemStack();
+		}
 		ConvertUtils::convertItemData(true, $item);
 
 		if($item->getID() === 0){

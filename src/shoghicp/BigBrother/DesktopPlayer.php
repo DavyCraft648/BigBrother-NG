@@ -577,6 +577,7 @@ class DesktopPlayer extends Player{
 			}
 
 			$skin = new SkinImage($skinImage);
+			$pk->clientData["PlayFabId"] = "";
 			$pk->clientData["SkinData"] = $skin->getSkinImageData(true);
 			$skinSize = $this->getSkinImageSize(strlen($skin->getRawSkinImageData(true)));
 			$pk->clientData["SkinImageHeight"] = $skinSize[0];
