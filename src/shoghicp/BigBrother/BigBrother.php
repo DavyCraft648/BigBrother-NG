@@ -337,7 +337,18 @@ class BigBrother extends PluginBase implements Listener{
 
 		if(!$this->isPhar() and !is_file($autoload)){
 			$this->getLogger()->info("Trying to setup composer...");
-			copy('https://getcomposer.org/installer', $setup);
+
+			//Fix ssl operation failed
+			//https://stackoverflow.com/questions/26148701/file-get-contents-ssl-operation-failed-with-code-1-failed-to-enable-crypto
+
+			$arrContextOptions=array(
+				"ssl"=>array(
+					"verify_peer"=>false,
+					"verify_peer_name"=>false,
+				),
+			);
+
+			copy('https://getcomposer.org/installer', $setup, $arrContextOptions);
 			exec(join(' ', [PHP_BINARY, $setup, '--install-dir', $data]));
 
 			$this->getLogger()->info("Trying to install composer dependencies...");
