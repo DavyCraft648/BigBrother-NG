@@ -506,7 +506,7 @@ class DesktopPlayer extends Player{
 
 			$pk = new LoginSuccessPacket();
 			$pk->uuid = $this->bigBrother_formattedUUID;
-			$pk->name = $this->bigBrother_username;
+			$pk->name = $this->plugin->getDesktopPrefix() . $this->bigBrother_username;
 			$this->putRawPacket($pk);
 
 			$this->bigBrother_status = 1;
@@ -548,7 +548,7 @@ class DesktopPlayer extends Player{
 			}
 
 			$pk = new LoginPacket();
-			$pk->username = $this->bigBrother_username;
+			$pk->username = $this->plugin->getDesktopPrefix() . $this->bigBrother_username;
 			$pk->protocol = Info::CURRENT_PROTOCOL;
 			$pk->clientUUID = $this->bigBrother_formattedUUID;
 			$pk->clientId = crc32($this->bigBrother_clientId);

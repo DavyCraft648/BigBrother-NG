@@ -72,6 +72,9 @@ class BigBrother extends PluginBase implements Listener{
 	/** @var Translator */
 	protected $translator;
 
+	/** @var string */
+	protected $desktopPrefix;
+
 	/** @var array */
 	protected $profileCache = [];
 
@@ -176,6 +179,8 @@ class BigBrother extends PluginBase implements Listener{
 					$this->rsa->loadKey($this->privateKey);
 				}
 
+				$this->desktopPrefix = $this->getConfig()->get("desktop-prefix", "PC_");
+
 				$this->getLogger()->info("Starting Minecraft: PC server on ".($this->getIp() === "0.0.0.0" ? "*" : $this->getIp()).":".$this->getPort()." version ".ServerManager::VERSION);
 
 				$this->getServer()->getPluginManager()->registerEvents($this, $this);
@@ -216,6 +221,13 @@ class BigBrother extends PluginBase implements Listener{
 	 */
 	public function isOnlineMode(): bool{
 		return $this->onlineMode;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getDesktopPrefix() {
+		return $this->desktopPrefix;
 	}
 
 	/**
