@@ -109,6 +109,8 @@ class DesktopPlayer extends Player{
 		"uuid" => "",
 		"nameTag" => ""
 	];
+	/** @var int */
+	public $bigBrother_formId;
 
 	/** @var ProtocolInterface */
 	protected $interface;

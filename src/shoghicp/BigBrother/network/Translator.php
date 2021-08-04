@@ -34,6 +34,8 @@ use pocketmine\network\mcpe\protocol\AddActorPacket;
 use pocketmine\network\mcpe\protocol\AddItemActorPacket;
 use pocketmine\network\mcpe\protocol\BlockActorDataPacket;
 use pocketmine\network\mcpe\protocol\LevelChunkPacket;
+use pocketmine\network\mcpe\protocol\ModalFormRequestPacket;
+use pocketmine\network\mcpe\protocol\ModalFormResponsePacket;
 use pocketmine\network\mcpe\protocol\MoveActorAbsolutePacket;
 use pocketmine\network\mcpe\protocol\RemoveActorPacket;
 use pocketmine\network\mcpe\protocol\RemoveObjectivePacket;
@@ -208,6 +210,25 @@ class Translator{
 				$pk->type = 1;//Chat Type
 				$pk->sourceName = "";
 				$pk->message = $packet->message;
+				if(substr($pk->message, 0, 12) === ")respondform") {
+					if(!isset($player->bigBrother_formId)) {
+						$player->sendMessage(TextFormat::RED."Form already closed.");
+						return null;
+					}
+					$value = explode(" ", $pk->message)[1];
+
+					$response = new ModalFormResponsePacket();
+					$response->formId = $player->bigBrother_formId;
+					if($value === "ESC") {
+						$value = null;
+					} else {
+						$value = intval($value);
+					}
+					$response->formData = json_encode($value);
+
+					unset($player->bigBrother_formId);
+					return $response;
+				}
 				return $pk;
 
 			case InboundPacket::CLIENT_STATUS_PACKET:
@@ -2577,10 +2598,12 @@ class Translator{
 			case Info::SET_SCORE_PACKET:
 				/** @var SetScorePacket $packet */
 				$packets = [];
+				$i = 16;
 				foreach($packet->entries as $entry) {
+					$i--;
 					$pk = new UpdateScorePacket();
 					$pk->action = UpdateScorePacket::ACTION_ADD_OR_UPDATE;
-					$pk->value = $entry->score;
+					$pk->value = $i;
 					$pk->objective = $entry->objectiveName;
 					$pk->entry = $entry->customName;
 					$packets[] = $pk;
@@ -2592,6 +2615,25 @@ class Translator{
 				$pk->action = ScoreboardObjectivePacket::ACTION_REMOVE;
 				$pk->name = $packet->objectiveName;
 				return $pk;
+			case Info::MODAL_FORM_REQUEST_PACKET:
+				/** @var ModalFormRequestPacket $packet */
+				$formData = json_decode($packet->formData, true);
+				$packets = [];
+				if($formData["type"] === "form"){
+					$pk = new ChatPacket();
+					$pk->message = json_encode(["text" => TextFormat::BOLD.TextFormat::GRAY."============ [> " . TextFormat::RESET . $formData["title"] . TextFormat::RESET . " <] ============\n".TextFormat::RESET.$formData["content"].TextFormat::RESET."\n\n"]);
+					$packets[] = $pk;
+					foreach($formData["buttons"] as $i => $a){
+						$pk = new ChatPacket();
+						$pk->message = json_encode(["text" => TextFormat::BOLD.TextFormat::GOLD."[CLICK #" . $i . "] " . TextFormat::RESET . $a["text"], "clickEvent" => ["action" => "run_command", "value" => ")respondform " . $i]]);
+						$packets[] = $pk;
+					}
+					$pk = new ChatPacket();
+					$pk->message = json_encode(["text" => TextFormat::BOLD.TextFormat::GOLD."[CLOSE] ", "clickEvent" => ["action" => "run_command", "value" => ")respondform ESC"]]);
+					$packets[] = $pk;
+				}
+				$player->bigBrother_formId = $packet->formId;
+				return $packets;
 			case BatchPacket::NETWORK_ID:
 				$packets = [];
 

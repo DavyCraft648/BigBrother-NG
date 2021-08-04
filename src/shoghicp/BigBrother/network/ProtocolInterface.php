@@ -30,6 +30,7 @@ declare(strict_types=1);
 namespace shoghicp\BigBrother\network;
 
 use Exception;
+use pocketmine\event\player\PlayerCreationEvent;
 use SplObjectStorage;
 use const pocketmine\DEBUG;
 use pocketmine\network\mcpe\protocol\DataPacket;
