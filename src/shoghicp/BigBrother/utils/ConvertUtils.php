@@ -200,10 +200,10 @@ class ConvertUtils{
 	];
 
 	/** @var array */
-	private static $idListIndex; /*= [
+	private static $idListIndex; /*=[
 		[ Index for PE => PC],
 		[ Index for PC => PE],
-	]*/
+	];*/
 
 	/** @var array */
 	private static $spawnEggList = [
@@ -277,7 +277,7 @@ class ConvertUtils{
 		self::$reverseSpawnEggList = array_flip(self::$spawnEggList);
 	}
 
-	public static function chunkLazyLoad() {
+	public static function lazyLoad() {
 		if(isset(self::$idListIndex)) {
 			return;
 		}

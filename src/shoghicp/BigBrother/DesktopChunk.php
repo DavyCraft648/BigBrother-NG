@@ -78,7 +78,6 @@ class DesktopChunk{
 
 		$payload = "";
 
-		ConvertUtils::chunkLazyLoad();
 		foreach($chunk->getSubChunks() as $num => $subChunk){
 			if($subChunk->isEmpty()){
 				continue;

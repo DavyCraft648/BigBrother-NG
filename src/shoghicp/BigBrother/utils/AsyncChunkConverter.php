@@ -44,6 +44,9 @@ class AsyncChunkConverter extends AsyncTask{
 		$this->biomes = $chunk->getBiomeIdArray();
 
 		$payload = "";
+
+		ConvertUtils::lazyLoad();
+
 		foreach($chunk->getSubChunks() as $num => $subChunk){
 			if($subChunk->isEmpty()){
 				continue;
