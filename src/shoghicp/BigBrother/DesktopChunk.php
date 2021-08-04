@@ -77,6 +77,8 @@ class DesktopChunk{
 		$this->biomes = $chunk->getBiomeIdArray();
 
 		$payload = "";
+
+		ConvertUtils::chunkLazyLoad();
 		foreach($chunk->getSubChunks() as $num => $subChunk){
 			if($subChunk->isEmpty()){
 				continue;
