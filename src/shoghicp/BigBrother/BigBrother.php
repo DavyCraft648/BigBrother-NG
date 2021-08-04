@@ -347,8 +347,7 @@ class BigBrother extends PluginBase implements Listener{
 					"verify_peer_name"=>false,
 				),
 			);
-
-			copy('https://getcomposer.org/installer', $setup, $arrContextOptions);
+			copy('https://getcomposer.org/installer', $setup, stream_context_create($arrContextOptions));
 			exec(join(' ', [PHP_BINARY, $setup, '--install-dir', $data]));
 
 			$this->getLogger()->info("Trying to install composer dependencies...");
