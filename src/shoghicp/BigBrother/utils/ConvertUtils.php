@@ -589,7 +589,7 @@ class ConvertUtils{
 	 * @param int  &$blockData to convert
 	 */
 	public static function convertBlockData(bool $isComputer, int &$blockId, int &$blockData) : void{
-		self::$timingConvertBlock->startTiming();
+		//self::$timingConvertBlock->startTiming();
 
 		switch($blockId){
 			case Block::WOODEN_TRAPDOOR:
@@ -623,7 +623,7 @@ class ConvertUtils{
 			break;
 		}
 
-		self::$timingConvertBlock->stopTiming();
+		//self::$timingConvertBlock->stopTiming();
 	}
 
 	/**

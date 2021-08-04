@@ -36,8 +36,11 @@ use pocketmine\network\mcpe\protocol\BlockActorDataPacket;
 use pocketmine\network\mcpe\protocol\LevelChunkPacket;
 use pocketmine\network\mcpe\protocol\MoveActorAbsolutePacket;
 use pocketmine\network\mcpe\protocol\RemoveActorPacket;
+use pocketmine\network\mcpe\protocol\RemoveObjectivePacket;
 use pocketmine\network\mcpe\protocol\SetActorDataPacket;
 use pocketmine\network\mcpe\protocol\SetActorMotionPacket;
+use pocketmine\network\mcpe\protocol\SetDisplayObjectivePacket;
+use pocketmine\network\mcpe\protocol\SetScorePacket;
 use pocketmine\network\mcpe\protocol\TakeItemActorPacket;
 use pocketmine\network\mcpe\protocol\types\ContainerIds;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
@@ -57,6 +60,10 @@ use shoghicp\BigBrother\network\protocol\Play\Client\PlayerLookPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\PlayerPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\PlayerPositionPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\UpdateSignPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\DisplayScoreboardPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ScoreboardObjectivePacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\UpdateScorePacket;
+use shoghicp\BigBrother\utils\AsyncChunkConverter;
 use UnexpectedValueException;
 use const pocketmine\DEBUG;
 use pocketmine\block\Block;
@@ -918,7 +925,6 @@ class Translator{
 					$player->getLevel()->getBlock($clickPos)->getRuntimeId()
 				);
 				return $pk;
-
 			default:
 				if(DEBUG > 4){
 					echo "[Receive][Translator] 0x".bin2hex(chr($packet->pid()))." Not implemented\n";
@@ -2382,25 +2388,9 @@ class Translator{
 
 			case Info::LEVEL_CHUNK_PACKET:
 				/** @var LevelChunkPacket $packet */
-				$blockEntities = [];
-				foreach($player->getLevel()->getChunkTiles($packet->getChunkX(), $packet->getChunkZ()) as $tile){
-					if($tile instanceof Spawnable){
-						$blockEntities[] = clone $tile->getSpawnCompound();
-					}
-				}
-
-				$chunk = new DesktopChunk($player, $packet->getChunkX(), $packet->getChunkZ());
-
-				$pk = new ChunkDataPacket();
-				$pk->chunkX = $packet->getChunkX();
-				$pk->chunkZ = $packet->getChunkZ();
-				$pk->groundUp = true;
-				$pk->primaryBitmap = $chunk->getBitMapData();
-				$pk->payload = $chunk->getChunkData();
-				$pk->biomes = $chunk->getBiomesData();
-				$pk->blockEntities = $blockEntities;
-
-				return $pk;
+				$task = new AsyncChunkConverter($player, $player->level->getChunk($packet->getChunkX(), $packet->getChunkZ()));
+				$player->getServer()->getAsyncPool()->submitTask($task);
+				return null;
 
 			case Info::PLAYER_LIST_PACKET:
 				/** @var \pocketmine\network\mcpe\protocol\PlayerListPacket $packet */
@@ -2566,7 +2556,42 @@ class Translator{
 					break;
 				}
 				return null;
+			case Info::SET_DISPLAY_OBJECTIVE_PACKET:
+				/** @var SetDisplayObjectivePacket $packet */
 
+				$packets = [];
+
+				$pk = new ScoreboardObjectivePacket();
+				$pk->action = ScoreboardObjectivePacket::ACTION_ADD;
+				$pk->displayName = $packet->displayName;
+				$pk->type = ScoreboardObjectivePacket::TYPE_INTEGER;
+				$pk->name = $packet->objectiveName;
+				$packets[] = $pk;
+
+				$pk = new DisplayScoreboardPacket();
+				$pk->position = DisplayScoreboardPacket::POSITION_SIDEBAR;
+				$pk->name = $packet->objectiveName;
+				$packets[] = $pk;
+
+				return $packets;
+			case Info::SET_SCORE_PACKET:
+				/** @var SetScorePacket $packet */
+				$packets = [];
+				foreach($packet->entries as $entry) {
+					$pk = new UpdateScorePacket();
+					$pk->action = UpdateScorePacket::ACTION_ADD_OR_UPDATE;
+					$pk->value = $entry->score;
+					$pk->objective = $entry->objectiveName;
+					$pk->entry = $entry->customName;
+					$packets[] = $pk;
+				}
+				return $packets;
+			case Info::REMOVE_OBJECTIVE_PACKET:
+				/** @var RemoveObjectivePacket $packet */
+				$pk = new ScoreboardObjectivePacket();
+				$pk->action = ScoreboardObjectivePacket::ACTION_REMOVE;
+				$pk->name = $packet->objectiveName;
+				return $pk;
 			case BatchPacket::NETWORK_ID:
 				$packets = [];
 

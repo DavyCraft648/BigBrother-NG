@@ -66,11 +66,14 @@ class DesktopChunk{
 		$this->groundUp = true;
 		$this->bitMap = 0;
 
+		$start = microtime(true);
 		$this->generateChunk();
+		echo "Chunk generate takes " . (microtime(true) - $start)."\n";
 	}
 
 	public function generateChunk() : void{
 		$chunk = $this->level->getChunk($this->chunkX, $this->chunkZ, false);
+		$chunk->fastSerialize();
 		$this->biomes = $chunk->getBiomeIdArray();
 
 		$payload = "";
