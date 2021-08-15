@@ -290,6 +290,7 @@ class ConvertUtils{
 			return 0;
 		}
 		return self::$newBlockStateId[$blockId][0];//TODO: blockDamage
+	}
 
 	public static function lazyLoad() {
 		if(isset(self::$idListIndex)) {
