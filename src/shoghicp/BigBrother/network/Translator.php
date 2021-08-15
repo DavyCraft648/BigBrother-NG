@@ -395,7 +395,7 @@ class Translator{
 								ItemStackWrapper::legacy($player->getInventory()->getItemInHand()),
 								$player->asVector3(),
 								$frame->asVector3(),
-								$player->getLevel()->getBlock($clickPos)->getRuntimeId()),
+								$player->getLevel()->getBlock($clickPos)->getRuntimeId())
 							);
 							return $pk;
 						case InteractEntityPacket::TYPE_ATTACK:
