@@ -20,7 +20,7 @@ Welcome to BigBrother, a [shoghicp project that was abandoned](https://github.co
 
 #### Features implemented
 * Login (with premium account or not)
-* Loading chunks
+* Loading chunks (asynchronous)
 * Placing/destroying blocks
 * Gamemodes
 * Dropped items
@@ -28,6 +28,7 @@ Welcome to BigBrother, a [shoghicp project that was abandoned](https://github.co
 * Converted entities metadata
 * Inventories
 * Tiles
+* Scoreboard
 * And many other things!
 
 #### Features not yet implemented

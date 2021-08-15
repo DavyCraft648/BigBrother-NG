@@ -11,3 +11,6 @@ motd: "§bPocketMine-MP server using §6§lBigBrother§r§b plugin\n§aConnect t
 
 #Use Mojang services to authenticate players
 online-mode: true
+
+#Desktop Player Prefix
+desktop-prefix: "PC_"

@@ -107,6 +107,8 @@ class DesktopPlayer extends Player{
 		"uuid" => "",
 		"nameTag" => ""
 	];
+	/** @var int */
+	public $bigBrother_formId;
 
 	/** @var ProtocolInterface */
 	protected $interface;
@@ -505,8 +507,10 @@ class DesktopPlayer extends Player{
 			$this->interface->setCompression($this);
 
 			$pk = new LoginSuccessPacket();
-			$pk->uuid = UUID::fromString($this->bigBrother_uuid)->toBinary();
-			$pk->name = $this->bigBrother_username;
+
+			$pk->uuid = $this->bigBrother_formattedUUID;
+			$pk->name = $this->plugin->getDesktopPrefix() . $this->bigBrother_username;
+
 			$this->putRawPacket($pk);
 
 			$this->bigBrother_status = 1;
@@ -548,7 +552,7 @@ class DesktopPlayer extends Player{
 			}
 
 			$pk = new LoginPacket();
-			$pk->username = $this->bigBrother_username;
+			$pk->username = $this->plugin->getDesktopPrefix() . $this->bigBrother_username;
 			$pk->protocol = Info::CURRENT_PROTOCOL;
 			$pk->clientUUID = $this->bigBrother_formattedUUID;
 			$pk->clientId = crc32($this->bigBrother_clientId);
@@ -578,6 +582,7 @@ class DesktopPlayer extends Player{
 			}
 
 			$skin = new SkinImage($skinImage);
+			$pk->clientData["PlayFabId"] = "";
 			$pk->clientData["SkinData"] = $skin->getSkinImageData(true);
 			$skinSize = $this->getSkinImageSize(strlen($skin->getRawSkinImageData(true)));
 			$pk->clientData["SkinImageHeight"] = $skinSize[0];

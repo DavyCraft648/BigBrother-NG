@@ -35,11 +35,16 @@ use pocketmine\network\mcpe\protocol\AddItemActorPacket;
 use pocketmine\network\mcpe\protocol\BlockActorDataPacket;
 use pocketmine\network\mcpe\protocol\ChunkRadiusUpdatedPacket;
 use pocketmine\network\mcpe\protocol\LevelChunkPacket;
+use pocketmine\network\mcpe\protocol\ModalFormRequestPacket;
+use pocketmine\network\mcpe\protocol\ModalFormResponsePacket;
 use pocketmine\network\mcpe\protocol\MoveActorAbsolutePacket;
 use pocketmine\network\mcpe\protocol\PlayerListPacket;
 use pocketmine\network\mcpe\protocol\RemoveActorPacket;
+use pocketmine\network\mcpe\protocol\RemoveObjectivePacket;
 use pocketmine\network\mcpe\protocol\SetActorDataPacket;
 use pocketmine\network\mcpe\protocol\SetActorMotionPacket;
+use pocketmine\network\mcpe\protocol\SetDisplayObjectivePacket;
+use pocketmine\network\mcpe\protocol\SetScorePacket;
 use pocketmine\network\mcpe\protocol\TakeItemActorPacket;
 use pocketmine\network\mcpe\protocol\types\ContainerIds;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
@@ -63,6 +68,10 @@ use shoghicp\BigBrother\network\protocol\Play\Client\UpdateSignPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\UpdateLightPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\UpdateViewDistancePacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\UpdateViewPositionPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\DisplayScoreboardPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ScoreboardObjectivePacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\UpdateScorePacket;
+use shoghicp\BigBrother\utils\AsyncChunkConverter;
 use UnexpectedValueException;
 use const pocketmine\DEBUG;
 use pocketmine\block\Block;
@@ -204,6 +213,25 @@ class Translator{
 				$pk->type = 1;//Chat Type
 				$pk->sourceName = "";
 				$pk->message = $packet->message;
+				if(substr($pk->message, 0, 12) === ")respondform") {
+					if(!isset($player->bigBrother_formId)) {
+						$player->sendMessage(TextFormat::RED."Form already closed.");
+						return null;
+					}
+					$value = explode(" ", $pk->message)[1];
+
+					$response = new ModalFormResponsePacket();
+					$response->formId = $player->bigBrother_formId;
+					if($value === "ESC") {
+						$value = null;
+					} else {
+						$value = intval($value);
+					}
+					$response->formData = json_encode($value);
+
+					unset($player->bigBrother_formId);
+					return $response;
+				}
 				return $pk;
 
 			case InboundPacket::CLIENT_STATUS_PACKET:
@@ -355,22 +383,23 @@ class Translator{
 				$frame = ItemFrameBlockEntity::getItemFrameById($player->getLevel(), $packet->target);
 				if($frame !== null){
 					switch($packet->type){
-						case InteractEntityPacket::TYPE_INTERACT:
-							$pk = new InventoryTransactionPacket();
-							$pk->requestChangedSlots = [];
-							$pk->requestId = InventoryTransactionPacket::TYPE_USE_ITEM;
 							$pk->trData = UseItemTransactionData::new(
 								[],
 								UseItemTransactionData::ACTION_CLICK_BLOCK,
 								new Vector3($frame->x, $frame->y, $frame->z),
+						case UseEntityPacket::INTERACT:
+							$clickPos = new Vector3($frame->x, $frame->y, $frame->z);
+							$pk = new InventoryTransactionPacket();
+							$pk->trData = UseItemTransactionData::new(
+								[],
+								UseItemTransactionData::ACTION_CLICK_BLOCK,
+								$clickPos,
 								$frame->getFacing(),
 								$player->getInventory()->getHeldItemIndex(),
 								ItemStackWrapper::legacy($player->getInventory()->getItemInHand()),
 								$player->asVector3(),
-								$frame->asVector3(),
-								RuntimeBlockMapping::toStaticRuntimeId($player->getLevel()->getBlockIdAt($frame->x, $frame->y, $frame->z),$player->getLevel()->getBlockdataAt($frame->x, $frame->y, $frame->z))
-							);
-
+								$frame->asVector3();
+								$player->getLevel()->getBlock($clickPos)->getRuntimeId());
 							return $pk;
 						case InteractEntityPacket::TYPE_ATTACK:
 							if($frame->hasItem()){
@@ -381,21 +410,18 @@ class Translator{
 
 								return $pk;
 							}else{
+								$clickPos = new Vector3($frame->x, $frame->y, $frame->z);
 								$pk = new InventoryTransactionPacket();
-								$pk->requestChangedSlots = [];
-								$pk->requestId = InventoryTransactionPacket::TYPE_USE_ITEM;
 								$pk->trData = UseItemTransactionData::new(
 									[],
-									UseItemTransactionData::ACTION_CLICK_BLOCK,
-									new Vector3($frame->x, $frame->y, $frame->z),
+									UseItemTransactionData::ACTION_BREAK_BLOCK,
+									$clickPos,
 									$frame->getFacing(),
 									$player->getInventory()->getHeldItemIndex(),
 									ItemStackWrapper::legacy($player->getInventory()->getItemInHand()),
 									$player->asVector3(),
 									$frame->asVector3(),
-									RuntimeBlockMapping::toStaticRuntimeId($player->getLevel()->getBlockIdAt($frame->x, $frame->y, $frame->z),$player->getLevel()->getBlockdataAt($frame->x, $frame->y, $frame->z))
-								);
-
+									$player->getLevel()->getBlock($clickPos)->getRuntimeId());
 								return $pk;
 							}
 					}
@@ -411,29 +437,25 @@ class Translator{
 					$pk->y = 0;
 					$pk->z = 0;
 				}else{
-					$actionType = null;
 					switch($packet->type){
-						case InteractEntityPacket::TYPE_INTERACT:
+						case UseEntityPacket::INTERACT:
 							$actionType = UseItemOnEntityTransactionData::ACTION_INTERACT;
-						break;
-						case InteractEntityPacket::TYPE_ATTACK:
+							break;
+						case UseEntityPacket::ATTACK:
 							$actionType = UseItemOnEntityTransactionData::ACTION_ATTACK;
-						break;
+							break;
 						default:
 							echo "[Translator] UseItemPacket\n";
 							return null;
 					}
-
 					$pk = new InventoryTransactionPacket();
-					$pk->requestChangedSlots = [];
-					$pk->requestId = InventoryTransactionPacket::TYPE_USE_ITEM_ON_ENTITY;
 					$pk->trData = UseItemOnEntityTransactionData::new(
 						[],
 						$packet->target,
 						$actionType,
 						$player->getInventory()->getHeldItemIndex(),
 						ItemStackWrapper::legacy($player->getInventory()->getItemInHand()),
-						new Vector3(0, 0, 0),
+						$player->asVector3(),
 						new Vector3(0, 0, 0)
 					);
 				}
@@ -563,21 +585,20 @@ class Translator{
 				switch($packet->status){
 					case 0:
 						if($player->getGamemode() === 1){
+							$clickPos = new Vector3($packet->x, $packet->y, $packet->z);
 							$pk = new InventoryTransactionPacket();
-							$pk->requestChangedSlots = [];
-							$pk->requestId = InventoryTransactionPacket::TYPE_USE_ITEM;
+
 							$pk->trData = UseItemTransactionData::new(
 								[],
 								UseItemTransactionData::ACTION_BREAK_BLOCK,
-								new Vector3($packet->x, $packet->y, $packet->z),
+								$clickPos,
 								$packet->face,
 								$player->getInventory()->getHeldItemIndex(),
 								ItemStackWrapper::legacy($player->getInventory()->getItemInHand()),
-								new Vector3($player->getX(), $player->getY(), $player->getZ()),
-								new Vector3($packet->x, $packet->y, $packet->z),
-								RuntimeBlockMapping::toStaticRuntimeId($player->getLevel()->getBlockIdAt($packet->x, $packet->y, $packet->z),$player->getLevel()->getBlockdataAt($packet->x, $packet->y, $packet->z))
+								$player->asVector3(),
+								$clickPos,
+								$player->getLevel()->getBlock($clickPos)->getRuntimeId()
 							);
-
 							return $pk;
 						}else{
 							$player->bigBrother_setBreakPosition([new Vector3($packet->x, $packet->y, $packet->z), $packet->face]);
@@ -604,20 +625,21 @@ class Translator{
 								$pk->face = $packet->face;
 								$packets[] = $pk;
 
+								$clickPos = new Vector3($packet->x, $packet->y, $packet->z);
 								$pk = new InventoryTransactionPacket();
-								$pk->requestChangedSlots = [];
-								$pk->requestId = InventoryTransactionPacket::TYPE_USE_ITEM;
+
 								$pk->trData = UseItemTransactionData::new(
 									[],
 									UseItemTransactionData::ACTION_BREAK_BLOCK,
-									new Vector3($packet->x, $packet->y, $packet->z),
+									$clickPos,
 									$packet->face,
 									$player->getInventory()->getHeldItemIndex(),
 									ItemStackWrapper::legacy($player->getInventory()->getItemInHand()),
-									new Vector3($player->getX(), $player->getY(), $player->getZ()),
-									new Vector3($packet->x, $packet->y, $packet->z),
-									RuntimeBlockMapping::toStaticRuntimeId($player->getLevel()->getBlockIdAt($packet->x, $packet->y, $packet->z),$player->getLevel()->getBlockdataAt($packet->x, $packet->y, $packet->z))
+									$player->asVector3(),
+									$clickPos,
+									$block->getRuntimeId()
 								);
+
 								$packets[] = $pk;
 
 								$pk = new PlayerActionPacket();
@@ -659,19 +681,18 @@ class Translator{
 							$pk->face = $packet->face;
 							$packets[] = $pk;
 
+							$clickPos = new Vector3($packet->x, $packet->y, $packet->z);
 							$pk = new InventoryTransactionPacket();
-							$pk->requestChangedSlots = [];
-							$pk->requestId = InventoryTransactionPacket::TYPE_USE_ITEM;
 							$pk->trData = UseItemTransactionData::new(
 								[],
 								UseItemTransactionData::ACTION_BREAK_BLOCK,
-								new Vector3($packet->x, $packet->y, $packet->z),
+								$clickPos,
 								$packet->face,
 								$player->getInventory()->getHeldItemIndex(),
 								ItemStackWrapper::legacy($player->getInventory()->getItemInHand()),
-								new Vector3($player->getX(), $player->getY(), $player->getZ()),
-								new Vector3($packet->x, $packet->y, $packet->z),
-								RuntimeBlockMapping::toStaticRuntimeId($player->getLevel()->getBlockIdAt($packet->x, $packet->y, $packet->z),$player->getLevel()->getBlockdataAt($packet->x, $packet->y, $packet->z))
+								$player->asVector3(),
+								$clickPos,
+								$player->getLevel()->getBlock($clickPos)->getRuntimeId()
 							);
 							$packets[] = $pk;
 
@@ -722,14 +743,13 @@ class Translator{
 							/** @var InventoryTransactionPacket[] $packets */
 							$packets = [];
 							$pk = new InventoryTransactionPacket();
-							$pk->requestChangedSlots = [];
-							$pk->requestId = InventoryTransactionPacket::TYPE_NORMAL;
-							$pk->trData = NormalTransactionData::new($actions);
+							$pk->trData = NormalTransactionData::new(
+								$actions
+							);
 							$packets[] = $pk;
 
 							$pk = new InventoryTransactionPacket();
-							$pk->requestChangedSlots = [];
-							$pk->requestId = InventoryTransactionPacket::TYPE_MISMATCH;//inventory refresh.
+
 							$pk->trData = MismatchTransactionData::new();
 							$packets[] = $pk;
 
@@ -738,9 +758,8 @@ class Translator{
 
 						return null;
 					case 5:
+						$headPos = new Vector3($packet->x, $packet->y, $packet->z);
 						$item = $player->getInventory()->getItemInHand();
-
-						$actionType = null;
 						if($item->getId() === Item::BOW){//Shoot Arrow
 							$actionType = ReleaseItemTransactionData::ACTION_RELEASE;
 						}else{//Eating
@@ -748,14 +767,12 @@ class Translator{
 						}
 
 						$pk = new InventoryTransactionPacket();
-						$pk->requestChangedSlots = [];
-						$pk->requestId = InventoryTransactionPacket::TYPE_RELEASE_ITEM;
 						$pk->trData = ReleaseItemTransactionData::new(
 							[],
 							$actionType,
 							$player->getInventory()->getHeldItemIndex(),
 							ItemStackWrapper::legacy($item),
-							new Vector3($packet->x, $packet->y, $packet->z)
+							$headPos
 						);
 
 						return $pk;
@@ -818,9 +835,9 @@ class Translator{
 				/** @var HeldItemChangePacket $packet */
 				$pk = new MobEquipmentPacket();
 				$pk->entityRuntimeId = $player->getId();
-				$pk->item = ItemStackWrapper::legacy($player->getInventory()->getHotbarSlotItem($packet->slot));
-				$pk->inventorySlot = $packet->slot;
-				$pk->hotbarSlot = $packet->slot;
+				$pk->item = ItemStackWrapper::legacy($player->getInventory()->getHotbarSlotItem($packet->selectedSlot));
+				$pk->inventorySlot = $packet->selectedSlot;
+				$pk->hotbarSlot = $packet->selectedSlot;
 
 				return $pk;
 
@@ -869,7 +886,7 @@ class Translator{
 
 					$pk = new PlayerActionPacket();
 					$pk->entityRuntimeId = $player->getId();
-					$pk->action = PlayerActionPacket::ACTION_CRACK_BREAK;
+					$pk->action = PlayerActionPacket::ACTION_CONTINUE_DESTROY_BLOCK;
 					$pk->x = $pos[0]->x;
 					$pk->y = $pos[0]->y;
 					$pk->z = $pos[0]->z;
@@ -894,26 +911,22 @@ class Translator{
 					$pk->blockId = Block::AIR;
 					$pk->blockMeta = 0;
 					$player->putRawPacket($pk);
-					//TODO: convert block State Id
-
 					return null;
 				}
 
+				$clickPos = new Vector3($packet->x, $packet->y, $packet->z);
+
 				$pk = new InventoryTransactionPacket();
-				$pk->requestChangedSlots = [];
-				$pk->requestId = InventoryTransactionPacket::TYPE_USE_ITEM;
 				$pk->trData = UseItemTransactionData::new(
 					[],
 					UseItemTransactionData::ACTION_CLICK_BLOCK,
-					new Vector3($packet->x, $packet->y, $packet->z),
-					$packet->face,
+					$clickPos,
+					$packet->direction,
 					$player->getInventory()->getHeldItemIndex(),
 					ItemStackWrapper::legacy($player->getInventory()->getItemInHand()),
-					new Vector3($player->getX(), $player->getY(), $player->getZ()),
-					new Vector3($packet->x, $packet->y, $packet->z),
-					RuntimeBlockMapping::toStaticRuntimeId($player->getLevel()->getBlockIdAt($packet->x, $packet->y, $packet->z),$player->getLevel()->getBlockdataAt($packet->x, $packet->y, $packet->z))
-				);
-
+					$player->asVector3(),
+					$clickPos,
+					$player->getLevel()->getBlock($clickPos)->getRuntimeId());
 				return $pk;
 
 			case InboundPacket::USE_ITEM_PACKET:
@@ -926,23 +939,21 @@ class Translator{
 					return null;
 				}
 
+				$clickPos = new Vector3(0, 0, 0);
+
 				$pk = new InventoryTransactionPacket();
-				$pk->requestChangedSlots = [];
-				$pk->requestId = InventoryTransactionPacket::TYPE_USE_ITEM;
 				$pk->trData = UseItemTransactionData::new(
 					[],
 					UseItemTransactionData::ACTION_CLICK_AIR,
-					new Vector3(0, 0, 0),
+					$clickPos,
 					-1,
 					$player->getInventory()->getHeldItemIndex(),
 					ItemStackWrapper::legacy($player->getInventory()->getItemInHand()),
-					new Vector3($player->getX(), $player->getY(), $player->getZ()),
-					new Vector3(0, 0, 0),
-					RuntimeBlockMapping::toStaticRuntimeId(0)//check this
+					$player->asVector3(),
+					$clickPos,
+					$player->getLevel()->getBlock($clickPos)->getRuntimeId()
 				);
-
 				return $pk;
-
 			default:
 				if(DEBUG > 4){
 					echo "[Receive][Translator] 0x".bin2hex(chr($packet->pid()))." Not implemented\n";
@@ -1790,6 +1801,8 @@ class Translator{
 				$id = 0;
 
 				switch($packet->evid){
+					case LevelEventPacket::EVENT_PARTICLE_DESTROY;
+						return null;
 					case LevelEventPacket::EVENT_SOUND_IGNITE:
 						$isSoundEffect = true;
 						$name = "entity.tnt.primed";
@@ -2409,39 +2422,9 @@ class Translator{
 
 			case Info::LEVEL_CHUNK_PACKET:
 				/** @var LevelChunkPacket $packet */
-				$blockEntities = [];
-				foreach($player->getLevel()->getChunkTiles($packet->getChunkX(), $packet->getChunkZ()) as $tile){
-					if($tile instanceof Spawnable){
-						$blockEntities[] = clone $tile->getSpawnCompound();
-					}
-				}
-
-				$chunk = new DesktopChunk($player, $packet->getChunkX(), $packet->getChunkZ());
-
-				$packets = [];
-				$pk = new UpdateLightPacket();
-				$pk->chunkX = $packet->getChunkX();
-				$pk->chunkZ = $packet->getChunkZ();
-				$pk->skyLightMask = $chunk->getSkyLightBitMask();
-				$pk->blockLightMask = $chunk->getBlockLightBitMask();
-				$pk->emptySkyLightMask = ~$chunk->getSkyLightBitMask();
-				$pk->emptyBlockLightMask = ~$chunk->getBlockLightBitMask();
-				$pk->skyLight = $chunk->getSkyLight();
-				$pk->blockLight = $chunk->getBlockLight();
-				$packets[] = $pk;
-
-				$pk = new ChunkDataPacket();
-				$pk->chunkX = $packet->getChunkX();
-				$pk->chunkZ = $packet->getChunkZ();
-				$pk->isFullChunk = $chunk->isFullChunk();
-				$pk->primaryBitMask = $chunk->getChunkBitMask();
-				$pk->heightMaps = $chunk->getHeightMaps();
-				$pk->biomes = $chunk->getBiomes();
-				$pk->data = $chunk->getChunkData();
-				$pk->blockEntities = $blockEntities;
-				$packets[] = $pk;
-
-				return $packets;
+				$task = new AsyncChunkConverter($player, $player->level->getChunk($packet->getChunkX(), $packet->getChunkZ()));
+				$player->getServer()->getAsyncPool()->submitTask($task);
+				return null;
 
 			case Info::PLAYER_LIST_PACKET:
 				/** @var PlayerListPacket $packet */
@@ -2613,7 +2596,63 @@ class Translator{
 					break;
 				}
 				return null;
+			case Info::SET_DISPLAY_OBJECTIVE_PACKET:
+				/** @var SetDisplayObjectivePacket $packet */
 
+				$packets = [];
+
+				$pk = new ScoreboardObjectivePacket();
+				$pk->action = ScoreboardObjectivePacket::ACTION_ADD;
+				$pk->displayName = $packet->displayName;
+				$pk->type = ScoreboardObjectivePacket::TYPE_INTEGER;
+				$pk->name = $packet->objectiveName;
+				$packets[] = $pk;
+
+				$pk = new DisplayScoreboardPacket();
+				$pk->position = DisplayScoreboardPacket::POSITION_SIDEBAR;
+				$pk->name = $packet->objectiveName;
+				$packets[] = $pk;
+
+				return $packets;
+			case Info::SET_SCORE_PACKET:
+				/** @var SetScorePacket $packet */
+				$packets = [];
+				$i = 16;
+				foreach($packet->entries as $entry) {
+					$i--;
+					$pk = new UpdateScorePacket();
+					$pk->action = UpdateScorePacket::ACTION_ADD_OR_UPDATE;
+					$pk->value = $i;
+					$pk->objective = $entry->objectiveName;
+					$pk->entry = $entry->customName;
+					$packets[] = $pk;
+				}
+				return $packets;
+			case Info::REMOVE_OBJECTIVE_PACKET:
+				/** @var RemoveObjectivePacket $packet */
+				$pk = new ScoreboardObjectivePacket();
+				$pk->action = ScoreboardObjectivePacket::ACTION_REMOVE;
+				$pk->name = $packet->objectiveName;
+				return $pk;
+			case Info::MODAL_FORM_REQUEST_PACKET:
+				/** @var ModalFormRequestPacket $packet */
+				$formData = json_decode($packet->formData, true);
+				$packets = [];
+				if($formData["type"] === "form"){
+					$pk = new ChatPacket();
+					$pk->message = json_encode(["text" => TextFormat::BOLD.TextFormat::GRAY."============ [> " . TextFormat::RESET . $formData["title"] . TextFormat::RESET . " <] ============\n".TextFormat::RESET.$formData["content"].TextFormat::RESET."\n\n"]);
+					$packets[] = $pk;
+					foreach($formData["buttons"] as $i => $a){
+						$pk = new ChatPacket();
+						$pk->message = json_encode(["text" => TextFormat::BOLD.TextFormat::GOLD."[CLICK #" . $i . "] " . TextFormat::RESET . $a["text"], "clickEvent" => ["action" => "run_command", "value" => ")respondform " . $i]]);
+						$packets[] = $pk;
+					}
+					$pk = new ChatPacket();
+					$pk->message = json_encode(["text" => TextFormat::BOLD.TextFormat::GOLD."[CLOSE] ", "clickEvent" => ["action" => "run_command", "value" => ")respondform ESC"]]);
+					$packets[] = $pk;
+				}
+				$player->bigBrother_formId = $packet->formId;
+				return $packets;
 			case BatchPacket::NETWORK_ID:
 				$packets = [];
 

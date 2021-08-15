@@ -77,15 +77,20 @@ class DesktopChunk{
 		$this->level = $player->getLevel();
 		$this->chunkBitmask = 0;
 
+		$start = microtime(true);
 		$this->generateChunk();
 		$this->generateHeightMaps();
+		echo "Chunk generate takes " . (microtime(true) - $start)."\n";
 	}
 
 	public function generateChunk() : void{
 		$chunk = $this->level->getChunk($this->chunkX, $this->chunkZ, false);
 		$this->isFullChunk = count($chunk->getSubChunks()) === 16;
+		$chunk->fastSerialize();
+		$this->biomes = $chunk->getBiomeIdArray();
 
 		$payload = "";
+
 		foreach($chunk->getSubChunks() as $num => $subChunk){
 			if($subChunk->isEmpty()){
 				continue;

@@ -32,6 +32,7 @@ namespace shoghicp\BigBrother\network;
 use Exception;
 use ReflectionClass;
 use ReflectionException;
+use pocketmine\event\player\PlayerCreationEvent;
 use SplObjectStorage;
 use const pocketmine\DEBUG;
 use pocketmine\network\mcpe\protocol\DataPacket;
@@ -186,7 +187,11 @@ class ProtocolInterface implements SourceInterface{
 			}
 		}
 
-		$data = chr(ServerManager::PACKET_SEND_PACKET) . Binary::writeInt($target) . $packet->write();
+		try{
+			$data = chr(ServerManager::PACKET_SEND_PACKET) . Binary::writeInt($target) . $packet->write();
+		} catch(\Throwable $t) {
+
+		}
 		$this->thread->pushMainToThreadPacket($data);
 	}
 

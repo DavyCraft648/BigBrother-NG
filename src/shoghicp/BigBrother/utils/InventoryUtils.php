@@ -845,6 +845,7 @@ class InventoryUtils{
 		$pk = null;
 		if($accepted){
 			/** @var NetworkInventoryAction[] $actions */
+			$pk = new InventoryTransactionPacket();
 			$actions = [];
 
 			if($isContainer){
@@ -867,10 +868,13 @@ class InventoryUtils{
 				$action = $this->addNetworkInventoryAction(NetworkInventoryAction::SOURCE_CONTAINER, ContainerIds::UI, 0, $heldItem, $this->playerHeldItem);
 				$actions[] = $action;
 			}
+
 			$pk = new InventoryTransactionPacket();
 			$pk->requestChangedSlots = [];
 			$pk->requestId = InventoryTransactionPacket::TYPE_NORMAL;
-			$pk->trData = NormalTransactionData::new($actions);
+			$pk->trData = NormalTransactionData::new(
+				$actions
+			);
 		}
 
 		$accepted_pk = new WindowConfirmationPacket();
@@ -961,11 +965,14 @@ class InventoryUtils{
 					$this->playerInventorySlot[$inventorySlot] = $newItem;
 				}
 
+				$this->player->getInventory()->setItem($inventorySlot, $newItem);
+
 				$action = $this->addNetworkInventoryAction(NetworkInventoryAction::SOURCE_CONTAINER, ContainerIds::INVENTORY, $saveInventorySlot, $oldItem, $newItem);
 			}
 
 			/** @var NetworkInventoryAction[] $actions */
-			$actions = [$action];
+			$pk = new InventoryTransactionPacket();
+			$actions = [];
 
 			if(!$oldItem->isNull() and !$oldItem->equalsExact($newItem)){
 				$action = $this->addNetworkInventoryAction(NetworkInventoryAction::SOURCE_CREATIVE, -1, NetworkInventoryAction::ACTION_MAGIC_SLOT_CREATIVE_DELETE_ITEM, Item::get(Item::AIR, 0, 0), $oldItem);
@@ -978,6 +985,7 @@ class InventoryUtils{
 
 				$actions[] = $action;
 			}
+			$pk->trData = NormalTransactionData::new($actions);
 
 			$pk = new InventoryTransactionPacket();
 			$pk->requestChangedSlots = [];

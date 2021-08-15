@@ -201,10 +201,10 @@ class ConvertUtils{
 	];
 
 	/** @var array */
-	private static $idListIndex = [
-		[/* Index for PE => PC */],
-		[/* Index for PC => PE */],
-	];
+	private static $idListIndex; /*=[
+		[ Index for PE => PC],
+		[ Index for PC => PE],
+	];*/
 
 	/** @var array */
 	private static $spawnEggList = [
@@ -290,6 +290,31 @@ class ConvertUtils{
 			return 0;
 		}
 		return self::$newBlockStateId[$blockId][0];//TODO: blockDamage
+
+	public static function lazyLoad() {
+		if(isset(self::$idListIndex)) {
+			return;
+		}
+		self::$idListIndex = [
+			[/* PE => PC */],
+			[/* PC => PE */]
+		];
+		foreach(self::$idList as $entry){
+			//append index (PE => PC)
+			if(isset(self::$idListIndex[0][$entry[0][0]])){
+				self::$idListIndex[0][$entry[0][0]][] = $entry;
+			}else{
+				self::$idListIndex[0][$entry[0][0]] = [$entry];
+			}
+
+			//append index (PC => PE)
+			if(isset(self::$idListIndex[1][$entry[1][0]])){
+				self::$idListIndex[1][$entry[1][0]][] = $entry;
+			}else{
+				self::$idListIndex[1][$entry[1][0]] = [$entry];
+			}
+		}
+
 	}
 
 	/**
@@ -614,7 +639,7 @@ class ConvertUtils{
 	 * @phpstan-param int $blockData
 	 */
 	public static function convertBlockData(bool $isComputer, int &$blockId, int &$blockData) : void{
-		self::$timingConvertBlock->startTiming();
+		//self::$timingConvertBlock->startTiming();
 
 		switch($blockId){
 			case Block::WOODEN_TRAPDOOR:
@@ -648,7 +673,7 @@ class ConvertUtils{
 			break;
 		}
 
-		self::$timingConvertBlock->stopTiming();
+		//self::$timingConvertBlock->stopTiming();
 	}
 
 	/**

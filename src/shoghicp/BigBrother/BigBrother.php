@@ -74,6 +74,9 @@ class BigBrother extends PluginBase implements Listener{
 	/** @var Translator */
 	protected $translator;
 
+	/** @var string */
+	protected $desktopPrefix;
+
 	/** @var array */
 	protected $profileCache = [];
 
@@ -191,6 +194,8 @@ class BigBrother extends PluginBase implements Listener{
 					$this->rsa->loadKey($this->privateKey);
 				}
 
+				$this->desktopPrefix = $this->getConfig()->get("desktop-prefix", "PC_");
+
 				$this->getLogger()->info("Starting Minecraft: PC server on ".($this->getIp() === "0.0.0.0" ? "*" : $this->getIp()).":".$this->getPort()." version ".ServerManager::VERSION);
 
 				$this->getServer()->getPluginManager()->registerEvents($this, $this);
@@ -231,6 +236,13 @@ class BigBrother extends PluginBase implements Listener{
 	 */
 	public function isOnlineMode(): bool{
 		return $this->onlineMode;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getDesktopPrefix() {
+		return $this->desktopPrefix;
 	}
 
 	/**
@@ -369,7 +381,17 @@ class BigBrother extends PluginBase implements Listener{
 
 		if(!$this->isPhar() and !is_file($autoload)){
 			$this->getLogger()->info("Trying to setup composer...");
-			copy('https://getcomposer.org/installer', $setup);
+
+			//Fix ssl operation failed
+			//https://stackoverflow.com/questions/26148701/file-get-contents-ssl-operation-failed-with-code-1-failed-to-enable-crypto
+
+			$arrContextOptions=array(
+				"ssl"=>array(
+					"verify_peer"=>false,
+					"verify_peer_name"=>false,
+				),
+			);
+			copy('https://getcomposer.org/installer', $setup, stream_context_create($arrContextOptions));
 			exec(join(' ', [PHP_BINARY, $setup, '--install-dir', $data]));
 
 			$this->getLogger()->info("Trying to install composer dependencies...");
