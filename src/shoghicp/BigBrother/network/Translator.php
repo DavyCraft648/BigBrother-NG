@@ -383,10 +383,6 @@ class Translator{
 				$frame = ItemFrameBlockEntity::getItemFrameById($player->getLevel(), $packet->target);
 				if($frame !== null){
 					switch($packet->type){
-							$pk->trData = UseItemTransactionData::new(
-								[],
-								UseItemTransactionData::ACTION_CLICK_BLOCK,
-								new Vector3($frame->x, $frame->y, $frame->z),
 						case UseEntityPacket::INTERACT:
 							$clickPos = new Vector3($frame->x, $frame->y, $frame->z);
 							$pk = new InventoryTransactionPacket();
