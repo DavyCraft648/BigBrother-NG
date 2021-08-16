@@ -2418,9 +2418,39 @@ class Translator{
 
 			case Info::LEVEL_CHUNK_PACKET:
 				/** @var LevelChunkPacket $packet */
-				$task = new AsyncChunkConverter($player, $player->level->getChunk($packet->getChunkX(), $packet->getChunkZ()));
-				$player->getServer()->getAsyncPool()->submitTask($task);
-				return null;
+				$blockEntities = [];
+ 				foreach($player->getLevel()->getChunkTiles($packet->getChunkX(), $packet->getChunkZ()) as $tile){
+ 					if($tile instanceof Spawnable){
+ 						$blockEntities[] = clone $tile->getSpawnCompound();
+ 					}
+ 				}
+
+ 				$chunk = new DesktopChunk($player, $packet->getChunkX(), $packet->getChunkZ());
+
+ 				$packets = [];
+ 				$pk = new UpdateLightPacket();
+ 				$pk->chunkX = $packet->getChunkX();
+ 				$pk->chunkZ = $packet->getChunkZ();
+ 				$pk->skyLightMask = $chunk->getSkyLightBitMask();
+ 				$pk->blockLightMask = $chunk->getBlockLightBitMask();
+ 				$pk->emptySkyLightMask = ~$chunk->getSkyLightBitMask();
+ 				$pk->emptyBlockLightMask = ~$chunk->getBlockLightBitMask();
+ 				$pk->skyLight = $chunk->getSkyLight();
+ 				$pk->blockLight = $chunk->getBlockLight();
+ 				$packets[] = $pk;
+
+ 				$pk = new ChunkDataPacket();
+ 				$pk->chunkX = $packet->getChunkX();
+ 				$pk->chunkZ = $packet->getChunkZ();
+ 				$pk->isFullChunk = $chunk->isFullChunk();
+ 				$pk->primaryBitMask = $chunk->getChunkBitMask();
+ 				$pk->heightMaps = $chunk->getHeightMaps();
+ 				$pk->biomes = $chunk->getBiomes();
+ 				$pk->data = $chunk->getChunkData();
+ 				$pk->blockEntities = $blockEntities;
+ 				$packets[] = $pk;
+
+ 				return $packets;
 
 			case Info::PLAYER_LIST_PACKET:
 				/** @var PlayerListPacket $packet */
