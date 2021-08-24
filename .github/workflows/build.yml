@@ -4,7 +4,7 @@ jobs:
   docker:
     name: build docker image
     runs-on: ubuntu-latest
-    if: ${{ github.repository_owner == 'BigBrotherTeam' && github.ref == 'refs/head/base' }}
+    if: ${{ github.repository_owner == 'lovetwice1012' && github.ref == 'refs/head/base' }}
     strategy:
       matrix:
         php:
