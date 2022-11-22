@@ -32,12 +32,15 @@ namespace shoghicp\BigBrother;
 use pocketmine\block\Block;
 use pocketmine\block\BlockTypeIds;
 use pocketmine\nbt\tag\CompoundTag;
+use pocketmine\network\mcpe\convert\RuntimeBlockMapping;
+use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\world\format\Chunk;
 use pocketmine\world\World;
 use shoghicp\BigBrother\entity\ItemFrameBlockEntity;
 use shoghicp\BigBrother\nbt\tag\LongArrayTag;
 use shoghicp\BigBrother\network\DesktopNetworkSession;
 use shoghicp\BigBrother\utils\Binary;
+use shoghicp\BigBrother\utils\ConvertUtils;
 use function array_search;
 use function chr;
 use function count;
@@ -101,8 +104,6 @@ class DesktopChunk{
 						$stateId = $subChunk->getFullBlock($x, $y, $z);
 						$typeId = $stateId >> Block::INTERNAL_STATE_DATA_BITS;
 						$stateData = $stateId & Block::INTERNAL_STATE_DATA_MASK;
-						$typeId = $typeId == BlockTypeIds::AIR ? $typeId : 1;
-						$stateData = 0;
 
 						if($typeId === BlockTypeIds::ITEM_FRAME){
 							ItemFrameBlockEntity::getItemFrame($this->session->getPlayer()->getWorld(), $x + ($this->chunkX << 4), $y + ($num << 4), $z + ($this->chunkZ << 4), $stateData, true);
@@ -112,9 +113,7 @@ class DesktopChunk{
 								$blockCount++;
 							}
 
-							//ConvertUtils::convertBlockData(true, $typeId, $stateData);
-							$stateId = /*ConvertUtils::getBlockStateIndex($typeId, $stateData)*/
-								$typeId == BlockTypeIds::AIR ? 0 : 1;
+							$stateId = ConvertUtils::getBlockStateIndex(RuntimeBlockMapping::getInstance()->toRuntimeId($stateId, RuntimeBlockMapping::getMappingProtocol(ProtocolInfo::CURRENT_PROTOCOL)));
 							$block = $stateId;
 						}
 

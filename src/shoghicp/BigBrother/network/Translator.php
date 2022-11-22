@@ -88,6 +88,7 @@ use pocketmine\network\mcpe\protocol\types\LevelSoundEvent;
 use pocketmine\network\mcpe\protocol\types\ParticleIds;
 use pocketmine\network\mcpe\protocol\types\PlayerListAdditionEntries;
 use pocketmine\network\mcpe\protocol\UpdateAttributesPacket;
+use pocketmine\network\mcpe\protocol\UpdateBlockPacket;
 use pocketmine\player\GameMode;
 use pocketmine\Server;
 use pocketmine\utils\TextFormat;
@@ -107,6 +108,7 @@ use shoghicp\BigBrother\network\protocol\Play\Client\PlayerPositionPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\PlayerRotationPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\UpdateSignPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\BlockActionPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\BlockChangePacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\BossBarPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\ChatMessagePacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\DestroyEntitiesPacket;
@@ -869,10 +871,20 @@ class Translator{
 					$pk->entityId = $packet->actorRuntimeId;
 					$pk->yaw = $packet->headYaw;
 					$packets[] = $pk;
-
 					return $packets;
 				}
+				return null;
 
+			case Info::UPDATE_BLOCK_PACKET:
+				/** @var UpdateBlockPacket $packet */
+				if($packet->dataLayerId === UpdateBlockPacket::DATA_LAYER_NORMAL){
+					$pk = new BlockChangePacket();
+					$pk->x = $packet->blockPosition->getX();
+					$pk->y = $packet->blockPosition->getY();
+					$pk->z = $packet->blockPosition->getZ();
+					$pk->blockId = ConvertUtils::getBlockStateIndex($packet->blockRuntimeId);
+					return $pk;
+				}
 				return null;
 
 			case Info::ADD_PAINTING_PACKET:

@@ -284,15 +284,16 @@ class ConvertUtils{
 		self::$reverseSpawnEggList = array_flip(self::$spawnEggList);
 	}
 
-	public static function loadBlockStateIndex(string $path){
-		self::$newBlockStateId = json_decode(file_get_contents($path), true);
+	public static function loadBlockStateIndex(array $mappings){
+		self::$newBlockStateId = $mappings;
 	}
 
-	public static function getBlockStateIndex(int $blockId, int $blockDamage) : int{
-		if(!isset(self::$newBlockStateId[$blockId])){
+	public static function getBlockStateIndex(int $stateId) : int{
+		if(!isset(self::$newBlockStateId["simple"][$stateId])){
+			//TODO: Complex mappings
 			return 1;
 		}
-		return self::$newBlockStateId[$blockId][0];//TODO: blockDamage
+		return self::$newBlockStateId["simple"][$stateId];
 	}
 
 	public static function lazyLoad() : void{

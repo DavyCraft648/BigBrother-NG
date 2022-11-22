@@ -123,13 +123,12 @@ class BigBrother extends PluginBase implements Listener{
 		if($this->getConfig()->hasChanged()){
 			$this->saveConfig();
 		}
-		$this->saveResource("blockStateMapping.json", true);
 		$this->saveResource("color_index.dat", true);
 		$this->saveResource("openssl.cnf", false);
 		$this->saveResource("server-icon.png", false);
 
 		ColorUtils::loadColorIndex($this->getDataFolder() . "color_index.dat");
-		ConvertUtils::loadBlockStateIndex($this->getDataFolder() . "blockStateMapping.json");
+		ConvertUtils::loadBlockStateIndex(json_decode(stream_get_contents($this->getResource("blockStateMapping.json")), true));
 
 		$this->dimensionCodec = stream_get_contents($this->getResource("dimensionCodec.dat"));
 		$this->dimension = stream_get_contents($this->getResource("dimension.dat"));
