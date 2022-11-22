@@ -29,141 +29,99 @@ declare(strict_types=1);
 
 namespace shoghicp\BigBrother\network;
 
-use pocketmine\network\mcpe\protocol\ActorEventPacket;
-use pocketmine\network\mcpe\protocol\AddActorPacket;
-use pocketmine\network\mcpe\protocol\AddItemActorPacket;
-use pocketmine\network\mcpe\protocol\BlockActorDataPacket;
-use pocketmine\network\mcpe\protocol\ChunkRadiusUpdatedPacket;
-use pocketmine\network\mcpe\protocol\LevelChunkPacket;
-use pocketmine\network\mcpe\protocol\ModalFormRequestPacket;
-use pocketmine\network\mcpe\protocol\ModalFormResponsePacket;
-use pocketmine\network\mcpe\protocol\MoveActorAbsolutePacket;
-use pocketmine\network\mcpe\protocol\PlayerListPacket;
-use pocketmine\network\mcpe\protocol\RemoveActorPacket;
-use pocketmine\network\mcpe\protocol\RemoveObjectivePacket;
-use pocketmine\network\mcpe\protocol\SetActorDataPacket;
-use pocketmine\network\mcpe\protocol\SetActorMotionPacket;
-use pocketmine\network\mcpe\protocol\SetDisplayObjectivePacket;
-use pocketmine\network\mcpe\protocol\SetScorePacket;
-use pocketmine\network\mcpe\protocol\TakeItemActorPacket;
-use pocketmine\network\mcpe\protocol\types\ContainerIds;
-use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
-use pocketmine\network\mcpe\protocol\types\inventory\MismatchTransactionData;
-use pocketmine\network\mcpe\protocol\types\inventory\NormalTransactionData;
-use pocketmine\network\mcpe\protocol\types\inventory\ReleaseItemTransactionData;
-use pocketmine\network\mcpe\protocol\types\inventory\UseItemOnEntityTransactionData;
-use pocketmine\network\mcpe\protocol\types\inventory\UseItemTransactionData;
-use pocketmine\network\mcpe\protocol\types\NetworkInventoryAction;
-use pocketmine\utils\BinaryStream;
-use shoghicp\BigBrother\network\protocol\Play\Client\AdvancementTabPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\ClientSettingsPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\ClientStatusPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\EntityActionPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\PlayerBlockPlacementPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\PlayerDiggingPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\PlayerRotationPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\PlayerMovementPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\PlayerPositionPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\UpdateSignPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\UpdateLightPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\UpdateViewDistancePacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\UpdateViewPositionPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\DisplayScoreboardPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\ScoreboardObjectivePacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\UpdateScorePacket;
-use shoghicp\BigBrother\utils\AsyncChunkConverter;
-use UnexpectedValueException;
-use const pocketmine\DEBUG;
+use pocketmine\block\BaseSign;
 use pocketmine\block\Block;
+use pocketmine\block\BlockTypeIds;
+use pocketmine\block\Door;
+use pocketmine\block\FenceGate;
+use pocketmine\block\Trapdoor;
+use pocketmine\block\utils\SignText;
+use pocketmine\entity\Attribute;
 use pocketmine\entity\Entity;
-use pocketmine\item\Item;
-use pocketmine\level\particle\Particle;
+use pocketmine\item\ItemTypeIds;
 use pocketmine\math\Vector3;
-use pocketmine\nbt\NetworkLittleEndianNBTStream;
-use pocketmine\nbt\tag\CompoundTag;
-use pocketmine\nbt\tag\IntTag;
-use pocketmine\nbt\tag\StringTag;
+use pocketmine\network\mcpe\convert\RuntimeBlockMapping;
+use pocketmine\network\mcpe\handler\DeathPacketHandler;
+use pocketmine\network\mcpe\handler\InGamePacketHandler;
+use pocketmine\network\mcpe\protocol\ActorEventPacket;
 use pocketmine\network\mcpe\protocol\AddPaintingPacket;
 use pocketmine\network\mcpe\protocol\AddPlayerPacket;
-use pocketmine\network\mcpe\protocol\AdventureSettingsPacket;
 use pocketmine\network\mcpe\protocol\AnimatePacket;
-use pocketmine\network\mcpe\protocol\BatchPacket;
 use pocketmine\network\mcpe\protocol\BlockEventPacket;
-use pocketmine\network\mcpe\protocol\BookEditPacket;
 use pocketmine\network\mcpe\protocol\BossEventPacket;
 use pocketmine\network\mcpe\protocol\ChangeDimensionPacket;
-use pocketmine\network\mcpe\protocol\ClientboundMapItemDataPacket;
-use pocketmine\network\mcpe\protocol\ContainerClosePacket;
-use pocketmine\network\mcpe\protocol\ContainerOpenPacket;
-use pocketmine\network\mcpe\protocol\ContainerSetDataPacket;
-use pocketmine\network\mcpe\protocol\CraftingDataPacket;
-use pocketmine\network\mcpe\protocol\DataPacket;
+use pocketmine\network\mcpe\protocol\ChunkRadiusUpdatedPacket;
+use pocketmine\network\mcpe\protocol\ClientboundPacket;
 use pocketmine\network\mcpe\protocol\DisconnectPacket;
-use pocketmine\network\mcpe\protocol\InteractPacket;
-use pocketmine\network\mcpe\protocol\InventoryContentPacket;
-use pocketmine\network\mcpe\protocol\InventorySlotPacket;
-use pocketmine\network\mcpe\protocol\InventoryTransactionPacket;
-use pocketmine\network\mcpe\protocol\ItemFrameDropItemPacket;
 use pocketmine\network\mcpe\protocol\LevelEventPacket;
 use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
-use pocketmine\network\mcpe\protocol\MobArmorEquipmentPacket;
 use pocketmine\network\mcpe\protocol\MobEffectPacket;
-use pocketmine\network\mcpe\protocol\MobEquipmentPacket;
+use pocketmine\network\mcpe\protocol\ModalFormRequestPacket;
+use pocketmine\network\mcpe\protocol\MoveActorAbsolutePacket;
 use pocketmine\network\mcpe\protocol\MovePlayerPacket;
-use pocketmine\network\mcpe\protocol\PacketPool;
-use pocketmine\network\mcpe\protocol\PlayerActionPacket;
+use pocketmine\network\mcpe\protocol\PlayerListPacket;
 use pocketmine\network\mcpe\protocol\PlaySoundPacket;
 use pocketmine\network\mcpe\protocol\PlayStatusPacket;
+use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\ProtocolInfo as Info;
-use pocketmine\network\mcpe\protocol\RequestChunkRadiusPacket;
+use pocketmine\network\mcpe\protocol\RemoveActorPacket;
+use pocketmine\network\mcpe\protocol\RemoveObjectivePacket;
+use pocketmine\network\mcpe\protocol\ServerboundPacket;
+use pocketmine\network\mcpe\protocol\SetActorMotionPacket;
 use pocketmine\network\mcpe\protocol\SetDifficultyPacket;
+use pocketmine\network\mcpe\protocol\SetDisplayObjectivePacket;
 use pocketmine\network\mcpe\protocol\SetHealthPacket;
 use pocketmine\network\mcpe\protocol\SetPlayerGameTypePacket;
+use pocketmine\network\mcpe\protocol\SetScorePacket;
 use pocketmine\network\mcpe\protocol\SetSpawnPositionPacket;
 use pocketmine\network\mcpe\protocol\SetTimePacket;
 use pocketmine\network\mcpe\protocol\SetTitlePacket;
 use pocketmine\network\mcpe\protocol\StartGamePacket;
+use pocketmine\network\mcpe\protocol\TakeItemActorPacket;
 use pocketmine\network\mcpe\protocol\TextPacket;
-use /** @noinspection PhpInternalEntityUsedInspection */
-	pocketmine\network\mcpe\convert\RuntimeBlockMapping;
+use pocketmine\network\mcpe\protocol\types\ActorEvent;
+use pocketmine\network\mcpe\protocol\types\entity\EntityIds;
+use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataProperties;
+use pocketmine\network\mcpe\protocol\types\GameMode as ProtocolGameMode;
+use pocketmine\network\mcpe\protocol\types\LevelEvent;
+use pocketmine\network\mcpe\protocol\types\LevelSoundEvent;
+use pocketmine\network\mcpe\protocol\types\ParticleIds;
+use pocketmine\network\mcpe\protocol\types\PlayerListAdditionEntries;
 use pocketmine\network\mcpe\protocol\UpdateAttributesPacket;
-use pocketmine\network\mcpe\protocol\UpdateBlockPacket;
-use pocketmine\network\mcpe\NetworkBinaryStream;
-use pocketmine\Player;
-use pocketmine\tile\Spawnable;
-use pocketmine\tile\Tile;
+use pocketmine\player\GameMode;
+use pocketmine\Server;
 use pocketmine\utils\TextFormat;
-use pocketmine\utils\UUID;
-
+use pocketmine\world\format\io\GlobalBlockStateHandlers;
+use pocketmine\world\Position;
+use Ramsey\Uuid\Uuid;
 use shoghicp\BigBrother\BigBrother;
-use shoghicp\BigBrother\DesktopChunk;
-use shoghicp\BigBrother\DesktopPlayer;
-use shoghicp\BigBrother\entity\ItemFrameBlockEntity;
 use shoghicp\BigBrother\network\protocol\Login\LoginDisconnectPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\AdvancementTabPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\ClickWindowPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\ClientSettingsPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\ClientStatusPacket;
 use shoghicp\BigBrother\network\protocol\Play\Client\CloseWindowPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\CreativeInventoryActionPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\InteractEntityPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\EntityAnimationPacket as STCAnimatePacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\EntityActionPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\PlayerDiggingPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\PlayerPositionPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\PlayerRotationPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\UpdateSignPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\BlockActionPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\BlockChangePacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\BossBarPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\ChangeGameStatePacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\ChatMessagePacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\ChunkDataPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\DestroyEntitiesPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\DisplayScoreboardPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\EffectPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\EntityAnimationPacket as STCAnimatePacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\EntityEffectPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\EntityEquipmentPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\EntityHeadLookPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\EntityRotationPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\EntityMetadataPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\EntityPropertiesPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\EntityRotationPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\EntityStatusPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\EntityTeleportPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\EntityVelocityPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\HeldItemChangePacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\MapPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\JoinGamePacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\KeepAlivePacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\NamedSoundEffectPacket;
@@ -175,78 +133,68 @@ use shoghicp\BigBrother\network\protocol\Play\Server\PlayerPositionAndLookPacket
 use shoghicp\BigBrother\network\protocol\Play\Server\PluginMessagePacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\RemoveEntityEffectPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\RespawnPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ScoreboardObjectivePacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\SelectAdvancementTabPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\ServerDifficultyPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\SetExperiencePacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\SpawnExperienceOrbPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\SpawnLivingEntityPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\SpawnEntityPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\SpawnPaintingPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\SpawnPlayerPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\SpawnPositionPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\StatisticsPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\TimeUpdatePacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\TitlePacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\BlockEntityDataPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\UpdateHealthPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\UpdateScorePacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\UpdateViewPositionPacket;
 use shoghicp\BigBrother\utils\ConvertUtils;
-use shoghicp\BigBrother\utils\ColorUtils;
-use stdClass;
+use function base64_decode;
+use function base64_encode;
+use function bin2hex;
+use function chr;
+use function count;
+use function explode;
+use function intval;
+use function json_decode;
+use function json_encode;
+use function mt_rand;
+use function str_replace;
+use function substr;
 
 class Translator{
 
 	/**
-	 * @param DesktopPlayer $player
-	 * @param Packet        $packet
-	 * @return DataPacket|array<DataPacket>|null
+	 * @return ServerboundPacket|ServerboundPacket[]|null
 	 */
-	public function interfaceToServer(DesktopPlayer $player, Packet $packet){
+	public function interfaceToServer(DesktopNetworkSession $session, Packet $packet) : ServerboundPacket|array|null{
 		switch($packet->pid()){
-			case InboundPacket::TELEPORT_CONFIRM_PACKET://Teleport Confirm
+			case InboundPacket::TELEPORT_CONFIRM_PACKET:
 			case InboundPacket::WINDOW_CONFIRMATION_PACKET://Transaction Confirm
 			case InboundPacket::TAB_COMPLETE_PACKET:
 				return null;
 
 			case InboundPacket::CHAT_MESSAGE_PACKET:
-				/** @var protocol\Play\Client\ChatMessagePacket $packet */
-				$pk = new TextPacket();
-				$pk->type = 1;//Chat Type
-				$pk->sourceName = "";
-				$pk->message = $packet->message;
-				if(substr($pk->message, 0, 12) === ")respondform") {
-					if(!isset($player->bigBrother_formId)) {
-						$player->sendMessage(TextFormat::RED."Form already closed.");
+				if($session->getHandler() instanceof InGamePacketHandler){
+					/** @var protocol\Play\Client\ChatMessagePacket $packet */
+					if(substr($packet->message, 0, 12) === ")respondform"){
+						if(!isset($session->bigBrother_formId)){
+							$session->getPlayer()->sendMessage(TextFormat::RED . "Form already closed.");
+							return null;
+						}
+						$value = explode(" ", $packet->message)[1];
+						$session->getPlayer()->onFormSubmit($session->bigBrother_formId, $value === "ESC" ? null : intval($value));
+						unset($session->bigBrother_formId);
 						return null;
 					}
-					$value = explode(" ", $pk->message)[1];
-
-					$response = new ModalFormResponsePacket();
-					$response->formId = $player->bigBrother_formId;
-					if($value === "ESC") {
-						$value = null;
-					} else {
-						$value = intval($value);
-					}
-					$response->formData = json_encode($value);
-
-					unset($player->bigBrother_formId);
-					return $response;
+					$session->getPlayer()->chat($packet->message);
 				}
-				return $pk;
+				return null;
 
 			case InboundPacket::CLIENT_STATUS_PACKET:
 				/** @var ClientStatusPacket $packet */
 				switch($packet->actionId){
 					case 0:
-						$pk = new PlayerActionPacket();
-						$pk->entityRuntimeId = $player->getId();
-						$pk->action = PlayerActionPacket::ACTION_RESPAWN;
-						$pk->x = 0;
-						$pk->y = 0;
-						$pk->z = 0;
-						$pk->face = 0;
-
-						return $pk;
+						if($session->getHandler() instanceof DeathPacketHandler){
+							$session->getPlayer()->respawn();
+						}
+						return null;
 					case 1:
 						//TODO: stat https://gist.github.com/Alvin-LB/8d0d13db00b3c00fd0e822a562025eff
 						$statistic = [];
@@ -254,64 +202,54 @@ class Translator{
 						$pk = new StatisticsPacket();
 						$pk->count = count($statistic);
 						$pk->statistic = $statistic;
-						$player->putRawPacket($pk);
-					break;
+						$session->putRawPacket($pk);
+						break;
 					default:
-						echo "ClientStatusPacket: ".$packet->actionId."\n";
-					break;
+						echo "ClientStatusPacket: " . $packet->actionId . "\n";
+						break;
 				}
 				return null;
 
 			case InboundPacket::CLIENT_SETTINGS_PACKET:
 				/** @var ClientSettingsPacket $packet */
-				$player->bigBrother_setClientSetting([
+				$session->setClientSettings([
 					"ChatMode" => $packet->chatMode,
 					"ChatColor" => $packet->chatColors,
 					"SkinSettings" => $packet->displayedSkinParts,
 				]);
 
-				$locale = $packet->lang[0].$packet->lang[1];
-				if(isset($packet->lang[2])){
-					$locale .= $packet->lang[2].strtoupper($packet->lang[3].$packet->lang[4]);
-				}
-				$player->setLocale($locale);
-
 				$pk = new EntityMetadataPacket();
-				$pk->entityId = $player->getId();
+				$pk->entityId = $session->getPlayer()->getId();
 				$pk->metadata = [//Enable Display Skin Parts
 					16 => [0, $packet->displayedSkinParts],
 					"convert" => true,
 				];
-				$loggedInPlayers = $player->getServer()->getLoggedInPlayers();
+				$loggedInPlayers = Server::getInstance()->getOnlinePlayers();
+				$plugin = $session->getPlugin();
 				foreach($loggedInPlayers as $playerData){
-					if($playerData instanceof DesktopPlayer){
-						$playerData->putRawPacket($pk);
+					if($plugin->isJavaPlayer($playerData)){
+						/** @noinspection PhpPossiblePolymorphicInvocationInspection */
+						$playerData->getNetworkSession()->putRawPacket($pk);
 					}
 				}
 
-				$pk = new RequestChunkRadiusPacket();
-				$pk->radius = $packet->viewDistance;
-
-				return $pk;
+				$session->getPlayer()->setViewDistance($packet->viewDistance);
+				return null;
 
 			case InboundPacket::CLICK_WINDOW_PACKET:
 				/** @var ClickWindowPacket $packet */
-				$pk = $player->getInventoryUtils()->onWindowClick($packet);
-
-				return $pk;
+				return $session->getInventoryUtils()->onWindowClick($packet);
 
 			case InboundPacket::CLOSE_WINDOW_PACKET:
 				/** @var CloseWindowPacket $packet */
-				$pk = $player->getInventoryUtils()->onWindowCloseFromPCtoPE($packet);
-
-				return $pk;
+				return $session->getInventoryUtils()->onWindowCloseFromPCtoPE($packet);
 
 			case InboundPacket::PLUGIN_MESSAGE_PACKET:
 				/** @var PluginMessagePacket $packet */
 				switch($packet->channel){
 					case "minecraft:brand":
 						//TODO: brand
-					break;
+						break;
 					/*case "MC|BEdit":
 						$packets = [];
 						/** @var Item $item *//*
@@ -378,442 +316,175 @@ class Translator{
 				}
 				return null;
 
-			case InboundPacket::INTERACT_ENTITY_PACKET:
-				/** @var InteractEntityPacket $packet */
-				$frame = ItemFrameBlockEntity::getItemFrameById($player->getLevel(), $packet->target);
-				if($frame !== null){
-					switch($packet->type){
-						case UseEntityPacket::INTERACT:
-							$clickPos = new Vector3($frame->x, $frame->y, $frame->z);
-							$pk = new InventoryTransactionPacket();
-							$pk->trData = UseItemTransactionData::new(
-								[],
-								UseItemTransactionData::ACTION_CLICK_BLOCK,
-								$clickPos,
-								$frame->getFacing(),
-								$player->getInventory()->getHeldItemIndex(),
-								ItemStackWrapper::legacy($player->getInventory()->getItemInHand()),
-								$player->asVector3(),
-								$frame->asVector3(),
-								$player->getLevel()->getBlock($clickPos)->getRuntimeId());
-							return $pk;
-						case InteractEntityPacket::TYPE_ATTACK:
-							if($frame->hasItem()){
-								$pk = new ItemFrameDropItemPacket();
-								$pk->x = $frame->x;
-								$pk->y = $frame->y;
-								$pk->z = $frame->z;
-
-								return $pk;
-							}else{
-								$clickPos = new Vector3($frame->x, $frame->y, $frame->z);
-								$pk = new InventoryTransactionPacket();
-								$pk->trData = UseItemTransactionData::new(
-									[],
-									UseItemTransactionData::ACTION_BREAK_BLOCK,
-									$clickPos,
-									$frame->getFacing(),
-									$player->getInventory()->getHeldItemIndex(),
-									ItemStackWrapper::legacy($player->getInventory()->getItemInHand()),
-									$player->asVector3(),
-									$frame->asVector3(),
-									$player->getLevel()->getBlock($clickPos)->getRuntimeId());
-								return $pk;
-							}
-					}
-
-					return null;
-				}
-
-				if($packet->type === InteractEntityPacket::TYPE_INTERACT_AT){
-					$pk = new InteractPacket();
-					$pk->target = $packet->target;
-					$pk->action = InteractPacket::ACTION_MOUSEOVER;
-					$pk->x = 0;
-					$pk->y = 0;
-					$pk->z = 0;
-				}else{
-					switch($packet->type){
-						case UseEntityPacket::INTERACT:
-							$actionType = UseItemOnEntityTransactionData::ACTION_INTERACT;
-							break;
-						case UseEntityPacket::ATTACK:
-							$actionType = UseItemOnEntityTransactionData::ACTION_ATTACK;
-							break;
-						default:
-							echo "[Translator] UseItemPacket\n";
-							return null;
-					}
-					$pk = new InventoryTransactionPacket();
-					$pk->trData = UseItemOnEntityTransactionData::new(
-						[],
-						$packet->target,
-						$actionType,
-						$player->getInventory()->getHeldItemIndex(),
-						ItemStackWrapper::legacy($player->getInventory()->getItemInHand()),
-						$player->asVector3(),
-						new Vector3(0, 0, 0)
-					);
-				}
-
-				return $pk;
-
 			case InboundPacket::KEEP_ALIVE_PACKET:
 				$pk = new KeepAlivePacket();
 				$pk->keepAliveId = mt_rand();
-				$player->putRawPacket($pk);
-
-				return null;
-
-			case InboundPacket::PLAYER_MOVEMENT_PACKET:
-				/** @var PlayerMovementPacket $packet */
-				$player->onGround = $packet->onGround;
-
+				$session->putRawPacket($pk);
 				return null;
 
 			case InboundPacket::PLAYER_POSITION_PACKET:
 				/** @var PlayerPositionPacket $packet */
-				if($player->isImmobile()){
+				if($session->getPlayer()->isImmobile()){
 					$pk = new PlayerPositionAndLookPacket();
-					$pk->x = $player->x;
-					$pk->y = $player->y;
-					$pk->z = $player->z;
-					$pk->yaw = $player->yaw;
-					$pk->pitch = $player->pitch;
-					$pk->onGround = $player->isOnGround();
-					$player->putRawPacket($pk);
-
+					$pos = $session->getPlayer()->getLocation();
+					$pk->x = $pos->x;
+					$pk->y = $pos->y;
+					$pk->z = $pos->z;
+					$pk->yaw = $pos->yaw;
+					$pk->pitch = $pos->pitch;
+					$pk->onGround = $session->getPlayer()->isOnGround();
+					$session->putRawPacket($pk);
 					return null;
 				}
 
-				$packets = [];
+				if($session->getHandler() instanceof InGamePacketHandler){
+					$newPos = new Vector3($packet->x, $packet->feetY, $packet->z);
+					/** @noinspection PhpPossiblePolymorphicInvocationInspection */
+					if($session->getHandler()->forceMoveSync){
+						$curPos = $session->getPlayer()->getPosition();
 
-				$pk = new MovePlayerPacket();
-				$pk->position = new Vector3($packet->x, $packet->feetY + $player->getEyeHeight(), $packet->z);
-				$pk->yaw = $player->yaw;
-				$pk->headYaw = $player->yaw;
-				$pk->pitch = $player->pitch;
-				$packets[] = $pk;
+						if($newPos->distanceSquared($curPos) > 1){
+							$session->getLogger()->debug("Got outdated pre-teleport movement, received " . $newPos . ", expected " . $curPos);
+							return null;
+						}
 
-				if($player->isOnGround() and !$packet->onGround){
-					$pk = new PlayerActionPacket();
-					$pk->entityRuntimeId = $player->getId();
-					$pk->action = PlayerActionPacket::ACTION_JUMP;
-					$pk->x = (int) $packet->x;
-					$pk->y = (int) $packet->feetY;
-					$pk->z = (int) $packet->z;
-					$pk->face = 0;
-					$packets[] = $pk;
+						/** @noinspection PhpPossiblePolymorphicInvocationInspection */
+						$session->getHandler()->forceMoveSync = false;
+					}
+					$session->getPlayer()->handleMovement($newPos);
+
+					if($session->getPlayer()->isOnGround() && !$packet->onGround){
+						$session->getPlayer()->jump();
+					}
 				}
-
-				return $packets;
+				return null;
 
 			case InboundPacket::PLAYER_POSITION_AND_ROTATION_PACKET:
 				/** @var protocol\Play\Client\PlayerPositionAndRotationPacket $packet */
-				if($player->isImmobile()){
+				if($session->getPlayer()->isImmobile()){
 					$pk = new PlayerPositionAndLookPacket();
-					$pk->x = $player->x;
-					$pk->y = $player->y;
-					$pk->z = $player->z;
-					$pk->yaw = $player->yaw;
-					$pk->pitch = $player->pitch;
-					$pk->onGround = $player->isOnGround();
-					$player->putRawPacket($pk);
-
+					$pos = $session->getPlayer()->getLocation();
+					$pk->x = $pos->x;
+					$pk->y = $pos->y;
+					$pk->z = $pos->z;
+					$pk->yaw = $pos->yaw;
+					$pk->pitch = $pos->pitch;
+					$pk->onGround = $session->getPlayer()->isOnGround();
+					$session->putRawPacket($pk);
 					return null;
 				}
 
-				$packets = [];
+				if($session->getHandler() instanceof InGamePacketHandler){
+					$newPos = new Vector3($packet->x, $packet->feetY, $packet->z);
+					/** @noinspection PhpPossiblePolymorphicInvocationInspection */
+					if($session->getHandler()->forceMoveSync){
+						$curPos = $session->getPlayer()->getPosition();
 
-				$pk = new MovePlayerPacket();
-				$pk->position = new Vector3($packet->x, $packet->feetY + $player->getEyeHeight(), $packet->z);
-				$pk->yaw = $packet->yaw;
-				$pk->headYaw = $packet->yaw;
-				$pk->pitch = $packet->pitch;
-				$packets[] = $pk;
+						if($newPos->distanceSquared($curPos) > 1){
+							$session->getLogger()->debug("Got outdated pre-teleport movement, received " . $newPos . ", expected " . $curPos);
+							return null;
+						}
 
-				if($player->isOnGround() and !$packet->onGround){
-					$pk = new PlayerActionPacket();
-					$pk->entityRuntimeId = $player->getId();
-					$pk->action = PlayerActionPacket::ACTION_JUMP;
-					$pk->x = (int) $packet->x;
-					$pk->y = (int) $packet->feetY;
-					$pk->z = (int) $packet->z;
-					$pk->face = 0;
-					$packets[] = $pk;
+						/** @noinspection PhpPossiblePolymorphicInvocationInspection */
+						$session->getHandler()->forceMoveSync = false;
+					}
+					$session->getPlayer()->handleMovement($newPos);
+					$session->getPlayer()->setRotation($packet->yaw, $packet->pitch);
+
+					if($session->getPlayer()->isOnGround() && !$packet->onGround){
+						$session->getPlayer()->jump();
+					}
 				}
-
-				return $packets;
+				return null;
 
 			case InboundPacket::PLAYER_ROTATION_PACKET:
 				/** @var PlayerRotationPacket $packet */
-				if($player->isImmobile()){
+				$pos = $session->getPlayer()->getLocation();
+				if($session->getPlayer()->isImmobile()){
 					$pk = new PlayerPositionAndLookPacket();
-					$pk->x = $player->x;
-					$pk->y = $player->y;
-					$pk->z = $player->z;
-					$pk->yaw = $player->yaw;
-					$pk->pitch = $player->pitch;
-					$pk->onGround = $player->isOnGround();
-					$player->putRawPacket($pk);
-
+					$pk->x = $pos->x;
+					$pk->y = $pos->y;
+					$pk->z = $pos->z;
+					$pk->yaw = $pos->yaw;
+					$pk->pitch = $pos->pitch;
+					$pk->onGround = $session->getPlayer()->isOnGround();
+					$session->putRawPacket($pk);
 					return null;
 				}
 
-				$pk = new MovePlayerPacket();
-				$pk->position = new Vector3($player->x, $player->y + $player->getEyeHeight(), $player->z);
-				$pk->yaw = $packet->yaw;
-				$pk->headYaw = $packet->yaw;
-				$pk->pitch = $packet->pitch;
-
-				return $pk;
-
-			case InboundPacket::PLAYER_ABILITIES_PACKET:
-				/** @var PlayerAbilitiesPacket $packet */
-				$pk = new AdventureSettingsPacket();
-				$pk->entityUniqueId = $player->getId();
-				$pk->setFlag(AdventureSettingsPacket::FLYING, $packet->isFlying);
-
-				return $pk;
+				if($session->getHandler() instanceof InGamePacketHandler){
+					$session->getPlayer()->setRotation($packet->yaw, $packet->pitch);
+				}
+				return null;
 
 			case InboundPacket::PLAYER_DIGGING_PACKET:
-				/** @var PlayerDiggingPacket $packet */
-				switch($packet->status){
-					case 0:
-						if($player->getGamemode() === 1){
-							$clickPos = new Vector3($packet->x, $packet->y, $packet->z);
-							$pk = new InventoryTransactionPacket();
-
-							$pk->trData = UseItemTransactionData::new(
-								[],
-								UseItemTransactionData::ACTION_BREAK_BLOCK,
-								$clickPos,
-								$packet->face,
-								$player->getInventory()->getHeldItemIndex(),
-								ItemStackWrapper::legacy($player->getInventory()->getItemInHand()),
-								$player->asVector3(),
-								$clickPos,
-								$player->getLevel()->getBlock($clickPos)->getRuntimeId()
-							);
-							return $pk;
-						}else{
-							$player->bigBrother_setBreakPosition([new Vector3($packet->x, $packet->y, $packet->z), $packet->face]);
-
-							$packets = [];
-
-							$pk = new PlayerActionPacket();
-							$pk->entityRuntimeId = $player->getId();
-							$pk->action = PlayerActionPacket::ACTION_START_BREAK;
-							$pk->x = $packet->x;
-							$pk->y = $packet->y;
-							$pk->z = $packet->z;
-							$pk->face = $packet->face;
-							$packets[] = $pk;
-
-							$block = $player->getLevel()->getBlock(new Vector3($packet->x, $packet->y, $packet->z));
-							if($block->getHardness() === (float) 0){
-								$pk = new PlayerActionPacket();
-								$pk->entityRuntimeId = $player->getId();
-								$pk->action = PlayerActionPacket::ACTION_STOP_BREAK;
-								$pk->x = $packet->x;
-								$pk->y = $packet->y;
-								$pk->z = $packet->z;
-								$pk->face = $packet->face;
-								$packets[] = $pk;
-
-								$clickPos = new Vector3($packet->x, $packet->y, $packet->z);
-								$pk = new InventoryTransactionPacket();
-
-								$pk->trData = UseItemTransactionData::new(
-									[],
-									UseItemTransactionData::ACTION_BREAK_BLOCK,
-									$clickPos,
-									$packet->face,
-									$player->getInventory()->getHeldItemIndex(),
-									ItemStackWrapper::legacy($player->getInventory()->getItemInHand()),
-									$player->asVector3(),
-									$clickPos,
-									$block->getRuntimeId()
-								);
-
-								$packets[] = $pk;
-
-								$pk = new PlayerActionPacket();
-								$pk->entityRuntimeId = $player->getId();
-								$pk->action = PlayerActionPacket::ACTION_ABORT_BREAK;
-								$pk->x = $packet->x;
-								$pk->y = $packet->y;
-								$pk->z = $packet->z;
-								$pk->face = $packet->face;
-								$packets[] = $pk;
+				if($session->getHandler() instanceof InGamePacketHandler){
+					/** @var PlayerDiggingPacket $packet */
+					switch($packet->status){
+						case 0:
+							if($session->getPlayer()->getGamemode()->equals(GameMode::CREATIVE())){
+								$session->getPlayer()->breakBlock(new Vector3($packet->x, $packet->y, $packet->z));
+								return null;
 							}
+							$session->bigBrother_breakPosition = [$pos = new Vector3($packet->x, $packet->y, $packet->z), $packet->face];
 
-							return $packets;
-						}
-					case 1:
-						$player->bigBrother_setBreakPosition([new Vector3(0, 0, 0), 0]);
+							$session->getPlayer()->attackBlock($pos, $packet->face);
 
-						$pk = new PlayerActionPacket();
-						$pk->entityRuntimeId = $player->getId();
-						$pk->action = PlayerActionPacket::ACTION_ABORT_BREAK;
-						$pk->x = $packet->x;
-						$pk->y = $packet->y;
-						$pk->z = $packet->z;
-						$pk->face = $packet->face;
+							$block = $session->getPlayer()->getWorld()->getBlockAt($packet->x, $packet->y, $packet->z);
+							if($block->getBreakInfo()->getHardness() === (float) 0){
+								$session->getPlayer()->stopBreakBlock($pos);
 
-						return $pk;
-					case 2:
-						if($player->getGamemode() !== 1){
-							$player->bigBrother_setBreakPosition([new Vector3(0, 0, 0), 0]);
+								$session->getPlayer()->breakBlock($pos);
 
-							$packets = [];
-
-							$pk = new PlayerActionPacket();
-							$pk->entityRuntimeId = $player->getId();
-							$pk->action = PlayerActionPacket::ACTION_STOP_BREAK;
-							$pk->x = $packet->x;
-							$pk->y = $packet->y;
-							$pk->z = $packet->z;
-							$pk->face = $packet->face;
-							$packets[] = $pk;
-
-							$clickPos = new Vector3($packet->x, $packet->y, $packet->z);
-							$pk = new InventoryTransactionPacket();
-							$pk->trData = UseItemTransactionData::new(
-								[],
-								UseItemTransactionData::ACTION_BREAK_BLOCK,
-								$clickPos,
-								$packet->face,
-								$player->getInventory()->getHeldItemIndex(),
-								ItemStackWrapper::legacy($player->getInventory()->getItemInHand()),
-								$player->asVector3(),
-								$clickPos,
-								$player->getLevel()->getBlock($clickPos)->getRuntimeId()
-							);
-							$packets[] = $pk;
-
-							$pk = new PlayerActionPacket();
-							$pk->entityRuntimeId = $player->getId();
-							$pk->action = PlayerActionPacket::ACTION_ABORT_BREAK;
-							$pk->x = $packet->x;
-							$pk->y = $packet->y;
-							$pk->z = $packet->z;
-							$pk->face = $packet->face;
-							$packets[] = $pk;
-
-							return $packets;
-						}else{
-							echo "PlayerDiggingPacket: ".$packet->status."\n";
-						}
-					break;
-					case 3:
-					case 4:
-						$newItem = clone $player->getInventory()->getItemInHand();
-						$oldItem = clone $newItem;
-
-						if(!$newItem->isNull()){
-							if($packet->status === 4){
-								$dropItem = $newItem->pop();
-							}else{
-								$dropItem = clone $newItem;
-								$newItem = Item::get(Item::AIR, 0, 0);
+								$session->getPlayer()->stopBreakBlock($pos);
 							}
+							return null;
+						case 1:
+							$session->bigBrother_breakPosition = [new Vector3(0, 0, 0), 0];
 
-							$actions = [];
-							$action = new NetworkInventoryAction();
-							$action->sourceType = NetworkInventoryAction::SOURCE_WORLD;
-							$action->sourceFlags = 0;
-							$action->inventorySlot = 0;
-							$action->oldItem = ItemStackWrapper::legacy(Item::get(Item::AIR, 0, 0));
-							$action->newItem = ItemStackWrapper::legacy($dropItem);
-							$actions[] = $action;
+							$session->getPlayer()->stopBreakBlock(new Vector3($packet->x, $packet->y, $packet->z));
+							return null;
+						case 2:
+							if(!$session->getPlayer()->getGamemode()->equals(GameMode::CREATIVE())){
+								$session->bigBrother_breakPosition = [new Vector3(0, 0, 0), 0];
 
-							$action = new NetworkInventoryAction();
-							$action->sourceType = NetworkInventoryAction::SOURCE_CONTAINER;
-							$action->windowId = ContainerIds::INVENTORY;
-							$action->inventorySlot = $player->getInventory()->getHeldItemIndex();
-							$action->oldItem = ItemStackWrapper::legacy($oldItem);
-							$action->newItem = ItemStackWrapper::legacy($newItem);
-							$actions[] = $action;
-
-							/** @var InventoryTransactionPacket[] $packets */
-							$packets = [];
-							$pk = new InventoryTransactionPacket();
-							$pk->trData = NormalTransactionData::new(
-								$actions
-							);
-							$packets[] = $pk;
-
-							$pk = new InventoryTransactionPacket();
-
-							$pk->trData = MismatchTransactionData::new();
-							$packets[] = $pk;
-
-							return $packets;
-						}
-
-						return null;
-					case 5:
-						$headPos = new Vector3($packet->x, $packet->y, $packet->z);
-						$item = $player->getInventory()->getItemInHand();
-						if($item->getId() === Item::BOW){//Shoot Arrow
-							$actionType = ReleaseItemTransactionData::ACTION_RELEASE;
-						}else{//Eating
-							$actionType = ReleaseItemTransactionData::ACTION_CONSUME;
-						}
-
-						$pk = new InventoryTransactionPacket();
-						$pk->trData = ReleaseItemTransactionData::new(
-							[],
-							$actionType,
-							$player->getInventory()->getHeldItemIndex(),
-							ItemStackWrapper::legacy($item),
-							$headPos
-						);
-
-						return $pk;
-					default:
-						echo "PlayerDiggingPacket: ".$packet->status."\n";
-					break;
+								$session->getPlayer()->stopBreakBlock($pos = new Vector3($packet->x, $packet->y, $packet->z));
+								$session->getPlayer()->breakBlock($pos);
+								$session->getPlayer()->stopBreakBlock(new Vector3($packet->x, $packet->y, $packet->z));
+								return null;
+							}
+							break;
+						default:
+							echo "PlayerDiggingPacket: " . $packet->status . "\n";
+							break;
+					}
 				}
-
 				return null;
 
 			case InboundPacket::ENTITY_ACTION_PACKET:
-				/** @var EntityActionPacket $packet */
-				$pk = new PlayerActionPacket();
-				$pk->entityRuntimeId = $player->getId();
-				$pk->x = 0;
-				$pk->y = 0;
-				$pk->z = 0;
-				$pk->face = 0;
-
-				switch($packet->actionId){
-					case 0://Start sneaking
-						$pk->action = PlayerActionPacket::ACTION_START_SNEAK;
-
-						return $pk;
-					case 1://Stop sneaking
-						$pk->action = PlayerActionPacket::ACTION_STOP_SNEAK;
-
-						return $pk;
-					case 2://leave bed
-						$pk->action = PlayerActionPacket::ACTION_STOP_SLEEPING;
-
-						return $pk;
-					case 3://Start sprinting
-						$pk->action = PlayerActionPacket::ACTION_START_SPRINT;
-
-						return $pk;
-					case 4://Stop sprinting
-						$pk->action = PlayerActionPacket::ACTION_STOP_SPRINT;
-
-						return $pk;
-					default:
-						echo "EntityActionPacket: ".$packet->actionId."\n";
-					break;
+				if($session->getHandler() instanceof InGamePacketHandler){
+					/** @var EntityActionPacket $packet */
+					switch($packet->actionId){
+						case 0://Start sneaking
+							$session->getPlayer()->setSneaking(true);
+							return null;
+						case 1://Stop sneaking
+							$session->getPlayer()->setSneaking(false);
+							return null;
+						case 2://leave bed
+							$session->getPlayer()->stopSleep();
+							return null;
+						case 3://Start sprinting
+							$session->getPlayer()->setSprinting(true);
+							return null;
+						case 4://Stop sprinting
+							$session->getPlayer()->setSprinting(false);
+							return null;
+						default:
+							echo "EntityActionPacket: " . $packet->actionId . "\n";
+							break;
+					}
 				}
-
 				return null;
 
 			case InboundPacket::ADVANCEMENT_TAB_PACKET:
@@ -822,157 +493,128 @@ class Translator{
 					$pk = new SelectAdvancementTabPacket();
 					$pk->hasId = true;
 					$pk->identifier = $packet->tabId;
-					$player->putRawPacket($pk);
+					$session->putRawPacket($pk);
 				}
-
 				return null;
 
-			case InboundPacket::HELD_ITEM_CHANGE_PACKET:
-				/** @var HeldItemChangePacket $packet */
-				$pk = new MobEquipmentPacket();
-				$pk->entityRuntimeId = $player->getId();
-				$pk->item = ItemStackWrapper::legacy($player->getInventory()->getHotbarSlotItem($packet->selectedSlot));
-				$pk->inventorySlot = $packet->selectedSlot;
-				$pk->hotbarSlot = $packet->selectedSlot;
-
-				return $pk;
-
-			case InboundPacket::CREATIVE_INVENTORY_ACTION_PACKET:
-				/** @var CreativeInventoryActionPacket $packet */
-				var_dump($packet);
-				$pk = $player->getInventoryUtils()->onCreativeInventoryAction($packet);
-
-				return $pk;
-
 			case InboundPacket::UPDATE_SIGN_PACKET:
-				/** @var UpdateSignPacket $packet */
-				$tags = new CompoundTag("", [
-					new StringTag("id", Tile::SIGN),
-					new StringTag("Text1", $packet->line1),
-					new StringTag("Text2", $packet->line2),
-					new StringTag("Text3", $packet->line3),
-					new StringTag("Text4", $packet->line4),
-					new IntTag("x", (int) $packet->x),
-					new IntTag("y", (int) $packet->y),
-					new IntTag("z", (int) $packet->z)
-				]);
+				if($session->getHandler() instanceof InGamePacketHandler){
+					/** @var UpdateSignPacket $packet */
+					$pos = new Vector3($packet->x, $packet->y, $packet->z);
+					if($pos->distanceSquared($session->getPlayer()->getLocation()) > 10000){
+						return null;
+					}
 
-				$nbt = new NetworkLittleEndianNBTStream();
-
-				$pk = new BlockActorDataPacket();
-				$pk->x = $packet->x;
-				$pk->y = $packet->y;
-				$pk->z = $packet->z;
-				$pk->namedtag = $nbt->write($tags);
-
-				return $pk;
-
-			case InboundPacket::ANIMATION_PACKET:
-				$pk = new AnimatePacket();
-				$pk->action = 1;
-				$pk->entityRuntimeId = $player->getId();
-
-				$pos = $player->bigBrother_getBreakPosition();
-				/**
-				 * @var Vector3[] $pos
-				 * @phpstan-var array{Vector3, int} $pos
-				 */
-				if(!$pos[0]->equals(new Vector3(0, 0, 0))){
-					$packets = [$pk];
-
-					$pk = new PlayerActionPacket();
-					$pk->entityRuntimeId = $player->getId();
-					$pk->action = PlayerActionPacket::ACTION_CONTINUE_DESTROY_BLOCK;
-					$pk->x = $pos[0]->x;
-					$pk->y = $pos[0]->y;
-					$pk->z = $pos[0]->z;
-					$pk->face = $pos[1];
-					$packets[] = $pk;
-
-					return $packets;
+					$block = $session->getPlayer()->getLocation()->getWorld()->getBlock($pos);
+					if($block instanceof BaseSign){
+						$text = $block->getText();
+						$block->updateText($session->getPlayer(), new SignText([$packet->line1, $packet->line2, $packet->line3, $packet->line4], $text->getBaseColor(), $text->isGlowing()));
+					}
 				}
+				return null;
 
-				return $pk;
+//			case InboundPacket::ANIMATION_PACKET:
+//				$pk = new AnimatePacket();
+//				$pk->action = 1;
+//				$pk->actorRuntimeId = $session->getId();
+//
+//				$pos = $session->bigBrother_getBreakPosition();
+//				/**
+//				 * @var Vector3[]                   $pos
+//				 * @phpstan-var array{Vector3, int} $pos
+//				 */
+//				if(!$pos[0]->equals(new Vector3(0, 0, 0))){
+//					$packets = [$pk];
+//
+//					$pk = new PlayerActionPacket();
+//					$pk->actorRuntimeId = $session->getId();
+//					$pk->action = PlayerAction::CONTINUE_DESTROY_BLOCK;
+//					$pk->x = $pos[0]->x;
+//					$pk->y = $pos[0]->y;
+//					$pk->z = $pos[0]->z;
+//					$pk->face = $pos[1];
+//					$packets[] = $pk;
+//
+//					return $packets;
+//				}
+//
+//				return $pk;
 
-			case InboundPacket::PLAYER_BLOCK_PLACEMENT_PACKET:
-				/** @var PlayerBlockPlacementPacket $packet */
-				$blockClicked = $player->getLevel()->getBlock(new Vector3($packet->x, $packet->y, $packet->z));
-				$blockReplace = $blockClicked->getSide($packet->face);
+//			case InboundPacket::PLAYER_BLOCK_PLACEMENT_PACKET:
+//				/** @var PlayerBlockPlacementPacket $packet */
+//				$blockClicked = $session->getLevel()->getBlock(new Vector3($packet->x, $packet->y, $packet->z));
+//				$blockReplace = $blockClicked->getSide($packet->face);
+//
+//				if(ItemFrameBlockEntity::exists($session->getLevel(), $blockReplace->getX(), $blockReplace->getY(), $blockReplace->getZ())){
+//					$pk = new BlockChangePacket();//Cancel place block
+//					$pk->x = $blockReplace->getX();
+//					$pk->y = $blockReplace->getY();
+//					$pk->z = $blockReplace->getZ();
+//					$pk->blockId = Block::AIR;
+//					$pk->blockMeta = 0;
+//					$session->putRawPacket($pk);
+//					return null;
+//				}
+//
+//				$clickPos = new Vector3($packet->x, $packet->y, $packet->z);
+//
+//				$pk = new InventoryTransactionPacket();
+//				$pk->trData = UseItemTransactionData::new(
+//					[],
+//					UseItemTransactionData::ACTION_CLICK_BLOCK,
+//					$clickPos,
+//					$packet->direction,
+//					$session->getInventory()->getHeldItemIndex(),
+//					ItemStackWrapper::legacy($session->getInventory()->getItemInHand()),
+//					$session->asVector3(),
+//					$clickPos,
+//					$session->getLevel()->getBlock($clickPos)->getRuntimeId());
+//				return $pk;
 
-				if(ItemFrameBlockEntity::exists($player->getLevel(), $blockReplace->getX(), $blockReplace->getY(), $blockReplace->getZ())){
-					$pk = new BlockChangePacket();//Cancel place block
-					$pk->x = $blockReplace->getX();
-					$pk->y = $blockReplace->getY();
-					$pk->z = $blockReplace->getZ();
-					$pk->blockId = Block::AIR;
-					$pk->blockMeta = 0;
-					$player->putRawPacket($pk);
-					return null;
-				}
-
-				$clickPos = new Vector3($packet->x, $packet->y, $packet->z);
-
-				$pk = new InventoryTransactionPacket();
-				$pk->trData = UseItemTransactionData::new(
-					[],
-					UseItemTransactionData::ACTION_CLICK_BLOCK,
-					$clickPos,
-					$packet->direction,
-					$player->getInventory()->getHeldItemIndex(),
-					ItemStackWrapper::legacy($player->getInventory()->getItemInHand()),
-					$player->asVector3(),
-					$clickPos,
-					$player->getLevel()->getBlock($clickPos)->getRuntimeId());
-				return $pk;
-
-			case InboundPacket::USE_ITEM_PACKET:
-				if($player->getInventory()->getItemInHand()->getId() === Item::WRITTEN_BOOK){
-					$pk = new PluginMessagePacket();
-					$pk->channel = "MC|BOpen";
-					$pk->data[] = 0;//main hand
-
-					$player->putRawPacket($pk);
-					return null;
-				}
-
-				$clickPos = new Vector3(0, 0, 0);
-
-				$pk = new InventoryTransactionPacket();
-				$pk->trData = UseItemTransactionData::new(
-					[],
-					UseItemTransactionData::ACTION_CLICK_AIR,
-					$clickPos,
-					-1,
-					$player->getInventory()->getHeldItemIndex(),
-					ItemStackWrapper::legacy($player->getInventory()->getItemInHand()),
-					$player->asVector3(),
-					$clickPos,
-					$player->getLevel()->getBlock($clickPos)->getRuntimeId()
-				);
-				return $pk;
+//			case InboundPacket::USE_ITEM_PACKET:
+//				if($session->getInventory()->getItemInHand()->getId() === Item::WRITTEN_BOOK){
+//					$pk = new PluginMessagePacket();
+//					$pk->channel = "MC|BOpen";
+//					$pk->data[] = 0;//main hand
+//
+//					$session->putRawPacket($pk);
+//					return null;
+//				}
+//
+//				$clickPos = new Vector3(0, 0, 0);
+//
+//				$pk = new InventoryTransactionPacket();
+//				$pk->trData = UseItemTransactionData::new(
+//					[],
+//					UseItemTransactionData::ACTION_CLICK_AIR,
+//					$clickPos,
+//					-1,
+//					$session->getInventory()->getHeldItemIndex(),
+//					ItemStackWrapper::legacy($session->getInventory()->getItemInHand()),
+//					$session->asVector3(),
+//					$clickPos,
+//					$session->getLevel()->getBlock($clickPos)->getRuntimeId()
+//				);
+//				return $pk;
 			default:
-				if(DEBUG > 4){
-					echo "[Receive][Translator] 0x".bin2hex(chr($packet->pid()))." Not implemented\n";
-				}
 				return null;
 		}
 	}
 
 	/**
-	 * @param DesktopPlayer $player
-	 * @param DataPacket    $packet
-	 * @return Packet|array<Packet>|null
-	 * @throws UnexpectedValueException
+	 * @return ClientboundPacket|ClientboundPacket[]|null
+	 * @throws \UnexpectedValueException
 	 */
-	public function serverToInterface(DesktopPlayer $player, DataPacket $packet){
+	public function serverToInterface(DesktopNetworkSession $session, ClientboundPacket $packet) : array|null|OutboundPacket{
 		switch($packet->pid()){
 			case Info::PLAY_STATUS_PACKET:
 				/** @var PlayStatusPacket $packet */
 				if($packet->status === PlayStatusPacket::PLAYER_SPAWN){
 					$pk = new PlayerPositionAndLookPacket();//for loading screen
-					$pk->x = $player->getX();
-					$pk->y = $player->getY();
-					$pk->z = $player->getZ();
+					$pos = $session->getPlayer()->getPosition();
+					$pk->x = $pos->x;
+					$pk->y = $pos->y;
+					$pk->z = $pos->z;
 					$pk->yaw = 0;
 					$pk->pitch = 0;
 					$pk->flags = 0;
@@ -984,13 +626,8 @@ class Translator{
 
 			case Info::DISCONNECT_PACKET:
 				/** @var DisconnectPacket $packet */
-				if($player->bigBrother_getStatus() === 0){
-					$pk = new LoginDisconnectPacket();
-					$pk->reason = BigBrother::toJSON($packet->message);
-				}else{
-					$pk = new PlayDisconnectPacket();
-					$pk->reason = BigBrother::toJSON($packet->message);
-				}
+				$pk = $session->status === 0 ? new LoginDisconnectPacket() : new PlayDisconnectPacket();
+				$pk->reason = BigBrother::toJSON($packet->message);
 
 				return $pk;
 
@@ -999,53 +636,57 @@ class Translator{
 				if($packet->message === "chat.type.achievement"){
 					$packet->message = "chat.type.advancement.task";
 				}
-
-				$pk = new ChatMessagePacket();
-				$pk->message = BigBrother::toJSON($packet->message, $packet->type, $packet->parameters);
 				switch($packet->type){
-					case TextPacket::TYPE_CHAT:
-					case TextPacket::TYPE_TRANSLATION:
-					case TextPacket::TYPE_WHISPER:
 					case TextPacket::TYPE_RAW:
-						$pk->position = 0;
-						break;
+					case TextPacket::TYPE_CHAT:
 					case TextPacket::TYPE_SYSTEM:
-						$pk->position = 1;
+					case TextPacket::TYPE_WHISPER:
+					case TextPacket::TYPE_ANNOUNCEMENT:
+					case TextPacket::TYPE_JSON_WHISPER:
+					case TextPacket::TYPE_JSON:
+					case TextPacket::TYPE_JSON_ANNOUNCEMENT:
+						$session->onRawChatMessage($packet->message, $packet->type === TextPacket::TYPE_SYSTEM);
 						break;
-					case TextPacket::TYPE_POPUP:
-					case TextPacket::TYPE_TIP:
-						$pk->position = 2;
-						break;
-				}
-				$pk->sender = str_repeat("\x00", 16);//Setting both longs to 0 will always display the message regardless of the setting.
 
-				return $pk;
+					case TextPacket::TYPE_TRANSLATION:
+						$session->onTranslatedChatMessage($packet->message, $packet->parameters);
+						break;
+
+					case TextPacket::TYPE_JUKEBOX_POPUP: // What is this?
+						break;
+
+					case TextPacket::TYPE_POPUP:
+						$session->onPopup($packet->message);
+						break;
+
+					case TextPacket::TYPE_TIP:
+						$session->onTip($packet->message);
+				}
+				return null;
 
 			case Info::SET_TIME_PACKET:
 				/** @var SetTimePacket $packet */
-				$pk = new TimeUpdatePacket();
-				$pk->worldAge = $packet->time;
-				$pk->dayTime = $packet->time;
-				return $pk;
+				$session->syncWorldTime($packet->time);
+				return null;
 
 			case Info::START_GAME_PACKET:
 				/** @var StartGamePacket $packet */
 				$packets = [];
 
 				$pk = new JoinGamePacket();
-				$pk->isHardcore = $player->getServer()->isHardcore();
-				$pk->entityId = $packet->entityRuntimeId;
+				$pk->isHardcore = Server::getInstance()->isHardcore();
+				$pk->entityId = $packet->actorRuntimeId;
 				$pk->gamemode = $packet->playerGamemode;
-				$pk->previousGamemode = -1;
+				$pk->previousGamemode = 0;
 				$pk->worldNames = ["minecraft:overworld", "minecraft:the_nether", "minecraft:the_end"];
-				$pk->dimensionCodec = $player->getDimensionCodec();
-				$pk->dimension = $player->getDimension();
+				$pk->dimension = base64_decode("CgAAAQALcGlnbGluX3NhZmUAAQAHbmF0dXJhbAEFAA1hbWJpZW50X2xpZ2h0AAAAAAgACmluZmluaWJ1cm4AHm1pbmVjcmFmdDppbmZpbmlidXJuX292ZXJ3b3JsZAEAFHJlc3Bhd25fYW5jaG9yX3dvcmtzAAEADGhhc19za3lsaWdodAEBAAliZWRfd29ya3MBCAAHZWZmZWN0cwATbWluZWNyYWZ0Om92ZXJ3b3JsZAEACWhhc19yYWlkcwEDAA5sb2dpY2FsX2hlaWdodAAAAQAGABBjb29yZGluYXRlX3NjYWxlP/AAAAAAAAABAAl1bHRyYXdhcm0AAQALaGFzX2NlaWxpbmcAAA==");
+				$pk->dimensionCodec = base64_decode("CgAACgAYbWluZWNyYWZ0OmRpbWVuc2lvbl90eXBlCAAEdHlwZQAYbWluZWNyYWZ0OmRpbWVuc2lvbl90eXBlCQAFdmFsdWUKAAAABAgABG5hbWUAE21pbmVjcmFmdDpvdmVyd29ybGQDAAJpZAAAAAAKAAdlbGVtZW50AQALcGlnbGluX3NhZmUAAQAHbmF0dXJhbAEFAA1hbWJpZW50X2xpZ2h0AAAAAAgACmluZmluaWJ1cm4AHm1pbmVjcmFmdDppbmZpbmlidXJuX292ZXJ3b3JsZAEAFHJlc3Bhd25fYW5jaG9yX3dvcmtzAAEADGhhc19za3lsaWdodAEBAAliZWRfd29ya3MBCAAHZWZmZWN0cwATbWluZWNyYWZ0Om92ZXJ3b3JsZAEACWhhc19yYWlkcwEDAA5sb2dpY2FsX2hlaWdodAAAAQAGABBjb29yZGluYXRlX3NjYWxlP/AAAAAAAAABAAl1bHRyYXdhcm0AAQALaGFzX2NlaWxpbmcAAAAIAARuYW1lABltaW5lY3JhZnQ6b3ZlcndvcmxkX2NhdmVzAwACaWQAAAABCgAHZWxlbWVudAEAC3BpZ2xpbl9zYWZlAAEAB25hdHVyYWwBBQANYW1iaWVudF9saWdodAAAAAAIAAppbmZpbmlidXJuAB5taW5lY3JhZnQ6aW5maW5pYnVybl9vdmVyd29ybGQBABRyZXNwYXduX2FuY2hvcl93b3JrcwABAAxoYXNfc2t5bGlnaHQBAQAJYmVkX3dvcmtzAQgAB2VmZmVjdHMAE21pbmVjcmFmdDpvdmVyd29ybGQBAAloYXNfcmFpZHMBAwAObG9naWNhbF9oZWlnaHQAAAEABgAQY29vcmRpbmF0ZV9zY2FsZT/wAAAAAAAAAQAJdWx0cmF3YXJtAAEAC2hhc19jZWlsaW5nAQAACAAEbmFtZQAUbWluZWNyYWZ0OnRoZV9uZXRoZXIDAAJpZAAAAAIKAAdlbGVtZW50AQALcGlnbGluX3NhZmUBAQAHbmF0dXJhbAAFAA1hbWJpZW50X2xpZ2h0PczMzQgACmluZmluaWJ1cm4AG21pbmVjcmFmdDppbmZpbmlidXJuX25ldGhlcgEAFHJlc3Bhd25fYW5jaG9yX3dvcmtzAQEADGhhc19za3lsaWdodAABAAliZWRfd29ya3MACAAHZWZmZWN0cwAUbWluZWNyYWZ0OnRoZV9uZXRoZXIEAApmaXhlZF90aW1lAAAAAAAARlABAAloYXNfcmFpZHMAAwAObG9naWNhbF9oZWlnaHQAAACABgAQY29vcmRpbmF0ZV9zY2FsZUAgAAAAAAAAAQAJdWx0cmF3YXJtAQEAC2hhc19jZWlsaW5nAQAACAAEbmFtZQARbWluZWNyYWZ0OnRoZV9lbmQDAAJpZAAAAAMKAAdlbGVtZW50AQALcGlnbGluX3NhZmUAAQAHbmF0dXJhbAAFAA1hbWJpZW50X2xpZ2h0AAAAAAgACmluZmluaWJ1cm4AGG1pbmVjcmFmdDppbmZpbmlidXJuX2VuZAEAFHJlc3Bhd25fYW5jaG9yX3dvcmtzAAEADGhhc19za3lsaWdodAABAAliZWRfd29ya3MACAAHZWZmZWN0cwARbWluZWNyYWZ0OnRoZV9lbmQEAApmaXhlZF90aW1lAAAAAAAAF3ABAAloYXNfcmFpZHMBAwAObG9naWNhbF9oZWlnaHQAAAEABgAQY29vcmRpbmF0ZV9zY2FsZT/wAAAAAAAAAQAJdWx0cmF3YXJtAAEAC2hhc19jZWlsaW5nAAAAAAoAGG1pbmVjcmFmdDp3b3JsZGdlbi9iaW9tZQgABHR5cGUAGG1pbmVjcmFmdDp3b3JsZGdlbi9iaW9tZQkABXZhbHVlCgAAAE8IAARuYW1lAA9taW5lY3JhZnQ6b2NlYW4DAAJpZAAAAAAKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEcmFpbgoAB2VmZmVjdHMDAAlza3lfY29sb3IAe6T/AwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRov4AAAAUAC3RlbXBlcmF0dXJlPwAAAAUABXNjYWxlPczMzQUACGRvd25mYWxsPwAAAAgACGNhdGVnb3J5AAVvY2VhbgAACAAEbmFtZQAQbWluZWNyYWZ0OnBsYWlucwMAAmlkAAAAAQoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARyYWluCgAHZWZmZWN0cwMACXNreV9jb2xvcgB4p/8DAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGg+AAAABQALdGVtcGVyYXR1cmU/TMzNBQAFc2NhbGU9TMzNBQAIZG93bmZhbGw+zMzNCAAIY2F0ZWdvcnkABnBsYWlucwAACAAEbmFtZQAQbWluZWNyYWZ0OmRlc2VydAMAAmlkAAAAAgoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARub25lCgAHZWZmZWN0cwMACXNreV9jb2xvcgBusf8DAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGg+AAAABQALdGVtcGVyYXR1cmVAAAAABQAFc2NhbGU9TMzNBQAIZG93bmZhbGwAAAAACAAIY2F0ZWdvcnkABmRlc2VydAAACAAEbmFtZQATbWluZWNyYWZ0Om1vdW50YWlucwMAAmlkAAAAAwoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARyYWluCgAHZWZmZWN0cwMACXNreV9jb2xvcgB9ov8DAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGg/gAAABQALdGVtcGVyYXR1cmU+TMzNBQAFc2NhbGU/AAAABQAIZG93bmZhbGw+mZmaCAAIY2F0ZWdvcnkADWV4dHJlbWVfaGlsbHMAAAgABG5hbWUAEG1pbmVjcmFmdDpmb3Jlc3QDAAJpZAAAAAQKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEcmFpbgoAB2VmZmVjdHMDAAlza3lfY29sb3IAeab/AwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRoPczMzQUAC3RlbXBlcmF0dXJlPzMzMwUABXNjYWxlPkzMzQUACGRvd25mYWxsP0zMzQgACGNhdGVnb3J5AAZmb3Jlc3QAAAgABG5hbWUAD21pbmVjcmFmdDp0YWlnYQMAAmlkAAAABQoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARyYWluCgAHZWZmZWN0cwMACXNreV9jb2xvcgB9o/8DAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGg+TMzNBQALdGVtcGVyYXR1cmU+gAAABQAFc2NhbGU+TMzNBQAIZG93bmZhbGw/TMzNCAAIY2F0ZWdvcnkABXRhaWdhAAAIAARuYW1lAA9taW5lY3JhZnQ6c3dhbXADAAJpZAAAAAYKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEcmFpbgoAB2VmZmVjdHMIABRncmFzc19jb2xvcl9tb2RpZmllcgAFc3dhbXADAAlza3lfY29sb3IAeKf/AwANZm9saWFnZV9jb2xvcgBqcDkDAA93YXRlcl9mb2dfY29sb3IAIyMXAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAGF7ZAoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGi+TMzNBQALdGVtcGVyYXR1cmU/TMzNBQAFc2NhbGU9zMzNBQAIZG93bmZhbGw/ZmZmCAAIY2F0ZWdvcnkABXN3YW1wAAAIAARuYW1lAA9taW5lY3JhZnQ6cml2ZXIDAAJpZAAAAAcKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEcmFpbgoAB2VmZmVjdHMDAAlza3lfY29sb3IAe6T/AwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRovwAAAAUAC3RlbXBlcmF0dXJlPwAAAAUABXNjYWxlAAAAAAUACGRvd25mYWxsPwAAAAgACGNhdGVnb3J5AAVyaXZlcgAACAAEbmFtZQAXbWluZWNyYWZ0Om5ldGhlcl93YXN0ZXMDAAJpZAAAAAgKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEbm9uZQoAB2VmZmVjdHMKAAVtdXNpYwEAFXJlcGxhY2VfY3VycmVudF9tdXNpYwADAAltYXhfZGVsYXkAAF3ACAAFc291bmQAJG1pbmVjcmFmdDptdXNpYy5uZXRoZXIubmV0aGVyX3dhc3RlcwMACW1pbl9kZWxheQAALuAAAwAJc2t5X2NvbG9yAG6x/wgADWFtYmllbnRfc291bmQAJG1pbmVjcmFmdDphbWJpZW50Lm5ldGhlcl93YXN0ZXMubG9vcAoAD2FkZGl0aW9uc19zb3VuZAgABXNvdW5kACltaW5lY3JhZnQ6YW1iaWVudC5uZXRoZXJfd2FzdGVzLmFkZGl0aW9ucwYAC3RpY2tfY2hhbmNlP4a7mMfigkEAAwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgAzCAgDAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kACRtaW5lY3JhZnQ6YW1iaWVudC5uZXRoZXJfd2FzdGVzLm1vb2QDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGg9zMzNBQALdGVtcGVyYXR1cmVAAAAABQAFc2NhbGU+TMzNBQAIZG93bmZhbGwAAAAACAAIY2F0ZWdvcnkABm5ldGhlcgAACAAEbmFtZQARbWluZWNyYWZ0OnRoZV9lbmQDAAJpZAAAAAkKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEbm9uZQoAB2VmZmVjdHMDAAlza3lfY29sb3IAAAAAAwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgCggKADAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRoPczMzQUAC3RlbXBlcmF0dXJlPwAAAAUABXNjYWxlPkzMzQUACGRvd25mYWxsPwAAAAgACGNhdGVnb3J5AAd0aGVfZW5kAAAIAARuYW1lABZtaW5lY3JhZnQ6ZnJvemVuX29jZWFuAwACaWQAAAAKCgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABHNub3cKAAdlZmZlY3RzAwAJc2t5X2NvbG9yAH+h/wMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAOTjJCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aL+AAAAFAAt0ZW1wZXJhdHVyZQAAAAAFAAVzY2FsZT3MzM0FAAhkb3duZmFsbD8AAAAIAAhjYXRlZ29yeQAFb2NlYW4IABR0ZW1wZXJhdHVyZV9tb2RpZmllcgAGZnJvemVuAAAIAARuYW1lABZtaW5lY3JhZnQ6ZnJvemVuX3JpdmVyAwACaWQAAAALCgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABHNub3cKAAdlZmZlY3RzAwAJc2t5X2NvbG9yAH+h/wMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAOTjJCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aL8AAAAFAAt0ZW1wZXJhdHVyZQAAAAAFAAVzY2FsZQAAAAAFAAhkb3duZmFsbD8AAAAIAAhjYXRlZ29yeQAFcml2ZXIAAAgABG5hbWUAFm1pbmVjcmFmdDpzbm93eV90dW5kcmEDAAJpZAAAAAwKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEc25vdwoAB2VmZmVjdHMDAAlza3lfY29sb3IAf6H/AwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRoPgAAAAUAC3RlbXBlcmF0dXJlAAAAAAUABXNjYWxlPUzMzQUACGRvd25mYWxsPwAAAAgACGNhdGVnb3J5AANpY3kAAAgABG5hbWUAGW1pbmVjcmFmdDpzbm93eV9tb3VudGFpbnMDAAJpZAAAAA0KAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEc25vdwoAB2VmZmVjdHMDAAlza3lfY29sb3IAf6H/AwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRoPuZmZgUAC3RlbXBlcmF0dXJlAAAAAAUABXNjYWxlPpmZmgUACGRvd25mYWxsPwAAAAgACGNhdGVnb3J5AANpY3kAAAgABG5hbWUAGW1pbmVjcmFmdDptdXNocm9vbV9maWVsZHMDAAJpZAAAAA4KAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEcmFpbgoAB2VmZmVjdHMDAAlza3lfY29sb3IAd6j/AwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRoPkzMzQUAC3RlbXBlcmF0dXJlP2ZmZgUABXNjYWxlPpmZmgUACGRvd25mYWxsP4AAAAgACGNhdGVnb3J5AAhtdXNocm9vbQAACAAEbmFtZQAebWluZWNyYWZ0Om11c2hyb29tX2ZpZWxkX3Nob3JlAwACaWQAAAAPCgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABHJhaW4KAAdlZmZlY3RzAwAJc2t5X2NvbG9yAHeo/wMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAP3bkCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aAAAAAAFAAt0ZW1wZXJhdHVyZT9mZmYFAAVzY2FsZTzMzM0FAAhkb3duZmFsbD+AAAAIAAhjYXRlZ29yeQAIbXVzaHJvb20AAAgABG5hbWUAD21pbmVjcmFmdDpiZWFjaAMAAmlkAAAAEAoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARyYWluCgAHZWZmZWN0cwMACXNreV9jb2xvcgB4p/8DAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGgAAAAABQALdGVtcGVyYXR1cmU/TMzNBQAFc2NhbGU8zMzNBQAIZG93bmZhbGw+zMzNCAAIY2F0ZWdvcnkABWJlYWNoAAAIAARuYW1lABZtaW5lY3JhZnQ6ZGVzZXJ0X2hpbGxzAwACaWQAAAARCgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABG5vbmUKAAdlZmZlY3RzAwAJc2t5X2NvbG9yAG6x/wMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAP3bkCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aD7mZmYFAAt0ZW1wZXJhdHVyZUAAAAAFAAVzY2FsZT6ZmZoFAAhkb3duZmFsbAAAAAAIAAhjYXRlZ29yeQAGZGVzZXJ0AAAIAARuYW1lABZtaW5lY3JhZnQ6d29vZGVkX2hpbGxzAwACaWQAAAASCgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABHJhaW4KAAdlZmZlY3RzAwAJc2t5X2NvbG9yAHmm/wMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAP3bkCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aD7mZmYFAAt0ZW1wZXJhdHVyZT8zMzMFAAVzY2FsZT6ZmZoFAAhkb3duZmFsbD9MzM0IAAhjYXRlZ29yeQAGZm9yZXN0AAAIAARuYW1lABVtaW5lY3JhZnQ6dGFpZ2FfaGlsbHMDAAJpZAAAABMKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEcmFpbgoAB2VmZmVjdHMDAAlza3lfY29sb3IAfaP/AwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRoPuZmZgUAC3RlbXBlcmF0dXJlPoAAAAUABXNjYWxlPpmZmgUACGRvd25mYWxsP0zMzQgACGNhdGVnb3J5AAV0YWlnYQAACAAEbmFtZQAXbWluZWNyYWZ0Om1vdW50YWluX2VkZ2UDAAJpZAAAABQKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEcmFpbgoAB2VmZmVjdHMDAAlza3lfY29sb3IAfaL/AwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRoP0zMzQUAC3RlbXBlcmF0dXJlPkzMzQUABXNjYWxlPpmZmgUACGRvd25mYWxsPpmZmggACGNhdGVnb3J5AA1leHRyZW1lX2hpbGxzAAAIAARuYW1lABBtaW5lY3JhZnQ6anVuZ2xlAwACaWQAAAAVCgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABHJhaW4KAAdlZmZlY3RzAwAJc2t5X2NvbG9yAHeo/wMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAP3bkCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aD3MzM0FAAt0ZW1wZXJhdHVyZT9zMzMFAAVzY2FsZT5MzM0FAAhkb3duZmFsbD9mZmYIAAhjYXRlZ29yeQAGanVuZ2xlAAAIAARuYW1lABZtaW5lY3JhZnQ6anVuZ2xlX2hpbGxzAwACaWQAAAAWCgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABHJhaW4KAAdlZmZlY3RzAwAJc2t5X2NvbG9yAHeo/wMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAP3bkCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aD7mZmYFAAt0ZW1wZXJhdHVyZT9zMzMFAAVzY2FsZT6ZmZoFAAhkb3duZmFsbD9mZmYIAAhjYXRlZ29yeQAGanVuZ2xlAAAIAARuYW1lABVtaW5lY3JhZnQ6anVuZ2xlX2VkZ2UDAAJpZAAAABcKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEcmFpbgoAB2VmZmVjdHMDAAlza3lfY29sb3IAd6j/AwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRoPczMzQUAC3RlbXBlcmF0dXJlP3MzMwUABXNjYWxlPkzMzQUACGRvd25mYWxsP0zMzQgACGNhdGVnb3J5AAZqdW5nbGUAAAgABG5hbWUAFG1pbmVjcmFmdDpkZWVwX29jZWFuAwACaWQAAAAYCgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABHJhaW4KAAdlZmZlY3RzAwAJc2t5X2NvbG9yAHuk/wMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAP3bkCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aL/mZmYFAAt0ZW1wZXJhdHVyZT8AAAAFAAVzY2FsZT3MzM0FAAhkb3duZmFsbD8AAAAIAAhjYXRlZ29yeQAFb2NlYW4AAAgABG5hbWUAFW1pbmVjcmFmdDpzdG9uZV9zaG9yZQMAAmlkAAAAGQoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARyYWluCgAHZWZmZWN0cwMACXNreV9jb2xvcgB9ov8DAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGg9zMzNBQALdGVtcGVyYXR1cmU+TMzNBQAFc2NhbGU/TMzNBQAIZG93bmZhbGw+mZmaCAAIY2F0ZWdvcnkABG5vbmUAAAgABG5hbWUAFW1pbmVjcmFmdDpzbm93eV9iZWFjaAMAAmlkAAAAGgoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARzbm93CgAHZWZmZWN0cwMACXNreV9jb2xvcgB/of8DAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAD1X1goACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGgAAAAABQALdGVtcGVyYXR1cmU9TMzNBQAFc2NhbGU8zMzNBQAIZG93bmZhbGw+mZmaCAAIY2F0ZWdvcnkABWJlYWNoAAAIAARuYW1lABZtaW5lY3JhZnQ6YmlyY2hfZm9yZXN0AwACaWQAAAAbCgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABHJhaW4KAAdlZmZlY3RzAwAJc2t5X2NvbG9yAHql/wMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAP3bkCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aD3MzM0FAAt0ZW1wZXJhdHVyZT8ZmZoFAAVzY2FsZT5MzM0FAAhkb3duZmFsbD8ZmZoIAAhjYXRlZ29yeQAGZm9yZXN0AAAIAARuYW1lABxtaW5lY3JhZnQ6YmlyY2hfZm9yZXN0X2hpbGxzAwACaWQAAAAcCgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABHJhaW4KAAdlZmZlY3RzAwAJc2t5X2NvbG9yAHql/wMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAP3bkCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aD7mZmYFAAt0ZW1wZXJhdHVyZT8ZmZoFAAVzY2FsZT6ZmZoFAAhkb3duZmFsbD8ZmZoIAAhjYXRlZ29yeQAGZm9yZXN0AAAIAARuYW1lABVtaW5lY3JhZnQ6ZGFya19mb3Jlc3QDAAJpZAAAAB0KAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEcmFpbgoAB2VmZmVjdHMIABRncmFzc19jb2xvcl9tb2RpZmllcgALZGFya19mb3Jlc3QDAAlza3lfY29sb3IAeab/AwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRoPczMzQUAC3RlbXBlcmF0dXJlPzMzMwUABXNjYWxlPkzMzQUACGRvd25mYWxsP0zMzQgACGNhdGVnb3J5AAZmb3Jlc3QAAAgABG5hbWUAFW1pbmVjcmFmdDpzbm93eV90YWlnYQMAAmlkAAAAHgoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARzbm93CgAHZWZmZWN0cwMACXNreV9jb2xvcgCDnv8DAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAD1X1goACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGg+TMzNBQALdGVtcGVyYXR1cmW/AAAABQAFc2NhbGU+TMzNBQAIZG93bmZhbGw+zMzNCAAIY2F0ZWdvcnkABXRhaWdhAAAIAARuYW1lABttaW5lY3JhZnQ6c25vd3lfdGFpZ2FfaGlsbHMDAAJpZAAAAB8KAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEc25vdwoAB2VmZmVjdHMDAAlza3lfY29sb3IAg57/AwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA9V9YKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRoPuZmZgUAC3RlbXBlcmF0dXJlvwAAAAUABXNjYWxlPpmZmgUACGRvd25mYWxsPszMzQgACGNhdGVnb3J5AAV0YWlnYQAACAAEbmFtZQAabWluZWNyYWZ0OmdpYW50X3RyZWVfdGFpZ2EDAAJpZAAAACAKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEcmFpbgoAB2VmZmVjdHMDAAlza3lfY29sb3IAfKP/AwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRoPkzMzQUAC3RlbXBlcmF0dXJlPpmZmgUABXNjYWxlPkzMzQUACGRvd25mYWxsP0zMzQgACGNhdGVnb3J5AAV0YWlnYQAACAAEbmFtZQAgbWluZWNyYWZ0OmdpYW50X3RyZWVfdGFpZ2FfaGlsbHMDAAJpZAAAACEKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEcmFpbgoAB2VmZmVjdHMDAAlza3lfY29sb3IAfKP/AwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRoPuZmZgUAC3RlbXBlcmF0dXJlPpmZmgUABXNjYWxlPpmZmgUACGRvd25mYWxsP0zMzQgACGNhdGVnb3J5AAV0YWlnYQAACAAEbmFtZQAabWluZWNyYWZ0Ondvb2RlZF9tb3VudGFpbnMDAAJpZAAAACIKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEcmFpbgoAB2VmZmVjdHMDAAlza3lfY29sb3IAfaL/AwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRoP4AAAAUAC3RlbXBlcmF0dXJlPkzMzQUABXNjYWxlPwAAAAUACGRvd25mYWxsPpmZmggACGNhdGVnb3J5AA1leHRyZW1lX2hpbGxzAAAIAARuYW1lABFtaW5lY3JhZnQ6c2F2YW5uYQMAAmlkAAAAIwoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARub25lCgAHZWZmZWN0cwMACXNreV9jb2xvcgB1qv8DAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGg+AAAABQALdGVtcGVyYXR1cmU/mZmaBQAFc2NhbGU9TMzNBQAIZG93bmZhbGwAAAAACAAIY2F0ZWdvcnkAB3NhdmFubmEAAAgABG5hbWUAGW1pbmVjcmFmdDpzYXZhbm5hX3BsYXRlYXUDAAJpZAAAACQKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEbm9uZQoAB2VmZmVjdHMDAAlza3lfY29sb3IAdqj/AwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRoP8AAAAUAC3RlbXBlcmF0dXJlP4AAAAUABXNjYWxlPMzMzQUACGRvd25mYWxsAAAAAAgACGNhdGVnb3J5AAdzYXZhbm5hAAAIAARuYW1lABJtaW5lY3JhZnQ6YmFkbGFuZHMDAAJpZAAAACUKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEbm9uZQoAB2VmZmVjdHMDAAlza3lfY29sb3IAbrH/AwALZ3Jhc3NfY29sb3IAkIFNAwANZm9saWFnZV9jb2xvcgCegU0DAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGg9zMzNBQALdGVtcGVyYXR1cmVAAAAABQAFc2NhbGU+TMzNBQAIZG93bmZhbGwAAAAACAAIY2F0ZWdvcnkABG1lc2EAAAgABG5hbWUAIW1pbmVjcmFmdDp3b29kZWRfYmFkbGFuZHNfcGxhdGVhdQMAAmlkAAAAJgoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARub25lCgAHZWZmZWN0cwMACXNreV9jb2xvcgBusf8DAAtncmFzc19jb2xvcgCQgU0DAA1mb2xpYWdlX2NvbG9yAJ6BTQMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAP3bkCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aD/AAAAFAAt0ZW1wZXJhdHVyZUAAAAAFAAVzY2FsZTzMzM0FAAhkb3duZmFsbAAAAAAIAAhjYXRlZ29yeQAEbWVzYQAACAAEbmFtZQAabWluZWNyYWZ0OmJhZGxhbmRzX3BsYXRlYXUDAAJpZAAAACcKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEbm9uZQoAB2VmZmVjdHMDAAlza3lfY29sb3IAbrH/AwALZ3Jhc3NfY29sb3IAkIFNAwANZm9saWFnZV9jb2xvcgCegU0DAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGg/wAAABQALdGVtcGVyYXR1cmVAAAAABQAFc2NhbGU8zMzNBQAIZG93bmZhbGwAAAAACAAIY2F0ZWdvcnkABG1lc2EAAAgABG5hbWUAG21pbmVjcmFmdDpzbWFsbF9lbmRfaXNsYW5kcwMAAmlkAAAAKAoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARub25lCgAHZWZmZWN0cwMACXNreV9jb2xvcgAAAAADAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAKCAoAMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGg9zMzNBQALdGVtcGVyYXR1cmU/AAAABQAFc2NhbGU+TMzNBQAIZG93bmZhbGw/AAAACAAIY2F0ZWdvcnkAB3RoZV9lbmQAAAgABG5hbWUAFm1pbmVjcmFmdDplbmRfbWlkbGFuZHMDAAJpZAAAACkKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEbm9uZQoAB2VmZmVjdHMDAAlza3lfY29sb3IAAAAAAwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgCggKADAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRoPczMzQUAC3RlbXBlcmF0dXJlPwAAAAUABXNjYWxlPkzMzQUACGRvd25mYWxsPwAAAAgACGNhdGVnb3J5AAd0aGVfZW5kAAAIAARuYW1lABdtaW5lY3JhZnQ6ZW5kX2hpZ2hsYW5kcwMAAmlkAAAAKgoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARub25lCgAHZWZmZWN0cwMACXNreV9jb2xvcgAAAAADAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAKCAoAMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGg9zMzNBQALdGVtcGVyYXR1cmU/AAAABQAFc2NhbGU+TMzNBQAIZG93bmZhbGw/AAAACAAIY2F0ZWdvcnkAB3RoZV9lbmQAAAgABG5hbWUAFW1pbmVjcmFmdDplbmRfYmFycmVucwMAAmlkAAAAKwoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARub25lCgAHZWZmZWN0cwMACXNreV9jb2xvcgAAAAADAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAKCAoAMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGg9zMzNBQALdGVtcGVyYXR1cmU/AAAABQAFc2NhbGU+TMzNBQAIZG93bmZhbGw/AAAACAAIY2F0ZWdvcnkAB3RoZV9lbmQAAAgABG5hbWUAFG1pbmVjcmFmdDp3YXJtX29jZWFuAwACaWQAAAAsCgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABHJhaW4KAAdlZmZlY3RzAwAJc2t5X2NvbG9yAHuk/wMAD3dhdGVyX2ZvZ19jb2xvcgAEHzMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAQ9XuCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aL+AAAAFAAt0ZW1wZXJhdHVyZT8AAAAFAAVzY2FsZT3MzM0FAAhkb3duZmFsbD8AAAAIAAhjYXRlZ29yeQAFb2NlYW4AAAgABG5hbWUAGG1pbmVjcmFmdDpsdWtld2FybV9vY2VhbgMAAmlkAAAALQoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARyYWluCgAHZWZmZWN0cwMACXNreV9jb2xvcgB7pP8DAA93YXRlcl9mb2dfY29sb3IABBYzAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAEWt8goACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGi/gAAABQALdGVtcGVyYXR1cmU/AAAABQAFc2NhbGU9zMzNBQAIZG93bmZhbGw/AAAACAAIY2F0ZWdvcnkABW9jZWFuAAAIAARuYW1lABRtaW5lY3JhZnQ6Y29sZF9vY2VhbgMAAmlkAAAALgoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARyYWluCgAHZWZmZWN0cwMACXNreV9jb2xvcgB7pP8DAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAD1X1goACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGi/gAAABQALdGVtcGVyYXR1cmU/AAAABQAFc2NhbGU9zMzNBQAIZG93bmZhbGw/AAAACAAIY2F0ZWdvcnkABW9jZWFuAAAIAARuYW1lABltaW5lY3JhZnQ6ZGVlcF93YXJtX29jZWFuAwACaWQAAAAvCgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABHJhaW4KAAdlZmZlY3RzAwAJc2t5X2NvbG9yAHuk/wMAD3dhdGVyX2ZvZ19jb2xvcgAEHzMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAQ9XuCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aL/mZmYFAAt0ZW1wZXJhdHVyZT8AAAAFAAVzY2FsZT3MzM0FAAhkb3duZmFsbD8AAAAIAAhjYXRlZ29yeQAFb2NlYW4AAAgABG5hbWUAHW1pbmVjcmFmdDpkZWVwX2x1a2V3YXJtX29jZWFuAwACaWQAAAAwCgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABHJhaW4KAAdlZmZlY3RzAwAJc2t5X2NvbG9yAHuk/wMAD3dhdGVyX2ZvZ19jb2xvcgAEFjMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IARa3yCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aL/mZmYFAAt0ZW1wZXJhdHVyZT8AAAAFAAVzY2FsZT3MzM0FAAhkb3duZmFsbD8AAAAIAAhjYXRlZ29yeQAFb2NlYW4AAAgABG5hbWUAGW1pbmVjcmFmdDpkZWVwX2NvbGRfb2NlYW4DAAJpZAAAADEKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEcmFpbgoAB2VmZmVjdHMDAAlza3lfY29sb3IAe6T/AwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA9V9YKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRov+ZmZgUAC3RlbXBlcmF0dXJlPwAAAAUABXNjYWxlPczMzQUACGRvd25mYWxsPwAAAAgACGNhdGVnb3J5AAVvY2VhbgAACAAEbmFtZQAbbWluZWNyYWZ0OmRlZXBfZnJvemVuX29jZWFuAwACaWQAAAAyCgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABHJhaW4KAAdlZmZlY3RzAwAJc2t5X2NvbG9yAHuk/wMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAOTjJCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aL/mZmYFAAt0ZW1wZXJhdHVyZT8AAAAFAAVzY2FsZT3MzM0FAAhkb3duZmFsbD8AAAAIAAhjYXRlZ29yeQAFb2NlYW4IABR0ZW1wZXJhdHVyZV9tb2RpZmllcgAGZnJvemVuAAAIAARuYW1lABJtaW5lY3JhZnQ6dGhlX3ZvaWQDAAJpZAAAAH8KAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEbm9uZQoAB2VmZmVjdHMDAAlza3lfY29sb3IAe6T/AwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRoPczMzQUAC3RlbXBlcmF0dXJlPwAAAAUABXNjYWxlPkzMzQUACGRvd25mYWxsPwAAAAgACGNhdGVnb3J5AARub25lAAAIAARuYW1lABptaW5lY3JhZnQ6c3VuZmxvd2VyX3BsYWlucwMAAmlkAAAAgQoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARyYWluCgAHZWZmZWN0cwMACXNreV9jb2xvcgB4p/8DAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGg+AAAABQALdGVtcGVyYXR1cmU/TMzNBQAFc2NhbGU9TMzNBQAIZG93bmZhbGw+zMzNCAAIY2F0ZWdvcnkABnBsYWlucwAACAAEbmFtZQAWbWluZWNyYWZ0OmRlc2VydF9sYWtlcwMAAmlkAAAAggoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARub25lCgAHZWZmZWN0cwMACXNreV9jb2xvcgBusf8DAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGg+ZmZmBQALdGVtcGVyYXR1cmVAAAAABQAFc2NhbGU+gAAABQAIZG93bmZhbGwAAAAACAAIY2F0ZWdvcnkABmRlc2VydAAACAAEbmFtZQAcbWluZWNyYWZ0OmdyYXZlbGx5X21vdW50YWlucwMAAmlkAAAAgwoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARyYWluCgAHZWZmZWN0cwMACXNreV9jb2xvcgB9ov8DAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGg/gAAABQALdGVtcGVyYXR1cmU+TMzNBQAFc2NhbGU/AAAABQAIZG93bmZhbGw+mZmaCAAIY2F0ZWdvcnkADWV4dHJlbWVfaGlsbHMAAAgABG5hbWUAF21pbmVjcmFmdDpmbG93ZXJfZm9yZXN0AwACaWQAAACECgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABHJhaW4KAAdlZmZlY3RzAwAJc2t5X2NvbG9yAHmm/wMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAP3bkCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aD3MzM0FAAt0ZW1wZXJhdHVyZT8zMzMFAAVzY2FsZT7MzM0FAAhkb3duZmFsbD9MzM0IAAhjYXRlZ29yeQAGZm9yZXN0AAAIAARuYW1lABltaW5lY3JhZnQ6dGFpZ2FfbW91bnRhaW5zAwACaWQAAACFCgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABHJhaW4KAAdlZmZlY3RzAwAJc2t5X2NvbG9yAH2j/wMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAP3bkCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aD6ZmZoFAAt0ZW1wZXJhdHVyZT6AAAAFAAVzY2FsZT7MzM0FAAhkb3duZmFsbD9MzM0IAAhjYXRlZ29yeQAFdGFpZ2EAAAgABG5hbWUAFW1pbmVjcmFmdDpzd2FtcF9oaWxscwMAAmlkAAAAhgoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARyYWluCgAHZWZmZWN0cwgAFGdyYXNzX2NvbG9yX21vZGlmaWVyAAVzd2FtcAMACXNreV9jb2xvcgB4p/8DAA1mb2xpYWdlX2NvbG9yAGpwOQMAD3dhdGVyX2ZvZ19jb2xvcgAjIxcDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAYXtkCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aL3MzM0FAAt0ZW1wZXJhdHVyZT9MzM0FAAVzY2FsZT6ZmZoFAAhkb3duZmFsbD9mZmYIAAhjYXRlZ29yeQAFc3dhbXAAAAgABG5hbWUAFG1pbmVjcmFmdDppY2Vfc3Bpa2VzAwACaWQAAACMCgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABHNub3cKAAdlZmZlY3RzAwAJc2t5X2NvbG9yAH+h/wMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAP3bkCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aD7ZmZoFAAt0ZW1wZXJhdHVyZQAAAAAFAAVzY2FsZT7mZmcFAAhkb3duZmFsbD8AAAAIAAhjYXRlZ29yeQADaWN5AAAIAARuYW1lABltaW5lY3JhZnQ6bW9kaWZpZWRfanVuZ2xlAwACaWQAAACVCgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABHJhaW4KAAdlZmZlY3RzAwAJc2t5X2NvbG9yAHeo/wMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAP3bkCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aD5MzM0FAAt0ZW1wZXJhdHVyZT9zMzMFAAVzY2FsZT7MzM0FAAhkb3duZmFsbD9mZmYIAAhjYXRlZ29yeQAGanVuZ2xlAAAIAARuYW1lAB5taW5lY3JhZnQ6bW9kaWZpZWRfanVuZ2xlX2VkZ2UDAAJpZAAAAJcKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEcmFpbgoAB2VmZmVjdHMDAAlza3lfY29sb3IAd6j/AwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRoPkzMzQUAC3RlbXBlcmF0dXJlP3MzMwUABXNjYWxlPszMzQUACGRvd25mYWxsP0zMzQgACGNhdGVnb3J5AAZqdW5nbGUAAAgABG5hbWUAG21pbmVjcmFmdDp0YWxsX2JpcmNoX2ZvcmVzdAMAAmlkAAAAmwoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARyYWluCgAHZWZmZWN0cwMACXNreV9jb2xvcgB6pf8DAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGg+TMzNBQALdGVtcGVyYXR1cmU/GZmaBQAFc2NhbGU+zMzNBQAIZG93bmZhbGw/GZmaCAAIY2F0ZWdvcnkABmZvcmVzdAAACAAEbmFtZQAabWluZWNyYWZ0OnRhbGxfYmlyY2hfaGlsbHMDAAJpZAAAAJwKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEcmFpbgoAB2VmZmVjdHMDAAlza3lfY29sb3IAeqX/AwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRoPwzMzQUAC3RlbXBlcmF0dXJlPxmZmgUABXNjYWxlPwAAAAUACGRvd25mYWxsPxmZmggACGNhdGVnb3J5AAZmb3Jlc3QAAAgABG5hbWUAG21pbmVjcmFmdDpkYXJrX2ZvcmVzdF9oaWxscwMAAmlkAAAAnQoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARyYWluCgAHZWZmZWN0cwgAFGdyYXNzX2NvbG9yX21vZGlmaWVyAAtkYXJrX2ZvcmVzdAMACXNreV9jb2xvcgB5pv8DAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGg+TMzNBQALdGVtcGVyYXR1cmU/MzMzBQAFc2NhbGU+zMzNBQAIZG93bmZhbGw/TMzNCAAIY2F0ZWdvcnkABmZvcmVzdAAACAAEbmFtZQAfbWluZWNyYWZ0OnNub3d5X3RhaWdhX21vdW50YWlucwMAAmlkAAAAngoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARzbm93CgAHZWZmZWN0cwMACXNreV9jb2xvcgCDnv8DAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAD1X1goACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGg+mZmaBQALdGVtcGVyYXR1cmW/AAAABQAFc2NhbGU+zMzNBQAIZG93bmZhbGw+zMzNCAAIY2F0ZWdvcnkABXRhaWdhAAAIAARuYW1lABxtaW5lY3JhZnQ6Z2lhbnRfc3BydWNlX3RhaWdhAwACaWQAAACgCgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABHJhaW4KAAdlZmZlY3RzAwAJc2t5X2NvbG9yAH2j/wMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAP3bkCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aD5MzM0FAAt0ZW1wZXJhdHVyZT6AAAAFAAVzY2FsZT5MzM0FAAhkb3duZmFsbD9MzM0IAAhjYXRlZ29yeQAFdGFpZ2EAAAgABG5hbWUAIm1pbmVjcmFmdDpnaWFudF9zcHJ1Y2VfdGFpZ2FfaGlsbHMDAAJpZAAAAKEKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEcmFpbgoAB2VmZmVjdHMDAAlza3lfY29sb3IAfaP/AwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRoPkzMzQUAC3RlbXBlcmF0dXJlPoAAAAUABXNjYWxlPkzMzQUACGRvd25mYWxsP0zMzQgACGNhdGVnb3J5AAV0YWlnYQAACAAEbmFtZQAlbWluZWNyYWZ0Om1vZGlmaWVkX2dyYXZlbGx5X21vdW50YWlucwMAAmlkAAAAogoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARyYWluCgAHZWZmZWN0cwMACXNreV9jb2xvcgB9ov8DAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGg/gAAABQALdGVtcGVyYXR1cmU+TMzNBQAFc2NhbGU/AAAABQAIZG93bmZhbGw+mZmaCAAIY2F0ZWdvcnkADWV4dHJlbWVfaGlsbHMAAAgABG5hbWUAG21pbmVjcmFmdDpzaGF0dGVyZWRfc2F2YW5uYQMAAmlkAAAAowoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARub25lCgAHZWZmZWN0cwMACXNreV9jb2xvcgB2qf8DAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yAMDY/wMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAFm1pbmVjcmFmdDphbWJpZW50LmNhdmUDABNibG9ja19zZWFyY2hfZXh0ZW50AAAACAAABQAFZGVwdGg+uZmaBQALdGVtcGVyYXR1cmU/jMzNBQAFc2NhbGU/nMzNBQAIZG93bmZhbGwAAAAACAAIY2F0ZWdvcnkAB3NhdmFubmEAAAgABG5hbWUAI21pbmVjcmFmdDpzaGF0dGVyZWRfc2F2YW5uYV9wbGF0ZWF1AwACaWQAAACkCgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABG5vbmUKAAdlZmZlY3RzAwAJc2t5X2NvbG9yAHao/wMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAP3bkCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aD+GZmYFAAt0ZW1wZXJhdHVyZT+AAAAFAAVzY2FsZT+bMzQFAAhkb3duZmFsbAAAAAAIAAhjYXRlZ29yeQAHc2F2YW5uYQAACAAEbmFtZQAZbWluZWNyYWZ0OmVyb2RlZF9iYWRsYW5kcwMAAmlkAAAApQoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARub25lCgAHZWZmZWN0cwMACXNreV9jb2xvcgBusf8DAAtncmFzc19jb2xvcgCQgU0DAA1mb2xpYWdlX2NvbG9yAJ6BTQMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAP3bkCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aD3MzM0FAAt0ZW1wZXJhdHVyZUAAAAAFAAVzY2FsZT5MzM0FAAhkb3duZmFsbAAAAAAIAAhjYXRlZ29yeQAEbWVzYQAACAAEbmFtZQAqbWluZWNyYWZ0Om1vZGlmaWVkX3dvb2RlZF9iYWRsYW5kc19wbGF0ZWF1AwACaWQAAACmCgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABG5vbmUKAAdlZmZlY3RzAwAJc2t5X2NvbG9yAG6x/wMAC2dyYXNzX2NvbG9yAJCBTQMADWZvbGlhZ2VfY29sb3IAnoFNAwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRoPuZmZgUAC3RlbXBlcmF0dXJlQAAAAAUABXNjYWxlPpmZmgUACGRvd25mYWxsAAAAAAgACGNhdGVnb3J5AARtZXNhAAAIAARuYW1lACNtaW5lY3JhZnQ6bW9kaWZpZWRfYmFkbGFuZHNfcGxhdGVhdQMAAmlkAAAApwoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARub25lCgAHZWZmZWN0cwMACXNreV9jb2xvcgBusf8DAAtncmFzc19jb2xvcgCQgU0DAA1mb2xpYWdlX2NvbG9yAJ6BTQMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAP3bkCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aD7mZmYFAAt0ZW1wZXJhdHVyZUAAAAAFAAVzY2FsZT6ZmZoFAAhkb3duZmFsbAAAAAAIAAhjYXRlZ29yeQAEbWVzYQAACAAEbmFtZQAXbWluZWNyYWZ0OmJhbWJvb19qdW5nbGUDAAJpZAAAAKgKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEcmFpbgoAB2VmZmVjdHMDAAlza3lfY29sb3IAd6j/AwAPd2F0ZXJfZm9nX2NvbG9yAAUFMwMACWZvZ19jb2xvcgDA2P8DAAt3YXRlcl9jb2xvcgA/duQKAAptb29kX3NvdW5kAwAKdGlja19kZWxheQAAF3AGAAZvZmZzZXRAAAAAAAAAAAgABXNvdW5kABZtaW5lY3JhZnQ6YW1iaWVudC5jYXZlAwATYmxvY2tfc2VhcmNoX2V4dGVudAAAAAgAAAUABWRlcHRoPczMzQUAC3RlbXBlcmF0dXJlP3MzMwUABXNjYWxlPkzMzQUACGRvd25mYWxsP2ZmZggACGNhdGVnb3J5AAZqdW5nbGUAAAgABG5hbWUAHW1pbmVjcmFmdDpiYW1ib29fanVuZ2xlX2hpbGxzAwACaWQAAACpCgAHZWxlbWVudAgADXByZWNpcGl0YXRpb24ABHJhaW4KAAdlZmZlY3RzAwAJc2t5X2NvbG9yAHeo/wMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAwNj/AwALd2F0ZXJfY29sb3IAP3bkCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAWbWluZWNyYWZ0OmFtYmllbnQuY2F2ZQMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aD7mZmYFAAt0ZW1wZXJhdHVyZT9zMzMFAAVzY2FsZT6ZmZoFAAhkb3duZmFsbD9mZmYIAAhjYXRlZ29yeQAGanVuZ2xlAAAIAARuYW1lABptaW5lY3JhZnQ6c291bF9zYW5kX3ZhbGxleQMAAmlkAAAAqgoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARub25lCgAHZWZmZWN0cwoABW11c2ljAQAVcmVwbGFjZV9jdXJyZW50X211c2ljAAMACW1heF9kZWxheQAAXcAIAAVzb3VuZAAnbWluZWNyYWZ0Om11c2ljLm5ldGhlci5zb3VsX3NhbmRfdmFsbGV5AwAJbWluX2RlbGF5AAAu4AADAAlza3lfY29sb3IAbrH/CAANYW1iaWVudF9zb3VuZAAnbWluZWNyYWZ0OmFtYmllbnQuc291bF9zYW5kX3ZhbGxleS5sb29wCgAPYWRkaXRpb25zX3NvdW5kCAAFc291bmQALG1pbmVjcmFmdDphbWJpZW50LnNvdWxfc2FuZF92YWxsZXkuYWRkaXRpb25zBgALdGlja19jaGFuY2U/hruYx+KCQQAKAAhwYXJ0aWNsZQUAC3Byb2JhYmlsaXR5O8zMzQoAB29wdGlvbnMIAAR0eXBlAA1taW5lY3JhZnQ6YXNoAAADAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yABtHRQMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAJ21pbmVjcmFmdDphbWJpZW50LnNvdWxfc2FuZF92YWxsZXkubW9vZAMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aD3MzM0FAAt0ZW1wZXJhdHVyZUAAAAAFAAVzY2FsZT5MzM0FAAhkb3duZmFsbAAAAAAIAAhjYXRlZ29yeQAGbmV0aGVyAAAIAARuYW1lABhtaW5lY3JhZnQ6Y3JpbXNvbl9mb3Jlc3QDAAJpZAAAAKsKAAdlbGVtZW50CAANcHJlY2lwaXRhdGlvbgAEbm9uZQoAB2VmZmVjdHMKAAVtdXNpYwEAFXJlcGxhY2VfY3VycmVudF9tdXNpYwADAAltYXhfZGVsYXkAAF3ACAAFc291bmQAJW1pbmVjcmFmdDptdXNpYy5uZXRoZXIuY3JpbXNvbl9mb3Jlc3QDAAltaW5fZGVsYXkAAC7gAAMACXNreV9jb2xvcgBusf8IAA1hbWJpZW50X3NvdW5kACVtaW5lY3JhZnQ6YW1iaWVudC5jcmltc29uX2ZvcmVzdC5sb29wCgAPYWRkaXRpb25zX3NvdW5kCAAFc291bmQAKm1pbmVjcmFmdDphbWJpZW50LmNyaW1zb25fZm9yZXN0LmFkZGl0aW9ucwYAC3RpY2tfY2hhbmNlP4a7mMfigkEACgAIcGFydGljbGUFAAtwcm9iYWJpbGl0eTzMzM0KAAdvcHRpb25zCAAEdHlwZQAXbWluZWNyYWZ0OmNyaW1zb25fc3BvcmUAAAMAD3dhdGVyX2ZvZ19jb2xvcgAFBTMDAAlmb2dfY29sb3IAMwMDAwALd2F0ZXJfY29sb3IAP3bkCgAKbW9vZF9zb3VuZAMACnRpY2tfZGVsYXkAABdwBgAGb2Zmc2V0QAAAAAAAAAAIAAVzb3VuZAAlbWluZWNyYWZ0OmFtYmllbnQuY3JpbXNvbl9mb3Jlc3QubW9vZAMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aD3MzM0FAAt0ZW1wZXJhdHVyZUAAAAAFAAVzY2FsZT5MzM0FAAhkb3duZmFsbAAAAAAIAAhjYXRlZ29yeQAGbmV0aGVyAAAIAARuYW1lABdtaW5lY3JhZnQ6d2FycGVkX2ZvcmVzdAMAAmlkAAAArAoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARub25lCgAHZWZmZWN0cwoABW11c2ljAQAVcmVwbGFjZV9jdXJyZW50X211c2ljAAMACW1heF9kZWxheQAAXcAIAAVzb3VuZAAkbWluZWNyYWZ0Om11c2ljLm5ldGhlci53YXJwZWRfZm9yZXN0AwAJbWluX2RlbGF5AAAu4AADAAlza3lfY29sb3IAbrH/CAANYW1iaWVudF9zb3VuZAAkbWluZWNyYWZ0OmFtYmllbnQud2FycGVkX2ZvcmVzdC5sb29wCgAPYWRkaXRpb25zX3NvdW5kCAAFc291bmQAKW1pbmVjcmFmdDphbWJpZW50LndhcnBlZF9mb3Jlc3QuYWRkaXRpb25zBgALdGlja19jaGFuY2U/hruYx+KCQQAKAAhwYXJ0aWNsZQUAC3Byb2JhYmlsaXR5PGn2qQoAB29wdGlvbnMIAAR0eXBlABZtaW5lY3JhZnQ6d2FycGVkX3Nwb3JlAAADAA93YXRlcl9mb2dfY29sb3IABQUzAwAJZm9nX2NvbG9yABoFGgMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAJG1pbmVjcmFmdDphbWJpZW50LndhcnBlZF9mb3Jlc3QubW9vZAMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aD3MzM0FAAt0ZW1wZXJhdHVyZUAAAAAFAAVzY2FsZT5MzM0FAAhkb3duZmFsbAAAAAAIAAhjYXRlZ29yeQAGbmV0aGVyAAAIAARuYW1lABdtaW5lY3JhZnQ6YmFzYWx0X2RlbHRhcwMAAmlkAAAArQoAB2VsZW1lbnQIAA1wcmVjaXBpdGF0aW9uAARub25lCgAHZWZmZWN0cwoABW11c2ljAQAVcmVwbGFjZV9jdXJyZW50X211c2ljAAMACW1heF9kZWxheQAAXcAIAAVzb3VuZAAkbWluZWNyYWZ0Om11c2ljLm5ldGhlci5iYXNhbHRfZGVsdGFzAwAJbWluX2RlbGF5AAAu4AADAAlza3lfY29sb3IAbrH/CAANYW1iaWVudF9zb3VuZAAkbWluZWNyYWZ0OmFtYmllbnQuYmFzYWx0X2RlbHRhcy5sb29wCgAPYWRkaXRpb25zX3NvdW5kCAAFc291bmQAKW1pbmVjcmFmdDphbWJpZW50LmJhc2FsdF9kZWx0YXMuYWRkaXRpb25zBgALdGlja19jaGFuY2U/hruYx+KCQQAKAAhwYXJ0aWNsZQUAC3Byb2JhYmlsaXR5PfHa6woAB29wdGlvbnMIAAR0eXBlABNtaW5lY3JhZnQ6d2hpdGVfYXNoAAADAA93YXRlcl9mb2dfY29sb3IAQj5CAwAJZm9nX2NvbG9yAGhfcAMAC3dhdGVyX2NvbG9yAD925AoACm1vb2Rfc291bmQDAAp0aWNrX2RlbGF5AAAXcAYABm9mZnNldEAAAAAAAAAACAAFc291bmQAJG1pbmVjcmFmdDphbWJpZW50LmJhc2FsdF9kZWx0YXMubW9vZAMAE2Jsb2NrX3NlYXJjaF9leHRlbnQAAAAIAAAFAAVkZXB0aD3MzM0FAAt0ZW1wZXJhdHVyZUAAAAAFAAVzY2FsZT5MzM0FAAhkb3duZmFsbAAAAAAIAAhjYXRlZ29yeQAGbmV0aGVyAAAAAA==");
 
 				//$player->bigBrother_getDimensionPEToPC($packet->generator);
-				$pk->worldName = "minecraft:overworld";//TODO: dimensionとセットなのでここを更新するときはそれ用のdimension.datを手に入れる必要がある
+				$pk->worldName = "minecraft:world";//TODO: dimensionとセットなのでここを更新するときはそれ用のdimension.datを手に入れる必要がある
 				$pk->hashedSeed = 0;
-				$pk->maxPlayers = $player->getServer()->getMaxPlayers();
-				$pk->viewDistance = 4;//default view Distance is 2 * 2.
+				$pk->maxPlayers = Server::getInstance()->getMaxPlayers();
+				$pk->viewDistance = 4;
 				$pk->enableRespawnScreen = true;
 				$packets[] = $pk;
 
@@ -1054,28 +695,24 @@ class Translator{
 				$pk->data[] = "BigBrother";//displayed "BigBrother" server on debug mode
 				$packets[] = $pk;
 
-				$pk = new ServerDifficultyPacket();
-				$pk->difficulty = $packet->difficulty;
-				$packets[] = $pk;
-
 				$pk = new SpawnPositionPacket();
-				$pk->x = $packet->spawnX;
-				$pk->y = $packet->spawnY;
-				$pk->z = $packet->spawnZ;
+				$pk->x = (int) $packet->playerPosition->x;
+				$pk->y = (int) $packet->playerPosition->y;
+				$pk->z = (int) $packet->playerPosition->z;
 				$packets[] = $pk;
 
 				$pk = new UpdateViewPositionPacket();
-				$pk->chunkX = $player->getX() >> 4;
-				$pk->chunkZ = $player->getZ() >> 4;
+				$pk->chunkX = $packet->playerPosition->x >> 4;
+				$pk->chunkZ = $packet->playerPosition->z >> 4;
 				$packets[] = $pk;
 
 				$pk = new PlayerAbilitiesPacket();
 				$pk->flyingSpeed = 0.05;
 				$pk->viewModifierField = 0.1;
-				$pk->canFly = ($player->getGamemode() & 0x01) > 0;
-				$pk->damageDisabled = ($player->getGamemode() & 0x01) > 0;
+				$pk->canFly = ($packet->playerGamemode & 0x01) > 0;
+				$pk->damageDisabled = ($packet->playerGamemode & 0x01) > 0;
 				$pk->isFlying = false;
-				$pk->isCreative = ($player->getGamemode() & 0x01) > 0;
+				$pk->isCreative = ($packet->playerGamemode & 0x01) > 0;
 				$packets[] = $pk;
 
 				return $packets;
@@ -1085,8 +722,8 @@ class Translator{
 				$packets = [];
 
 				$pk = new SpawnPlayerPacket();
-				$pk->entityId = $packet->entityRuntimeId;
-				$pk->uuid = $packet->uuid->toBinary();
+				$pk->entityId = $packet->actorRuntimeId;
+				$pk->uuid = $packet->uuid->getBytes();
 				$pk->x = $packet->position->x;
 				$pk->y = $packet->position->y;
 				$pk->z = $packet->position->z;
@@ -1094,13 +731,8 @@ class Translator{
 				$pk->pitch = $packet->pitch;
 				$packets[] = $pk;
 
-				$pk = new EntityMetadataPacket();
-				$pk->entityId = $packet->entityRuntimeId;
-				$pk->metadata = $packet->metadata;
-				$packets[] = $pk;
-
 				$pk = new EntityTeleportPacket();
-				$pk->entityId = $packet->entityRuntimeId;
+				$pk->entityId = $packet->actorRuntimeId;
 				$pk->x = $packet->position->x;
 				$pk->y = $packet->position->y;
 				$pk->z = $packet->position->z;
@@ -1109,373 +741,19 @@ class Translator{
 				$packets[] = $pk;
 
 				$pk = new EntityEquipmentPacket();
-				$pk->entityId = $packet->entityRuntimeId;
+				$pk->entityId = $packet->actorRuntimeId;
 				$pk->slot = 0;//main hand
 				$pk->item = $packet->item->getItemStack();
 				$packets[] = $pk;
 
 				$pk = new EntityHeadLookPacket();
-				$pk->entityId = $packet->entityRuntimeId;
+				$pk->entityId = $packet->actorRuntimeId;
 				$pk->yaw = $packet->yaw;
 				$packets[] = $pk;
 
-				$playerData = null;
-				$loggedInPlayers = $player->getServer()->getLoggedInPlayers();
-				if(isset($loggedInPlayers[$packet->uuid->toBinary()])){
-					$playerData = $loggedInPlayers[$packet->uuid->toBinary()];
-				}
-
-				$skinFlags = 0x7f;//enabled all flags
-				if($playerData instanceof DesktopPlayer){
-					if(isset($playerData->bigBrother_getClientSetting()["SkinSettings"])){
-						$skinFlags = $playerData->bigBrother_getClientSetting()["SkinSettings"];
-					}
-				}
-
-				$pk = new EntityMetadataPacket();
-				$pk->entityId = $packet->entityRuntimeId;
-				$pk->metadata = [//Enable Display Skin Parts
-					16 => [0, $skinFlags],
-					"convert" => true,
-				];
-				$packets[] = $pk;
-
-				$player->bigBrother_addEntityList($packet->entityRuntimeId, "player");
-				if(isset($packet->metadata[Entity::DATA_NAMETAG])){
-					$player->bigBrother_setBossBarData("nameTag", $packet->metadata[Entity::DATA_NAMETAG]);
-				}
-
-				return $packets;
-
-			case Info::ADD_ACTOR_PACKET:
-				/** @var AddActorPacket $packet */
-				return null;
-				$packets = [];
-
-				$isObject = false;
-				$type = "generic";
-				$data = 1;
-
-				switch($packet->type){
-					case 10://Chicken
-						$type = "chicken";
-						$packet->type = 93;
-					break;
-					case 11://Cow
-						$type = "cow";
-						$packet->type = 92;
-					break;
-					case 12://Pig
-						$type = "pig";
-						$packet->type = 90;
-					break;
-					case 13://Sheep
-						$type = "sheep";
-						$packet->type = 91;
-					break;
-					case 14://Wolf
-						$type = "wolf";
-						$packet->type = 95;
-					break;
-					case 15://Villager
-						$type = "villager";
-						$packet->type = 120;
-					break;
-					case 16://Moosh room
-						$type = "cow";
-						$packet->type = 96;
-					break;
-					case 17://Squid
-						$type = "squid";
-						$packet->type = 94;
-					break;
-					case 18://Rabbit
-						$type = "rabbit";
-						$packet->type = 101;
-					break;
-					case 19://Bat
-						$type = "bat";
-						$packet->type = 65;
-					break;
-					case 20://Iron Golem
-						$type = "iron_golem";
-						$packet->type = 99;
-					break;
-					case 21://Snow Golem (Snowman)
-						$type = "snowman";
-						$packet->type = 97;
-					break;
-					case 22://Ocelot
-						$type = "cat";
-						$packet->type = 98;
-					break;
-					case 23://Horse
-						$type = "horse";
-						$packet->type = 100;
-					break;
-					case 28://PolarBear
-						$type = "polar_bear";
-						$packet->type = 102;
-					break;
-					case 32://Zombie
-						$type = "zombie";
-						$packet->type = 54;
-					break;
-					case 33://Creeper
-						$type = "creeper";
-						$packet->type = 50;
-					break;
-					case 34://Skeleton
-						$type = "skeleton";
-						$packet->type = 51;
-					break;
-					case 35://Spider
-						$type = "spider";
-						$packet->type = 52;
-					break;
-					case 36://PigZombie
-						$type = "zombie_pigman";
-						$packet->type = 57;
-					break;
-					case 37://Slime
-						$type = "slime";
-						$packet->type = 55;
-					break;
-					case 38://Enderman
-						$type = "enderman";
-						$packet->type = 58;
-					break;
-					case 39://Silverfish
-						$type = "silverfish";
-						$packet->type = 60;
-					break;
-					case 40://CaveSpider
-						$type = "spider";
-						$packet->type = 59;
-					break;
-					case 41://Ghast
-						$type = "ghast";
-						$packet->type = 56;
-					break;
-					case 42://Lava Slime
-						$type = "magmacube";
-						$packet->type = 62;
-					break;
-					case 43://Blaze
-						$type = "blaze";
-						$packet->type = 61;
-					break;
-					case 44://ZombieVillager
-						$type = "zombie_village";
-						$packet->type = 27;
-					break;
-					case 45://Witch
-						$type = "witch";
-						$packet->type = 66;
-					break;
-					case 46://Stray
-						$type = "stray";
-						$packet->type = 6;
-					break;
-					case 47://Husk
-						$type = "husk";
-						$packet->type = 23;
-					break;
-					case 48://WitherSkeleton
-						$type = "wither_skeleton";
-						$packet->type = 5;
-					break;
-					case 49://Guardian
-						$type = "guardian";
-						$packet->type = 68;
-					break;
-					case 50://ElderGuardian
-						$type = "elder_guardian";
-						$packet->type = 4;
-					break;
-					/*case 52://Wither (Skull)
-						//Spawn Object
-					break;*/
-					case 53://EnderDragon
-						$type = "enderdragon";
-						$packet->type = 63;
-					break;
-					case 54://Shulker
-						$type = "shulker";
-						$packet->type = 69;
-					break;
-					case 61://ArmorStand
-						//Spawn Object
-						$isObject = true;
-						$packet->type = 78;
-					break;
-					/*case 64://Item
-						//Spawn Object
-					break;*/
-					case 65://PrimedTNT
-						//Spawn Object
-						$isObject = true;
-						$packet->type = 50;
-					break;
-					case 66://FallingSand
-						//Spawn Object
-						$isObject = true;
-						$packet->type = 70;
-
-						$block = $packet->metadata[2][1];//block data
-						$blockId = $block & 0xff;
-						$blockDamage = $block >> 8;
-
-						ConvertUtils::convertBlockData(true, $blockId, $blockDamage);
-
-						$data = $blockId | ($blockDamage << 12);
-					break;
-					case 68://ThrownExpBottle
-						$isObject = true;
-						$packet->type = 75;
-					break;
-					case 69://XPOrb
-						$entity = $player->getLevel()->getEntity($packet->entityRuntimeId);
-
-						$pk = new SpawnExperienceOrbPacket();
-						$pk->entityId = $packet->entityRuntimeId;
-						$pk->x = $packet->position->x;
-						$pk->y = $packet->position->y;
-						$pk->z = $packet->position->z;
-						$pk->count = $entity->namedtag["Value"];
-
-						return $pk;
-					/*
-					case 71://EnderCrystal
-						//Spawn Object
-					break;
-					case 76://ShulkerBullet
-						//Spawn Object
-					break;*/
-					case 77://FishingHook
-						//Spawn Object
-						$isObject = true;
-						$packet->type = 90;
-					break;
-					/*case 79://DragonFireBall
-						//Spawn Object
-					break;*/
-					case 80://Arrow
-						//Spawn Object
-						$isObject = true;
-						$packet->type = 60;
-					break;
-					case 81://Snowball
-						//Spawn Object
-						$isObject = true;
-						$packet->type = 61;
-					break;
-					case 82://Egg
-						//Spawn Object
-						$isObject = true;
-						$packet->type = 62;
-					break;
-					/*case 83://Painting
-						//Spawn Painting
-					break;
-					case 84://Minecart
-						//Spawn Object
-					break;
-					case 85://GhastFireball
-						//Spawn Object
-					break;
-					case 86://ThrownPotion
-						//Spawn Object
-					break;
-					case 87://EnderPearl
-						//Spawn Object
-					break;
-					case 88://LeashKnot
-						//Spawn Object
-					break;
-					case 89://BlueWitherSkull
-						//Spawn Object
-					break;*/
-					case 90;//Boat
-						$packet->type = 1;
-					break;
-					case 93://Lightning
-						$pk = new SpawnGlobalEntityPacket();
-						$pk->eid = $packet->entityRuntimeId;
-						$pk->type = SpawnGlobalEntityPacket::TYPE_LIGHTNING;
-						$pk->x = $packet->position->x;
-						$pk->y = $packet->position->y;
-						$pk->z = $packet->position->z;
-						return $pk;
-					/*case 94://BlazeFireball
-						//Spawn Object
-					break;
-					case 96://Minecart Hopper
-						//Spawn Object
-					break;
-					case 97:Minecart TNT
-						//Spawn Object
-					break;
-					case 98://Minecart Chest
-						//Spawn Object
-					break;*/
-					default:
-						$packet->type = 57;
-						echo "AddEntityPacket: ".$packet->entityRuntimeId."\n";
-					break;
-				}
-
-				if($isObject){
-					$pk = new SpawnEntityPacket();
-					$pk->entityId = $packet->entityRuntimeId;
-					$pk->type = $packet->type;
-					$pk->uuid = UUID::fromRandom()->toBinary();
-					$pk->x = $packet->position->x;
-					$pk->y = $packet->position->y;
-					$pk->z = $packet->position->z;
-					$pk->yaw = 0;
-					$pk->pitch = 0;
-					$pk->data = $data;
-					if($data > 0){
-						$pk->sendVelocity = true;
-						$pk->velocityX = 0;
-						$pk->velocityY = 0;
-						$pk->velocityZ = 0;
-					}
-
-					$packets[] = $pk;
-
-					$pk = new EntityMetadataPacket();
-					$pk->entityId = $packet->entityRuntimeId;
-					$pk->metadata = $packet->metadata;
-				}else{
-					$pk = new SpawnLivingEntityPacket();
-					$pk->entityId = $packet->entityRuntimeId;
-					$pk->type = $packet->type;
-					$pk->uuid = UUID::fromRandom()->toBinary();
-					$pk->x = $packet->position->x;
-					$pk->y = $packet->position->y;
-					$pk->z = $packet->position->z;
-					$pk->yaw = $packet->yaw;
-					$pk->pitch = $packet->pitch;
-					$pk->headPitch = 0;
-					$pk->metadata = $packet->metadata;
-				}
-
-				$packets[] = $pk;
-
-				$pk = new EntityTeleportPacket();
-				$pk->entityId = $packet->entityRuntimeId;
-				$pk->x = $packet->position->x;
-				$pk->y = $packet->position->y;
-				$pk->z = $packet->position->z;
-				$pk->yaw = $packet->yaw;
-				$pk->pitch = $packet->pitch;
-				$packets[] = $pk;
-
-				$player->bigBrother_addEntityList($packet->entityRuntimeId, $type);
-				if(isset($packet->metadata[Entity::DATA_NAMETAG])){
-					$player->bigBrother_setBossBarData("nameTag", $packet->metadata[Entity::DATA_NAMETAG]);
+				$session->addEntityList($packet->actorRuntimeId, "player");
+				if(isset($packet->metadata[EntityMetadataProperties::NAMETAG])){
+					$session->bigBrother_setBossBarData("nameTag", $packet->metadata[EntityMetadataProperties::NAMETAG]->getValue());
 				}
 
 				return $packets;
@@ -1484,8 +762,8 @@ class Translator{
 				/** @var RemoveActorPacket $packet */
 				$packets = [];
 
-				if($packet->entityUniqueId === $player->bigBrother_getBossBarData("entityRuntimeId")){
-					$uuid = $player->bigBrother_getBossBarData("uuid");
+				if($packet->actorUniqueId === $session->bigBrother_getBossBarData("actorRuntimeId")){
+					$uuid = $session->bigBrother_getBossBarData("uuid");
 					if($uuid === ""){
 						return null;
 					}
@@ -1493,79 +771,37 @@ class Translator{
 					$pk->uuid = $uuid;
 					$pk->actionId = BossBarPacket::TYPE_REMOVE;
 
-					$player->bigBrother_setBossBarData("entityRuntimeId", -1);
-					$player->bigBrother_setBossBarData("uuid", "");
+					$session->bigBrother_setBossBarData("actorRuntimeId", -1);
+					$session->bigBrother_setBossBarData("uuid", "");
 
 					$packets[] = $pk;
 				}
 				$pk = new DestroyEntitiesPacket();
-				$pk->entityIds[] = $packet->entityUniqueId;
+				$pk->entityIds[] = $packet->actorUniqueId;
 
-				$player->bigBrother_removeEntityList($packet->entityUniqueId);
+				$session->removeEntityList($packet->actorUniqueId);
 
 				$packets[] = $pk;
-
-				return $packets;
-
-			case Info::ADD_ITEM_ACTOR_PACKET:
-				/** @var AddItemActorPacket $packet */
-				$item = clone $packet->item->getItemStack();
-				ConvertUtils::convertItemData(true, $item);
-				$metadata = ConvertUtils::convertPEToPCMetadata($packet->metadata);
-				$metadata[6] = [7, $item];//6
-
-				$packets = [];
-
-				$pk = new SpawnEntityPacket();
-				$pk->entityId = $packet->entityRuntimeId;
-				$pk->uuid = UUID::fromRandom()->toBinary();
-				$pk->type = SpawnEntityPacket::ITEM_STACK;
-				$pk->x = $packet->position->x;
-				$pk->y = $packet->position->y;
-				$pk->z = $packet->position->z;
-				$pk->yaw = 0;
-				$pk->pitch = 0;
-				$pk->data = 1;
-				$pk->sendVelocity = true;
-				$pk->velocityX = $packet->motion->x;
-				$pk->velocityY = $packet->motion->y;
-				$pk->velocityZ = $packet->motion->z;
-				$packets[] = $pk;
-
-				$pk = new EntityMetadataPacket();
-				$pk->entityId = $packet->entityRuntimeId;
-				$pk->metadata = $metadata;
-				$packets[] = $pk;
-
 				return $packets;
 
 			case Info::TAKE_ITEM_ACTOR_PACKET:
 				/** @var TakeItemActorPacket $packet */
-				$pk = $player->getInventoryUtils()->onTakeItemEntity($packet);
-
-				return $pk;
+				return $session->getInventoryUtils()->onTakeItemEntity($packet);
 
 			case Info::MOVE_ACTOR_ABSOLUTE_PACKET:
 				/** @var MoveActorAbsolutePacket $packet */
-				if($packet->entityRuntimeId === $player->getId()){//TODO
+				if($packet->actorRuntimeId === $session->getPlayer()->getId()){//TODO
 					return null;
 				}else{
 					$baseOffset = 0;
 					$isOnGround = true;
-					$entity = $player->getLevel()->getEntity($packet->entityRuntimeId);
+					$entity = $session->getPlayer()->getWorld()->getEntity($packet->actorRuntimeId);
 					if($entity instanceof Entity){
-						switch($entity::NETWORK_ID){
-							case -1://Player
-								$baseOffset = 1.62;
-							break;
-							case 64://Item
-								$baseOffset = 0.125;
-							break;
-							case 65://PrimedTNT
-							case 66://FallingSand
-								$baseOffset = 0.49;
-							break;
-						}
+						$baseOffset = match($entity::getNetworkTypeId()){
+							EntityIds::PLAYER => 1.62,
+							EntityIds::ITEM => 0.125,
+							EntityIds::TNT, EntityIds::FALLING_BLOCK => 0.49,
+						};
 
 						$isOnGround = $entity->isOnGround();
 					}
@@ -1573,24 +809,24 @@ class Translator{
 					$packets = [];
 
 					$pk = new EntityTeleportPacket();
-					$pk->entityId = $packet->entityRuntimeId;
+					$pk->entityId = $packet->actorRuntimeId;
 					$pk->x = $packet->position->x;
 					$pk->y = $packet->position->y - $baseOffset;
 					$pk->z = $packet->position->z;
-					$pk->yaw = $packet->zRot;
-					$pk->pitch = $packet->xRot;
+					$pk->yaw = $packet->yaw;
+					$pk->pitch = $packet->pitch;
 					$packets[] = $pk;
 
 					$pk = new EntityRotationPacket();
-					$pk->entityId = $packet->entityRuntimeId;
-					$pk->yaw = $packet->yRot;
-					$pk->pitch = $packet->xRot;
+					$pk->entityId = $packet->actorRuntimeId;
+					$pk->yaw = $packet->yaw;
+					$pk->pitch = $packet->pitch;
 					$pk->onGround = $isOnGround;
 					$packets[] = $pk;
 
 					$pk = new EntityHeadLookPacket();
-					$pk->entityId = $packet->entityRuntimeId;
-					$pk->yaw = $packet->yRot;
+					$pk->entityId = $packet->actorRuntimeId;
+					$pk->yaw = $packet->yaw;
 					$packets[] = $pk;
 
 					return $packets;
@@ -1598,15 +834,15 @@ class Translator{
 
 			case Info::MOVE_PLAYER_PACKET:
 				/** @var MovePlayerPacket $packet */
-				if($packet->entityRuntimeId === $player->getId()){
-					if($player->spawned){//for Loading Chunks
+				if($packet->actorRuntimeId === $session->getPlayer()->getId()){
+					if($session->getPlayer()->spawned){//for Loading Chunks
 						$pk = new PlayerPositionAndLookPacket();//
 						$pk->x = $packet->position->x;
-						$pk->y = $packet->position->y - $player->getEyeHeight();
+						$pk->y = $packet->position->y - $session->getPlayer()->getEyeHeight();
 						$pk->z = $packet->position->z;
 						$pk->yaw = $packet->yaw;
 						$pk->pitch = $packet->pitch;
-						$pk->onGround = $player->isOnGround();
+						$pk->onGround = $packet->onGround;
 
 						return $pk;
 					}
@@ -1614,23 +850,23 @@ class Translator{
 					$packets = [];
 
 					$pk = new EntityTeleportPacket();
-					$pk->entityId = $packet->entityRuntimeId;
+					$pk->entityId = $packet->actorRuntimeId;
 					$pk->x = $packet->position->x;
-					$pk->y = $packet->position->y - $player->getEyeHeight();
+					$pk->y = $packet->position->y - $session->getPlayer()->getEyeHeight();
 					$pk->z = $packet->position->z;
 					$pk->yaw = $packet->yaw;
 					$pk->pitch = $packet->pitch;
 					$packets[] = $pk;
 
 					$pk = new EntityRotationPacket();
-					$pk->entityId = $packet->entityRuntimeId;
+					$pk->entityId = $packet->actorRuntimeId;
 					$pk->yaw = $packet->headYaw;
 					$pk->pitch = $packet->pitch;
 					$pk->onGround = $packet->onGround;
 					$packets[] = $pk;
 
 					$pk = new EntityHeadLookPacket();
-					$pk->entityId = $packet->entityRuntimeId;
+					$pk->entityId = $packet->actorRuntimeId;
 					$pk->yaw = $packet->headYaw;
 					$packets[] = $pk;
 
@@ -1639,54 +875,16 @@ class Translator{
 
 				return null;
 
-			case Info::UPDATE_BLOCK_PACKET:
-				/** @var UpdateBlockPacket $packet */
-				/** @noinspection PhpInternalEntityUsedInspection */
-				$block = RuntimeBlockMapping::fromStaticRuntimeId($packet->blockRuntimeId);
-
-				if(($entity = ItemFrameBlockEntity::getItemFrame($player->getLevel(), $packet->x, $packet->y, $packet->z)) !== null){
-					if($block[0] !== Block::FRAME_BLOCK){
-						$entity->despawnFrom($player);
-
-						ItemFrameBlockEntity::removeItemFrame($entity);
-					}else{
-						if(($packet->flags & UpdateBlockPacket::FLAG_NEIGHBORS) == 0){
-							$entity->spawnTo($player);
-						}
-
-						return null;
-					}
-				}else{
-					if($block[0] === Block::FRAME_BLOCK){
-						$entity = ItemFrameBlockEntity::getItemFrame($player->getLevel(), $packet->x, $packet->y, $packet->z, $block[1], true);
-						$entity->spawnTo($player);
-
-						return null;
-					}
-				}
-
-				ConvertUtils::convertBlockData(true, $block[0], $block[1]);
-
-				$pk = new BlockChangePacket();
-				$pk->x = $packet->x;
-				$pk->y = $packet->y;
-				$pk->z = $packet->z;
-				$pk->blockId = $block[0];
-				$pk->blockMeta = $block[1];
-				//TODO: convert block State Id
-
-				return $pk;
-
 			case Info::ADD_PAINTING_PACKET:
 				/** @var AddPaintingPacket $packet */
 				$spawnPaintingPos = (new Vector3($packet->position->x, $packet->position->y, $packet->position->z))->floor();
 				$motives = ["Plant" => 5];
 
-				echo $packet->title."\n";
+				echo $packet->title . "\n";
 
 				$pk = new SpawnPaintingPacket();
-				$pk->entityId = $packet->entityRuntimeId;
-				$pk->uuid = UUID::fromRandom()->toBinary();
+				$pk->entityId = $packet->actorRuntimeId;
+				$pk->uuid = Uuid::uuid4()->getBytes();
 				$pk->x = $spawnPaintingPos->x;
 				$pk->y = $spawnPaintingPos->y;
 				$pk->z = $spawnPaintingPos->z;
@@ -1698,14 +896,18 @@ class Translator{
 			case Info::CHANGE_DIMENSION_PACKET:
 				/** @var ChangeDimensionPacket $packet */
 				$pk = new RespawnPacket();
-				$pk->dimension = $player->getDimension();
+				$pk->dimension = $session->bigBrother_getDimension();
 				$pk->worldName = "minecraft:overworld";
 				$pk->hashedSeed = 0;
-				$pk->gamemode = $player->getGamemode();
+				$pk->gamemode = match($session->getPlayer()->getGamemode()->getEnglishName()){
+					GameMode::SURVIVAL()->getEnglishName() => 0,
+					GameMode::CREATIVE()->getEnglishName() => 1,
+					GameMode::ADVENTURE()->getEnglishName() => 2,
+					GameMode::SPECTATOR()->getEnglishName() => 3
+				};
 				$pk->previousGamemode = -1;
 
-				$player->bigBrother_respawn();
-
+				$session->respawn();
 				return $pk;
 
 			case Info::PLAY_SOUND_PACKET:
@@ -1727,48 +929,35 @@ class Translator{
 				$pitch = $packet->extraData;
 
 				switch($packet->sound){
-					case LevelSoundEventPacket::SOUND_EXPLODE:
+					case LevelSoundEvent::EXPLODE:
 						$isSoundEffect = true;
 						$category = 0;
 
 						$name = "entity.generic.explode";
-					break;
-					case LevelSoundEventPacket::SOUND_CHEST_OPEN:
+						break;
+					case LevelSoundEvent::CHEST_OPEN:
 						$isSoundEffect = true;
 						$category = 1;
 
-						$blockId = $player->getLevel()->getBlock($packet->position)->getId();
-						if($blockId === Block::ENDER_CHEST){
-							$name = "block.enderchest.open";
-						}else{
-							$name = "block.chest.open";
-						}
-					break;
-					case LevelSoundEventPacket::SOUND_CHEST_CLOSED:
+						$name = $session->getPlayer()->getWorld()->getBlock($packet->position)->getTypeId() === BlockTypeIds::ENDER_CHEST ? "block.enderchest.open" : "block.chest.open";
+						break;
+					case LevelSoundEvent::CHEST_CLOSED:
 						$isSoundEffect = true;
 						$category = 1;
 
-						$blockId = $player->getLevel()->getBlock($packet->position)->getId();
-						if($blockId === Block::ENDER_CHEST){
-							$name = "block.enderchest.close";
-						}else{
-							$name = "block.chest.close";
-						}
-					break;
-					case LevelSoundEventPacket::SOUND_NOTE:
+						$name = $session->getPlayer()->getWorld()->getBlock($packet->position)->getTypeId() === BlockTypeIds::ENDER_CHEST ? "block.enderchest.close" : "block.chest.close";
+						break;
+					case LevelSoundEvent::NOTE:
 						$isSoundEffect = true;
 						$category = 2;
 						$volume = 3;
 						$name = "block.note.harp";//TODO
 
 						$pitch /= 2.0;
-					break;
-					case LevelSoundEventPacket::SOUND_PLACE://unused
+						break;
+					case LevelSoundEvent::PLACE://unused
 						return null;
 					default:
-						if(DEBUG > 3){
-							echo "LevelSoundEventPacket: ".$packet->sound."\n";
-						}
 						return null;
 				}
 
@@ -1796,161 +985,132 @@ class Translator{
 				$name = "";
 				$id = 0;
 
-				switch($packet->evid){
-					case LevelEventPacket::EVENT_PARTICLE_DESTROY;
+				switch($packet->eventId){
+					case LevelEvent::PARTICLE_DESTROY;
 						return null;
-					case LevelEventPacket::EVENT_SOUND_IGNITE:
+					case LevelEvent::SOUND_IGNITE:
 						$isSoundEffect = true;
 						$name = "entity.tnt.primed";
-					break;
-					case LevelEventPacket::EVENT_SOUND_SHOOT:
+						break;
+					case LevelEvent::SOUND_SHOOT:
 						$isSoundEffect = true;
 
-						switch(($id = $player->getInventory()->getItemInHand()->getId())){
-							case Item::SNOWBALL:
-								$name = "entity.snowball.throw";
-							break;
-							case Item::EGG:
-								$name = "entity.egg.throw";
-							break;
-							case Item::BOTTLE_O_ENCHANTING:
-								$name = "entity.experience_bottle.throw";
-							break;
-							case Item::SPLASH_POTION:
-								$name = "entity.splash_potion.throw";
-							break;
-							case Item::BOW:
-								$name = "entity.arrow.shoot";
-							break;
-							case 368:
-								$name = "entity.enderpearl.throw";
-							break;
-							default:
-								$name = "entity.snowball.throw";
-
-								if(DEBUG > 3){
-									echo "LevelEventPacket: ".$id."\n";
-								}
-							break;
-						}
-					break;
-					case LevelEventPacket::EVENT_SOUND_DOOR:
+						$name = match(($id = $session->getPlayer()->getInventory()->getItemInHand()->getTypeId())){
+							ItemTypeIds::EGG => "entity.egg.throw",
+							ItemTypeIds::EXPERIENCE_BOTTLE => "entity.experience_bottle.throw",
+							ItemTypeIds::SPLASH_POTION => "entity.splash_potion.throw",
+							ItemTypeIds::BOW => "entity.arrow.shoot",
+							ItemTypeIds::ENDER_PEARL => "entity.enderpearl.throw",
+							default => "entity.snowball.throw",
+						};
+						break;
+					case LevelEvent::SOUND_DOOR:
 						$isSoundEffect = true;
 
-						$block = $player->getLevel()->getBlock($packet->position);
+						$block = $session->getPlayer()->getWorld()->getBlock($packet->position);
 
-						switch($block->getId()){
-							case Block::WOODEN_DOOR_BLOCK:
-							case Block::SPRUCE_DOOR_BLOCK:
-							case Block::BIRCH_DOOR_BLOCK:
-							case Block::JUNGLE_DOOR_BLOCK:
-							case Block::ACACIA_DOOR_BLOCK:
-							case Block::DARK_OAK_DOOR_BLOCK:
-								if(($block->getDamage() & 0x04) === 0x04){
-									$name = "block.wooden_door.open";
-								}else{
-									$name = "block.wooden_door.close";
-								}
-							break;
-							case Block::IRON_DOOR_BLOCK:
-								if(($block->getDamage() & 0x04) === 0x04){
-									$name = "block.iron_door.open";
-								}else{
-									$name = "block.iron_door.close";
-								}
-							break;
-							case Block::TRAPDOOR:
-								if(($block->getDamage() & 0x08) === 0x08){
-									$name = "block.wooden_trapdoor.open";
-								}else{
-									$name = "block.wooden_trapdoor.close";
-								}
-							break;
-							case Block::IRON_TRAPDOOR:
-								if(($block->getDamage() & 0x08) === 0x08){
-									$name = "block.iron_trapdoor.open";
-								}else{
-									$name = "block.iron_trapdoor.close";
-								}
-							break;
-							case Block::OAK_FENCE_GATE:
-							case Block::SPRUCE_FENCE_GATE:
-							case Block::BIRCH_FENCE_GATE:
-							case Block::JUNGLE_FENCE_GATE:
-							case Block::DARK_OAK_FENCE_GATE:
-							case Block::ACACIA_FENCE_GATE:
-								if(($block->getDamage() & 0x04) === 0x04){
-									$name = "block.fence_gate.open";
-								}else{
-									$name = "block.fence_gate.close";
-								}
-							break;
+						/** @var Door|Trapdoor|FenceGate $block */
+						switch($block->getTypeId()){
+							case BlockTypeIds::OAK_DOOR:
+							case BlockTypeIds::SPRUCE_DOOR:
+							case BlockTypeIds::BIRCH_DOOR:
+							case BlockTypeIds::JUNGLE_DOOR:
+							case BlockTypeIds::ACACIA_DOOR:
+							case BlockTypeIds::DARK_OAK_DOOR:
+								$name = $block->isOpen() ? "block.wooden_door.open" : "block.wooden_door.close";
+								break;
+							case BlockTypeIds::IRON_DOOR:
+								$name = $block->isOpen() ? "block.iron_door.open" : "block.iron_door.close";
+								break;
+							case BlockTypeIds::OAK_TRAPDOOR:
+							case BlockTypeIds::SPRUCE_TRAPDOOR:
+							case BlockTypeIds::BIRCH_TRAPDOOR:
+							case BlockTypeIds::JUNGLE_TRAPDOOR:
+							case BlockTypeIds::ACACIA_TRAPDOOR:
+							case BlockTypeIds::DARK_OAK_TRAPDOOR:
+								$name = $block->isOpen() ? "block.wooden_trapdoor.open" : "block.wooden_trapdoor.close";
+								break;
+							case BlockTypeIds::IRON_TRAPDOOR:
+								$name = $block->isOpen() ? "block.iron_trapdoor.open" : "block.iron_trapdoor.close";
+								break;
+							case BlockTypeIds::OAK_FENCE_GATE:
+							case BlockTypeIds::SPRUCE_FENCE_GATE:
+							case BlockTypeIds::BIRCH_FENCE_GATE:
+							case BlockTypeIds::JUNGLE_FENCE_GATE:
+							case BlockTypeIds::DARK_OAK_FENCE_GATE:
+							case BlockTypeIds::ACACIA_FENCE_GATE:
+								$name = $block->isOpen() ? "block.fence_gate.open" : "block.fence_gate.close";
+								break;
 							default:
 								echo "[LevelEventPacket] Unknown DoorSound\n";
 								return null;
 						}
-					break;
-					case LevelEventPacket::EVENT_ADD_PARTICLE_MASK | Particle::TYPE_CRITICAL:
+						break;
+					case LevelEvent::ADD_PARTICLE_MASK | ParticleIds::CRITICAL:
 						$isParticle = true;
 						$id = 9;
-					break;
-					case LevelEventPacket::EVENT_ADD_PARTICLE_MASK | Particle::TYPE_HUGE_EXPLODE_SEED:
+						break;
+					case LevelEvent::ADD_PARTICLE_MASK | ParticleIds::HUGE_EXPLODE_SEED:
 						$isParticle = true;
 						$id = 2;
-					break;
-					case LevelEventPacket::EVENT_ADD_PARTICLE_MASK | Particle::TYPE_TERRAIN:
+						break;
+					case LevelEvent::ADD_PARTICLE_MASK | ParticleIds::TERRAIN:
 						$isParticle = true;
 
 						/** @noinspection PhpInternalEntityUsedInspection */
-						$block = RuntimeBlockMapping::fromStaticRuntimeId($packet->data);//block data
+						$block = GlobalBlockStateHandlers::getDeserializer()->deserialize(RuntimeBlockMapping::getInstance()->getBlockStateDictionary(RuntimeBlockMapping::getMappingProtocol(ProtocolInfo::CURRENT_PROTOCOL))->getDataFromStateId($packet->eventData));
+						$id = $block >> Block::INTERNAL_STATE_DATA_BITS;
+						$meta = $block & Block::INTERNAL_STATE_DATA_MASK;
 						ConvertUtils::convertBlockData(true, $block[0], $block[1]);
 
-						$packet->data = $block[0] | ($block[1] << 12);
+						$packet->eventData = $id | ($meta << 12);
 
 						$id = 37;
 						$addData = [
-							$packet->data
+							$packet->eventData
 						];
-					break;
-					case LevelEventPacket::EVENT_ADD_PARTICLE_MASK | Particle::TYPE_DUST:
+						break;
+					case LevelEvent::ADD_PARTICLE_MASK | ParticleIds::DUST:
 						$isParticle = true;
 						$id = 46;
 						$addData = [
 							$packet->data//TODO: RGBA
 						];
-					break;
+						break;
 					/*case LevelEventPacket::EVENT_ADD_PARTICLE_MASK | Particle::TYPE_INK:
 					break;*/
-					case LevelEventPacket::EVENT_ADD_PARTICLE_MASK | Particle::TYPE_SNOWBALL_POOF:
+					case LevelEvent::ADD_PARTICLE_MASK | ParticleIds::SNOWBALL_POOF:
 						$isParticle = true;
 						$id = 31;
-					break;
-					case LevelEventPacket::EVENT_ADD_PARTICLE_MASK | Particle::TYPE_ITEM_BREAK:
+						break;
+					case LevelEvent::ADD_PARTICLE_MASK | ParticleIds::ITEM_BREAK:
 						//TODO
-					break;
-					case LevelEventPacket::EVENT_PARTICLE_DESTROY:
+						break;
+					case LevelEvent::PARTICLE_DESTROY:
 						/** @noinspection PhpInternalEntityUsedInspection */
-						$block = RuntimeBlockMapping::fromStaticRuntimeId($packet->data);//block data
-						ConvertUtils::convertBlockData(true, $block[0], $block[1]);
+						$block = GlobalBlockStateHandlers::getDeserializer()->deserialize(RuntimeBlockMapping::getInstance()->getBlockStateDictionary(RuntimeBlockMapping::getMappingProtocol(ProtocolInfo::CURRENT_PROTOCOL))->getDataFromStateId($packet->eventData));
+						$id = $block >> Block::INTERNAL_STATE_DATA_BITS;
+						$meta = $block & Block::INTERNAL_STATE_DATA_MASK;
+						ConvertUtils::convertBlockData(true, $id, $meta);
 
-						$packet->data = $block[0] | ($block[1] << 12);
-					break;
-					case LevelEventPacket::EVENT_PARTICLE_PUNCH_BLOCK:
+						$packet->eventData = $id | ($meta << 12);
+						break;
+					case LevelEvent::PARTICLE_PUNCH_BLOCK:
 						//TODO: BreakAnimation
 						return null;
-					case LevelEventPacket::EVENT_BLOCK_START_BREAK:
+					case LevelEvent::BLOCK_START_BREAK:
 						//TODO: set BreakTime
 						return null;
-					case LevelEventPacket::EVENT_BLOCK_STOP_BREAK:
+					case LevelEvent::BLOCK_STOP_BREAK:
 						//TODO: remove BreakTime
 
 						return null;
 					default:
-						if(($packet->evid & LevelEventPacket::EVENT_ADD_PARTICLE_MASK) === LevelEventPacket::EVENT_ADD_PARTICLE_MASK){
-							$packet->evid ^= LevelEventPacket::EVENT_ADD_PARTICLE_MASK;
+						if(($packet->eventId & LevelEvent::ADD_PARTICLE_MASK) === LevelEvent::ADD_PARTICLE_MASK){
+							$packet->eventId ^= LevelEvent::ADD_PARTICLE_MASK;
 						}
 
-						echo "LevelEventPacket: ".$packet->evid."\n";
+						echo "LevelEventPacket: " . $packet->eventId . "\n";
 						return null;
 				}
 
@@ -1973,16 +1133,16 @@ class Translator{
 					$pk->offsetX = 0;
 					$pk->offsetY = 0;
 					$pk->offsetZ = 0;
-					$pk->particleData = $packet->data;
+					$pk->particleData = $packet->eventData;
 					$pk->particleCount = 1;
 					$pk->data = $addData;//!!!!!!!!!!!!!!!!!!!!!!!!!!!
 				}else{
 					$pk = new EffectPacket();
-					$pk->effectId = $packet->evid;
+					$pk->effectId = $packet->eventId;
 					$pk->x = (int) $packet->position->x;
 					$pk->y = (int) $packet->position->y;
 					$pk->z = (int) $packet->position->z;
-					$pk->data = $packet->data;
+					$pk->data = $packet->eventData;
 					$pk->disableRelativeVolume = false;
 				}
 
@@ -1991,12 +1151,12 @@ class Translator{
 			case Info::BLOCK_EVENT_PACKET:
 				/** @var BlockEventPacket $packet */
 				$pk = new BlockActionPacket();
-				$pk->x = $packet->x;
-				$pk->y = $packet->y;
-				$pk->z = $packet->z;
+				$pk->x = $packet->blockPosition->getX();
+				$pk->y = $packet->blockPosition->getY();
+				$pk->z = $packet->blockPosition->getZ();
 				$pk->actionId = $packet->eventType;
 				$pk->actionParam = $packet->eventData;
-				$pk->blockType = $blockId = $player->getLevel()->getBlock(new Vector3($packet->x, $packet->y, $packet->z))->getId();
+				$pk->blockType = $blockId = $session->getPlayer()->getWorld()->getBlock(new Vector3($packet->blockPosition->getX(), $packet->blockPosition->getY(), $packet->blockPosition->getZ()))->getTypeId();
 
 				return $pk;
 
@@ -2041,67 +1201,62 @@ class Translator{
 
 						return $pk;
 					default:
-						echo "SetTitlePacket: ".$packet->type."\n";
-					break;
+						echo "SetTitlePacket: " . $packet->type . "\n";
+						break;
 				}
-
 				return null;
 
 			case Info::ACTOR_EVENT_PACKET:
 				/** @var ActorEventPacket $packet */
-				switch($packet->event){
-					case ActorEventPacket::HURT_ANIMATION:
-						$type = $player->bigBrother_getEntityList($packet->entityRuntimeId);
+				switch($packet->eventId){
+					case ActorEvent::HURT_ANIMATION:
+						$type = $session->bigBrother_getEntityList($packet->actorRuntimeId);
 
 						$packets = [];
 
 						$pk = new EntityStatusPacket();
 						$pk->entityStatus = 2;
-						$pk->entityId = $packet->entityRuntimeId;
+						$pk->entityId = $packet->actorRuntimeId;
 						$packets[] = $pk;
 
 						$pk = new NamedSoundEffectPacket();
 						$pk->soundCategory = 0;
-						$pk->effectPositionX = (int) $player->getX();
-						$pk->effectPositionY = (int) $player->getY();
-						$pk->effectPositionZ = (int) $player->getZ();
+						$pk->effectPositionX = (int) $session->getPlayer()->getPosition()->getX();
+						$pk->effectPositionY = (int) $session->getPlayer()->getPosition()->getY();
+						$pk->effectPositionZ = (int) $session->getPlayer()->getPosition()->getZ();
 						$pk->volume = 0.5;
 						$pk->pitch = 1.0;
-						$pk->soundName = "entity.".$type.".hurt";
+						$pk->soundName = "entity." . $type . ".hurt";
 						$packets[] = $pk;
 
 						return $packets;
-					case ActorEventPacket::DEATH_ANIMATION:
-						$type = $player->bigBrother_getEntityList($packet->entityRuntimeId);
+					case ActorEvent::DEATH_ANIMATION:
+						$type = $session->bigBrother_getEntityList($packet->actorRuntimeId);
 
 						$packets = [];
 
 						$pk = new EntityStatusPacket();
 						$pk->entityStatus = 3;
-						$pk->entityId = $packet->entityRuntimeId;
+						$pk->entityId = $packet->actorRuntimeId;
 						$packets[] = $pk;
 
 						$pk = new NamedSoundEffectPacket();
 						$pk->soundCategory = 0;
-						$pk->effectPositionX = (int) $player->getX();
-						$pk->effectPositionY = (int) $player->getY();
-						$pk->effectPositionZ = (int) $player->getZ();
+						$pk->effectPositionX = (int) $session->getPlayer()->getPosition()->getX();
+						$pk->effectPositionY = (int) $session->getPlayer()->getPosition()->getY();
+						$pk->effectPositionZ = (int) $session->getPlayer()->getPosition()->getZ();
 						$pk->volume = 0.5;
 						$pk->pitch = 1.0;
-						$pk->soundName = "entity.".$type.".death";
+						$pk->soundName = "entity." . $type . ".death";
 						$packets[] = $pk;
 
 						return $packets;
-					case ActorEventPacket::RESPAWN:
+					case ActorEvent::RESPAWN:
 						//unused
-					break;
+						break;
 					default:
-						if(DEBUG > 3){
-							echo "EntityEventPacket: ".$packet->event."\n";
-						}
-					break;
+						break;
 				}
-
 				return null;
 
 			case Info::MOB_EFFECT_PACKET:
@@ -2115,7 +1270,7 @@ class Translator{
 						}
 
 						$pk = new EntityEffectPacket();
-						$pk->entityId = $packet->entityRuntimeId;
+						$pk->entityId = $packet->actorRuntimeId;
 						$pk->effectId = $packet->effectId;
 						$pk->amplifier = $packet->amplifier;
 						$pk->duration = $packet->duration;
@@ -2124,15 +1279,14 @@ class Translator{
 						return $pk;
 					case MobEffectPacket::EVENT_REMOVE:
 						$pk = new RemoveEntityEffectPacket();
-						$pk->entityId = $packet->entityRuntimeId;
+						$pk->entityId = $packet->actorRuntimeId;
 						$pk->effectId = $packet->effectId;
 
 						return $pk;
 					default:
-						echo "MobEffectPacket: ".$packet->eventId."\n";
-					break;
+						echo "MobEffectPacket: " . $packet->eventId . "\n";
+						break;
 				}
-
 				return null;
 
 			case Info::UPDATE_ATTRIBUTES_PACKET:
@@ -2140,140 +1294,86 @@ class Translator{
 				$packets = [];
 				$entries = [];
 
+				/** @var \pocketmine\network\mcpe\protocol\types\entity\Attribute $entry */
 				foreach($packet->entries as $entry){
-					switch($entry->getName()){
-						case "minecraft:player.saturation": //TODO
-						case "minecraft:player.exhaustion": //TODO
-						case "minecraft:absorption": //TODO
-						break;
-						case "minecraft:player.hunger": //move to minecraft:health
-						break;
-						case "minecraft:health":
-							if($packet->entityRuntimeId === $player->getId()){
+					switch($entry->getId()){
+						case Attribute::SATURATION: //TODO
+						case Attribute::EXHAUSTION: //TODO
+						case Attribute::ABSORPTION: //TODO
+							break;
+						case Attribute::HUNGER: //move to minecraft:health
+							break;
+						case Attribute::HEALTH:
+							if($packet->actorRuntimeId === $session->getPlayer()->getId()){
 								$pk = new UpdateHealthPacket();
-								$pk->health = $entry->getValue();//TODO: Default Value
-								$pk->food = (int) $player->getFood();//TODO: Default Value
-								$pk->foodSaturation = $player->getSaturation();//TODO: Default Value
+								$pk->health = $entry->getCurrent();//TODO: Default Value
+								$pk->food = (int) $session->getPlayer()->getHungerManager()->getFood();//TODO: Default Value
+								$pk->foodSaturation = $session->getPlayer()->getHungerManager()->getSaturation();//TODO: Default Value
 							}else{
 								$pk = new EntityMetadataPacket();
-								$pk->entityId = $packet->entityRuntimeId;
+								$pk->entityId = $packet->actorRuntimeId;
 								$pk->metadata = [
-									8 => [2, $entry->getValue()],
+									8 => [2, $entry->getCurrent()],
 									"convert" => true,
 								];
 							}
 
 							$packets[] = $pk;
-						break;
-						case "minecraft:movement":
+							break;
+						case Attribute::MOVEMENT_SPEED:
 							$entries[] = [
 								"generic.movement_speed",
-								$entry->getValue()//TODO: Default Value
+								$entry->getCurrent()//TODO: Default Value
 							];
-						break;
-						case "minecraft:player.level": //move to minecraft:player.experience
-						break;
-						case "minecraft:player.experience":
-							if($packet->entityRuntimeId === $player->getId()){
+							break;
+						case Attribute::EXPERIENCE_LEVEL: //move to minecraft:player.experience
+							break;
+						case Attribute::EXPERIENCE:
+							if($packet->actorRuntimeId === $session->getPlayer()->getId()){
 								$pk = new SetExperiencePacket();
-								$pk->experienceBar = $entry->getValue();//TODO: Default Value
-								$pk->level = $player->getXpLevel();//TODO: Default Value
-								$pk->totalExperience = $player->getLifetimeTotalXp();//TODO: Default Value
+								$pk->experienceBar = $entry->getCurrent();//TODO: Default Value
+								$pk->level = $session->getPlayer()->getXpManager()->getXpLevel();//TODO: Default Value
+								$pk->totalExperience = $session->getPlayer()->getXpManager()->getLifetimeTotalXp();//TODO: Default Value
 
 								$packets[] = $pk;
 							}
-						break;
-						case "minecraft:attack_damage":
+							break;
+						case Attribute::ATTACK_DAMAGE:
 							$entries[] = [
 								"generic.attack_damage",
-								$entry->getValue()//TODO: Default Value
+								$entry->getCurrent()//TODO: Default Value
 							];
-						break;
-						case "minecraft:knockback_resistance":
+							break;
+						case Attribute::KNOCKBACK_RESISTANCE:
 							$entries[] = [
 								"generic.knockback_resistance",
-								$entry->getValue()//TODO: Default Value
+								$entry->getCurrent()//TODO: Default Value
 							];
-						break;
-						case "minecraft:follow_range":
+							break;
+						case Attribute::FOLLOW_RANGE:
 							$entries[] = [
 								"generic.follow_range",
-								$entry->getValue()//TODO: Default Value
+								$entry->getCurrent()//TODO: Default Value
 							];
-						break;
+							break;
 						default:
-							echo "UpdateAtteributesPacket: ".$entry->getName()."\n";
-						break;
+							echo "UpdateAtteributesPacket: " . $entry->getId() . "\n";
+							break;
 					}
 				}
 
 				if(count($entries) > 0){
 					$pk = new EntityPropertiesPacket();
-					$pk->entityId = $packet->entityRuntimeId;
+					$pk->entityId = $packet->actorRuntimeId;
 					$pk->entries = $entries;
 					$packets[] = $pk;
 				}
-
-				return $packets;
-
-			case Info::MOB_EQUIPMENT_PACKET:
-				/** @var MobEquipmentPacket $packet */
-				$packets = [];
-
-				if($packet->entityRuntimeId === $player->getId()){
-					$pk = new HeldItemChangePacket();
-					$pk->slot = $packet->hotbarSlot;
-					$packets[] = $pk;
-				}
-
-				$pk = new EntityEquipmentPacket();
-				$pk->entityId = $packet->entityRuntimeId;
-				$pk->slot = 0;//main hand
-				$pk->item = $packet->item->getItemStack();
-
-				if(count($packets) > 0){
-					$packets[] = $pk;
-
-					return $packets;
-				}
-
-				return $pk;
-
-			case Info::MOB_ARMOR_EQUIPMENT_PACKET:
-				/** @var MobArmorEquipmentPacket $packet */
-				return $player->getInventoryUtils()->onMobArmorEquipment($packet);
-
-			case Info::SET_ACTOR_DATA_PACKET:
-				/** @var SetActorDataPacket $packet */
-				$packets = [];
-
-				if(isset($packet->metadata[Player::DATA_PLAYER_BED_POSITION])){
-					$bedXYZ = $packet->metadata[Player::DATA_PLAYER_BED_POSITION][1];
-					if($bedXYZ !== null){
-						/** @var Vector3 $bedXYZ */
-
-						/*$pk = new UseBedPacket();
-						$pk->entityId = $packet->entityRuntimeId;
-						$pk->bedX = $bedXYZ->getX();
-						$pk->bedY = $bedXYZ->getY();
-						$pk->bedZ = $bedXYZ->getZ();
-
-						$packets[] = $pk;*/
-					}
-				}
-
-				$pk = new EntityMetadataPacket();
-				$pk->entityId = $packet->entityRuntimeId;
-				var_dump($packet->metadata);
-				$pk->metadata = $packet->metadata;
-				$packets[] = $pk;
-
 				return $packets;
 
 			case Info::SET_ACTOR_MOTION_PACKET:
 				/** @var SetActorMotionPacket $packet */
 				$pk = new EntityVelocityPacket();
-				$pk->entityId = $packet->entityRuntimeId;
+				$pk->entityId = $packet->actorRuntimeId;
 				$pk->velocityX = $packet->motion->x;
 				$pk->velocityY = $packet->motion->y;
 				$pk->velocityZ = $packet->motion->z;
@@ -2283,17 +1383,18 @@ class Translator{
 				/** @var SetHealthPacket $packet */
 				$pk = new UpdateHealthPacket();
 				$pk->health = $packet->health;//TODO: Default Value
-				$pk->food = (int) $player->getFood();//TODO: Default Value
-				$pk->foodSaturation = $player->getSaturation();//TODO: Default Value
+				$pk->food = (int) $session->getPlayer()->getHungerManager()->getFood();//TODO: Default Value
+				$pk->foodSaturation = $session->getPlayer()->getHungerManager()->getSaturation();//TODO: Default Value
 				return $pk;
 
 			case Info::SET_SPAWN_POSITION_PACKET:
 				/** @var SetSpawnPositionPacket $packet */
-				$pk = new SpawnPositionPacket();
-				$pk->x = $packet->x;
-				$pk->y = $packet->y;
-				$pk->z = $packet->z;
-				return $pk;
+				if($packet->spawnType === SetSpawnPositionPacket::TYPE_PLAYER_SPAWN){
+					$session->syncPlayerSpawnPoint(new Position($packet->spawnPosition->getX(), $packet->spawnPosition->getY(), $packet->spawnPosition->getZ(), null));
+				}elseif($packet->spawnType === SetSpawnPositionPacket::TYPE_WORLD_SPAWN){
+					$session->syncWorldSpawnPoint(new Position($packet->spawnPosition->getX(), $packet->spawnPosition->getY(), $packet->spawnPosition->getZ(), null));
+				}
+				return null;
 
 			case Info::ANIMATE_PACKET:
 				/** @var AnimatePacket $packet */
@@ -2301,327 +1402,107 @@ class Translator{
 					case 1:
 						$pk = new STCAnimatePacket();
 						$pk->animation = 0;
-						$pk->entityId = $packet->entityRuntimeId;
+						$pk->entityId = $packet->actorRuntimeId;
 						return $pk;
 					case 3: //Leave Bed
 						$pk = new STCAnimatePacket();
 						$pk->animation = 2;
-						$pk->entityId = $packet->entityRuntimeId;
+						$pk->entityId = $packet->actorRuntimeId;
 						return $pk;
 					default:
-						echo "AnimationPacket: ".$packet->action."\n";
-					break;
+						echo "AnimationPacket: " . $packet->action . "\n";
+						break;
 				}
 				return null;
 
-			case Info::CONTAINER_OPEN_PACKET:
-				/** @var ContainerOpenPacket $packet */
-				return $player->getInventoryUtils()->onWindowOpen($packet);
-
-			case Info::CONTAINER_CLOSE_PACKET:
-				/** @var ContainerClosePacket $packet */
-				return $player->getInventoryUtils()->onWindowCloseFromPEtoPC($packet);
-
-			case Info::INVENTORY_SLOT_PACKET:
-				/** @var InventorySlotPacket $packet */
-				return $player->getInventoryUtils()->onWindowSetSlot($packet);
-
-			case Info::CONTAINER_SET_DATA_PACKET:
-				/** @var ContainerSetDataPacket $packet */
-				return $player->getInventoryUtils()->onWindowSetData($packet);
-
-			case Info::CRAFTING_DATA_PACKET:
-				/** @var CraftingDataPacket $packet */
-				return $player->getRecipeUtils()->onCraftingData($packet);
-
-			case Info::INVENTORY_CONTENT_PACKET:
-				/** @var InventoryContentPacket $packet */
-				return $player->getInventoryUtils()->onWindowSetContent($packet);
-
-			case Info::BLOCK_ACTOR_DATA_PACKET:
-				/** @var BlockActorDataPacket $packet */
-				$pk = new BlockEntityDataPacket();
-				$pk->x = $packet->x;
-				$pk->y = $packet->y;
-				$pk->z = $packet->z;
-
-				$nbt = new NetworkLittleEndianNBTStream();
-				$nbt = $nbt->read($packet->namedtag, true);
-
-				switch($nbt["id"]){
-					case Tile::BANNER:
-						$pk->actionId = 6;
-						$pk->nbtData = $nbt;
-					break;
-					case Tile::BED:
-						$pk->actionId = 11;
-						$pk->nbtData = $nbt;
-					break;
-					case Tile::CHEST:
-					case Tile::ENCHANT_TABLE:
-					case Tile::ENDER_CHEST:
-					case Tile::FURNACE:
-						$pk->actionId = 7;
-						$pk->nbtData = $nbt;
-					break;
-					case Tile::FLOWER_POT:
-						$pk->actionId = 5;
-						/** @var CompoundTag $nbt */
-						$pk->nbtData = ConvertUtils::convertBlockEntity(true, $nbt);
-					break;
-					case Tile::ITEM_FRAME:
-						if(($entity = ItemFrameBlockEntity::getItemFrame($player->getLevel(), $packet->x, $packet->y, $packet->z)) !== null){
-							$entity->spawnTo($player);//Update Item Frame
-						}
-						return null;
-					case Tile::SIGN:
-						$pk->actionId = 9;
-						/** @var CompoundTag $nbt */
-						$pk->nbtData = ConvertUtils::convertBlockEntity(true, $nbt);
-					break;
-					case Tile::SKULL:
-						$pk->actionId = 4;
-						$pk->nbtData = $nbt;
-					break;
-					default:
-						echo "BlockEntityDataPacket: ".$nbt["id"]."\n";
-						return null;
-				}
-
-				return $pk;
-
 			case Info::SET_DIFFICULTY_PACKET:
 				/** @var SetDifficultyPacket $packet */
-				$pk = new ServerDifficultyPacket();
-				$pk->difficulty = $packet->difficulty;
-				return $pk;
+				$session->syncWorldDifficulty($packet->difficulty);
+				return null;
 
 			case Info::SET_PLAYER_GAME_TYPE_PACKET:
 				/** @var SetPlayerGameTypePacket $packet */
-				$packets = [];
-
-				$pk = new PlayerAbilitiesPacket();
-				$pk->flyingSpeed = 0.05;
-				$pk->viewModifierField = 0.1;
-				$pk->canFly = ($player->getGamemode() & 0x01) > 0;
-				$pk->damageDisabled = ($player->getGamemode() & 0x01) > 0;
-				$pk->isFlying = false;
-				$pk->isCreative = ($player->getGamemode() & 0x01) > 0;
-				$packets[] = $pk;
-
-				$pk = new ChangeGameStatePacket();
-				$pk->reason = 3;
-				$pk->value = $player->getGamemode();
-				$packets[] = $pk;
-
-				return $packets;
-
-			case Info::LEVEL_CHUNK_PACKET:
-				/** @var LevelChunkPacket $packet */
-				$blockEntities = [];
- 				foreach($player->getLevel()->getChunkTiles($packet->getChunkX(), $packet->getChunkZ()) as $tile){
- 					if($tile instanceof Spawnable){
- 						$blockEntities[] = clone $tile->getSpawnCompound();
- 					}
- 				}
-
- 				$chunk = new DesktopChunk($player, $packet->getChunkX(), $packet->getChunkZ());
-
- 				$packets = [];
- 				$pk = new UpdateLightPacket();
- 				$pk->chunkX = $packet->getChunkX();
- 				$pk->chunkZ = $packet->getChunkZ();
- 				$pk->skyLightMask = $chunk->getSkyLightBitMask();
- 				$pk->blockLightMask = $chunk->getBlockLightBitMask();
- 				$pk->emptySkyLightMask = ~$chunk->getSkyLightBitMask();
- 				$pk->emptyBlockLightMask = ~$chunk->getBlockLightBitMask();
- 				$pk->skyLight = $chunk->getSkyLight();
- 				$pk->blockLight = $chunk->getBlockLight();
- 				$packets[] = $pk;
-
- 				$pk = new ChunkDataPacket();
- 				$pk->chunkX = $packet->getChunkX();
- 				$pk->chunkZ = $packet->getChunkZ();
- 				$pk->isFullChunk = $chunk->isFullChunk();
- 				$pk->primaryBitMask = $chunk->getChunkBitMask();
- 				$pk->heightMaps = $chunk->getHeightMaps();
- 				$pk->biomes = $chunk->getBiomes();
- 				$pk->data = $chunk->getChunkData();
- 				$pk->blockEntities = $blockEntities;
- 				$packets[] = $pk;
-
- 				return $packets;
+				$session->syncGameMode(match($packet->gamemode){
+					ProtocolGameMode::SURVIVAL => GameMode::SURVIVAL(),
+					ProtocolGameMode::CREATIVE => GameMode::CREATIVE(),
+					ProtocolGameMode::ADVENTURE => GameMode::ADVENTURE(),
+					ProtocolGameMode::SURVIVAL_VIEWER, ProtocolGameMode::CREATIVE_VIEWER => GameMode::SPECTATOR(),
+				});
+				return null;
 
 			case Info::PLAYER_LIST_PACKET:
 				/** @var PlayerListPacket $packet */
 				$pk = new PlayerInfoPacket();
 
-				switch($packet->type){
-					case 0://Add
-						$pk->actionId = PlayerInfoPacket::TYPE_ADD;
+				if($packet->list instanceof PlayerListAdditionEntries){
+					$pk->actionId = PlayerInfoPacket::TYPE_ADD;
 
-						$loggedInPlayers = $player->getServer()->getLoggedInPlayers();
-						foreach($packet->entries as $entry){
-							$playerData = null;
-							$gameMode = 0;
-							$displayName = $entry->username;
-							if(isset($loggedInPlayers[$entry->uuid->toBinary()])){
-								$playerData = $loggedInPlayers[$entry->uuid->toBinary()];
-								$gameMode = $playerData->getGamemode();
-								$displayName = $playerData->getNameTag();
-							}
+					$loggedInPlayers = Server::getInstance()->getOnlinePlayers();
+					foreach($packet->list->entries as $entry){
+						$playerData = null;
+						$gameMode = 0;
+						$displayName = $entry->username;
+						if(isset($loggedInPlayers[$entry->uuid->getBytes()])){
+							$playerData = $loggedInPlayers[$entry->uuid->getBytes()];
+							$gameMode = match($session->getPlayer()->getGamemode()->getEnglishName()){
+								GameMode::SURVIVAL()->getEnglishName() => 0,
+								GameMode::CREATIVE()->getEnglishName() => 1,
+								GameMode::ADVENTURE()->getEnglishName() => 2,
+								GameMode::SPECTATOR()->getEnglishName() => 3
+							};
+							$displayName = $playerData->getNameTag();
+						}
 
-							if($playerData instanceof DesktopPlayer){
-								$properties = $playerData->bigBrother_getProperties();
-							}else{
-								//TODO: Skin Problem
-								$value = [//Dummy Data
-									"timestamp" => 0,
-									"profileId" => str_replace("-", "", $entry->uuid->toString()),
-									"profileName" => TextFormat::clean($entry->username),
-									"textures" => [
-										"SKIN" => [
-											//TODO
-										]
+						if($playerData instanceof DesktopNetworkSession){
+							$properties = $playerData->bigBrother_getProperties();
+						}else{
+							//TODO: Skin Problem
+							$value = [//Dummy Data
+								"timestamp" => 0,
+								"profileId" => str_replace("-", "", $entry->uuid->toString()),
+								"profileName" => TextFormat::clean($entry->username),
+								"textures" => [
+									"SKIN" => [
+										//TODO
 									]
-								];
+								]
+							];
 
-								$properties = [
-									[
-										"name" => "textures",
-										"value" => base64_encode(json_encode($value)),
-									]
-								];
-							}
-
-							$pk->players[] = [
-								$entry->uuid->toBinary(),
-								substr(TextFormat::clean($displayName), 0, 16),
-								$properties,
-								$gameMode,
-								0,
-								true,
-								BigBrother::toJSON($entry->username)
+							$properties = [
+								[
+									"name" => "textures",
+									"value" => base64_encode(json_encode($value)),
+								]
 							];
 						}
-					break;
-					case 1://Remove
-						$pk->actionId = PlayerInfoPacket::TYPE_REMOVE;
 
-						foreach($packet->entries as $entry){
-							$pk->players[] = [
-								$entry->uuid->toBinary(),
-							];
-						}
+						$pk->players[] = [
+							$entry->uuid->getBytes(),
+							substr(TextFormat::clean($displayName), 0, 16),
+							$properties,
+							$gameMode,
+							0,
+							true,
+							BigBrother::toJSON($entry->username)
+						];
+					}
+				}else{
+					$pk->actionId = PlayerInfoPacket::TYPE_REMOVE;
+
+					foreach($packet->list->entries as $entry){
+						$pk->players[] = [
+							$entry->uuid->getBytes(),
+						];
+					}
 					break;
 				}
-
-				return $pk;
-
-			case Info::CLIENTBOUND_MAP_ITEM_DATA_PACKET:
-				/** @var ClientboundMapItemDataPacket $packet */
-				$pk = new MapPacket();
-
-				$pk->mapId = $packet->mapId;
-				$pk->scale = $packet->scale;
-				$pk->columns = $packet->width;
-				$pk->rows = $packet->height;
-
-				// TODO implement tracked entities handling and general map behaviour
-
-				$pk->data = ColorUtils::convertColorsToPC($packet->colors, $packet->width, $packet->height);
-
 				return $pk;
 
 			case Info:: CHUNK_RADIUS_UPDATED_PACKET:
 				/** @var ChunkRadiusUpdatedPacket $packet */
-				$pk = new UpdateViewDistancePacket();
-				$pk->viewDistance = $packet->radius * 2;
-				return $pk;
-
-			case Info::BOSS_EVENT_PACKET:
-				/** @var BossEventPacket $packet */
-				$pk = new BossBarPacket();
-				$uuid = $player->bigBrother_getBossBarData("uuid");
-
-				switch($packet->eventType){
-					case BossEventPacket::TYPE_REGISTER_PLAYER:
-					case BossEventPacket::TYPE_UNREGISTER_PLAYER:
-					case BossEventPacket::TYPE_UNKNOWN_6:
-					break;
-					case BossEventPacket::TYPE_SHOW:
-						if($uuid !== ""){
-							return null;
-						}
-						$pk->uuid = UUID::fromRandom()->toBinary();
-						$pk->actionId = BossBarPacket::TYPE_ADD;
-						if(isset($packet->title) and is_string($packet->title) and strlen($packet->title) > 0){
-							$title = $packet->title;
-						}else{
-							$title = $player->bigBrother_getBossBarData("nameTag")[1];
-						}
-						$pk->title = BigBrother::toJSON(str_replace(["\r\n", "\r", "\n"], "", $title));
-						$health = 1.0;
-						if($packet->healthPercent < 100){ //healthPercent is a value between 1 and 100
-							$health = $packet->healthPercent / 100;
-						}elseif($packet->healthPercent <= 0){
-							$health = 0.0;
-						}
-						$pk->health = $health;
-
-						$player->bigBrother_setBossBarData("entityRuntimeId", $packet->bossEid);
-						$player->bigBrother_setBossBarData("uuid", $pk->uuid);
-
-						return $pk;
-					case BossEventPacket::TYPE_HIDE:
-						if($uuid === ""){
-							return null;
-						}
-						$pk->uuid = $uuid;
-						$pk->actionId = BossBarPacket::TYPE_REMOVE;
-
-						$player->bigBrother_setBossBarData("entityRuntimeId", -1);
-						$player->bigBrother_setBossBarData("uuid", "");
-
-						return $pk;
-					case BossEventPacket::TYPE_TEXTURE:
-						if($uuid === ""){
-							return null;
-						}
-						$pk->uuid = $uuid;
-						$pk->actionId = BossBarPacket::TYPE_UPDATE_COLOR;
-						$pk->color = $packet->color;
-
-						return $pk;
-					case BossEventPacket::TYPE_HEALTH_PERCENT:
-						if($uuid === ""){
-							return null;
-						}
-						$pk->uuid = $uuid;
-						$pk->actionId = BossBarPacket::TYPE_UPDATE_HEALTH;
-						$health = 1.0;
-						if($packet->healthPercent < 100){ //healthPercent is a value between 1 and 100
-							$health = $packet->healthPercent / 100;
-						}elseif($packet->healthPercent <= 0){
-							$health = 0.0;
-						}
-						$pk->health = $health;
-
-						return $pk;
-					case BossEventPacket::TYPE_TITLE:
-						if($uuid === ""){
-							return null;
-						}
-						$pk->uuid = $uuid;
-						$pk->actionId = BossBarPacket::TYPE_UPDATE_TITLE;
-						$pk->title = BigBrother::toJSON(str_replace(["\r\n", "\r", "\n"], "", $packet->title));
-
-						return $pk;
-					default:
-						echo "BossEventPacket: ".$packet->eventType."\n";
-					break;
-				}
+				$session->syncViewAreaRadius($packet->radius);
 				return null;
+
 			case Info::SET_DISPLAY_OBJECTIVE_PACKET:
 				/** @var SetDisplayObjectivePacket $packet */
 
@@ -2638,13 +1519,13 @@ class Translator{
 				$pk->position = DisplayScoreboardPacket::POSITION_SIDEBAR;
 				$pk->name = $packet->objectiveName;
 				$packets[] = $pk;
-
 				return $packets;
+
 			case Info::SET_SCORE_PACKET:
 				/** @var SetScorePacket $packet */
 				$packets = [];
 				$i = 16;
-				foreach($packet->entries as $entry) {
+				foreach($packet->entries as $entry){
 					$i--;
 					$pk = new UpdateScorePacket();
 					$pk->action = UpdateScorePacket::ACTION_ADD_OR_UPDATE;
@@ -2654,58 +1535,32 @@ class Translator{
 					$packets[] = $pk;
 				}
 				return $packets;
+
 			case Info::REMOVE_OBJECTIVE_PACKET:
 				/** @var RemoveObjectivePacket $packet */
 				$pk = new ScoreboardObjectivePacket();
 				$pk->action = ScoreboardObjectivePacket::ACTION_REMOVE;
 				$pk->name = $packet->objectiveName;
 				return $pk;
+
 			case Info::MODAL_FORM_REQUEST_PACKET:
 				/** @var ModalFormRequestPacket $packet */
 				$formData = json_decode($packet->formData, true);
 				$packets = [];
 				if($formData["type"] === "form"){
-					$pk = new ChatPacket();
-					$pk->message = json_encode(["text" => TextFormat::BOLD.TextFormat::GRAY."============ [> " . TextFormat::RESET . $formData["title"] . TextFormat::RESET . " <] ============\n".TextFormat::RESET.$formData["content"].TextFormat::RESET."\n\n"]);
+					$pk = new ChatMessagePacket();
+					$pk->message = json_encode(["text" => TextFormat::BOLD . TextFormat::GRAY . "============ [> " . TextFormat::RESET . $formData["title"] . TextFormat::RESET . " <] ============\n" . TextFormat::RESET . $formData["content"] . TextFormat::RESET . "\n\n"]);
 					$packets[] = $pk;
 					foreach($formData["buttons"] as $i => $a){
-						$pk = new ChatPacket();
-						$pk->message = json_encode(["text" => TextFormat::BOLD.TextFormat::GOLD."[CLICK #" . $i . "] " . TextFormat::RESET . $a["text"], "clickEvent" => ["action" => "run_command", "value" => ")respondform " . $i]]);
+						$pk = new ChatMessagePacket();
+						$pk->message = json_encode(["text" => TextFormat::BOLD . TextFormat::GOLD . "[CLICK #" . $i . "] " . TextFormat::RESET . $a["text"], "clickEvent" => ["action" => "run_command", "value" => ")respondform " . $i]]);
 						$packets[] = $pk;
 					}
-					$pk = new ChatPacket();
-					$pk->message = json_encode(["text" => TextFormat::BOLD.TextFormat::GOLD."[CLOSE] ", "clickEvent" => ["action" => "run_command", "value" => ")respondform ESC"]]);
+					$pk = new ChatMessagePacket();
+					$pk->message = json_encode(["text" => TextFormat::BOLD . TextFormat::GOLD . "[CLOSE] ", "clickEvent" => ["action" => "run_command", "value" => ")respondform ESC"]]);
 					$packets[] = $pk;
 				}
-				$player->bigBrother_formId = $packet->formId;
-				return $packets;
-			case BatchPacket::NETWORK_ID:
-				$packets = [];
-
-				/** @var BatchPacket $packet */
-				$packet->decode();
-
-				$stream = new NetworkBinaryStream($packet->payload);
-				while(!$stream->feof()){
-					$buf = $stream->getString();
-
-					if(($pk = PacketPool::getPacket($buf)) !== null){
-						if(!$pk->canBeBatched()){
-							throw new UnexpectedValueException("Received invalid " . get_class($pk) . " inside BatchPacket");
-						}
-
-						$pk->decode();
-
-						if(($desktop = $this->serverToInterface($player, $pk)) !== null){
-							if(is_array($desktop)){
-								$packets = array_merge($packets, $desktop);
-							}else{
-								$packets[] = $desktop;
-							}
-						}
-					}
-				}
-
+				$session->bigBrother_formId = $packet->formId;
 				return $packets;
 
 			case Info::RESOURCE_PACKS_INFO_PACKET:
@@ -2717,12 +1572,8 @@ class Translator{
 			case Info::BIOME_DEFINITION_LIST_PACKET:
 			case Info::CREATIVE_CONTENT_PACKET:
 				return null;
-
-			default:
-				if(DEBUG > 4){
-					echo "[Send][Translator] 0x".bin2hex(chr($packet->pid()))." Not implemented\n";
-				}
-				return null;
 		}
+		echo "[Send][Translator] 0x" . bin2hex(chr($packet->pid())) . " Not implemented\n";
+		return null;
 	}
 }

@@ -29,27 +29,25 @@ declare(strict_types=1);
 
 namespace shoghicp\BigBrother\nbt\tag;
 
-use pocketmine\nbt\NBTStream;
-use pocketmine\nbt\ReaderTracker;
-use pocketmine\nbt\tag\NamedTag;
+use pocketmine\nbt\NbtStreamReader;
+use pocketmine\nbt\NbtStreamWriter;
+use pocketmine\nbt\tag\ImmutableTag;
 use function assert;
-use function get_class;
+use function count;
+use function func_num_args;
 use function implode;
 use function is_int;
-use function str_repeat;
 
-class LongArrayTag extends NamedTag{
+class LongArrayTag extends ImmutableTag{
 	/** @var int[] */
-	private $value;
+	private array $value;
 
 	/**
-	 * @param string $name
 	 * @param int[] $value
 	 */
-	public function __construct(string $name = "", array $value = []){
-		parent::__construct($name);
-
-		assert((function() use(&$value) : bool{
+	public function __construct(array $value = []){
+		self::restrictArgCount(__METHOD__, func_num_args(), 1);
+		assert((function() use (&$value) : bool{
 			foreach($value as $v){
 				if(!is_int($v)){
 					return false;
@@ -62,20 +60,32 @@ class LongArrayTag extends NamedTag{
 		$this->value = $value;
 	}
 
+	protected function getTypeName() : string{
+		return "LongArray";
+	}
+
 	public function getType() : int{
 		return 12;//LongArray
 	}
 
-	public function read(NBTStream $nbt, ReaderTracker $tracker) : void{
-		//Not implement
+	public static function read(NbtStreamReader $reader) : self{
+		$len = $reader->readInt();
+		$ret = [];
+		for($i = 0; $i < $len; ++$i){
+			$ret[] = $reader->readLong();
+		}
+		return new self($ret);
 	}
 
-	public function write(NBTStream $nbt) : void{
-		//Not implement
+	public function write(NbtStreamWriter $writer) : void{
+		$writer->writeInt(count($this->value));
+		foreach($this->value as $value){
+			$writer->writeLong($value);
+		}
 	}
 
-	public function toString(int $indentation = 0) : string{
-		return str_repeat("  ", $indentation) . get_class($this) . ": " . ($this->__name !== "" ? "name='$this->__name', " : "") . "value=[" . implode(",", $this->value) . "]";
+	protected function stringifyValue(int $indentation) : string{
+		return "[" . implode(",", $this->value) . "]";
 	}
 
 	/**

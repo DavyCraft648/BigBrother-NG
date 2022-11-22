@@ -61,7 +61,7 @@ class ChunkDataPacket extends OutboundPacket{
 		$this->putInt($this->chunkZ);
 		$this->putBool($this->isFullChunk);
 		$this->putVarInt($this->primaryBitMask);
-		$this->put(ConvertUtils::convertNBTDataFromPEtoPC($this->heightMaps));
+		$this->put(ConvertUtils::convertNBTDataFromPEtoPC("", $this->heightMaps));
 		if($this->isFullChunk){
 			$this->putVarInt(strlen($this->biomes));
 			$this->put($this->biomes);
@@ -70,7 +70,7 @@ class ChunkDataPacket extends OutboundPacket{
 		$this->put($this->data);
 		$this->putVarInt(count($this->blockEntities));
 		foreach($this->blockEntities as $blockEntity){
-			$this->put(ConvertUtils::convertNBTDataFromPEtoPC(ConvertUtils::convertBlockEntity(true, $blockEntity)));
+			$this->put(ConvertUtils::convertNBTDataFromPEtoPC("", ConvertUtils::convertBlockEntity(true, $blockEntity)));
 		}
 	}
 

@@ -30,69 +30,57 @@ declare(strict_types=1);
 namespace shoghicp\BigBrother;
 
 use pocketmine\block\Block;
-use pocketmine\level\Level;
+use pocketmine\block\BlockTypeIds;
 use pocketmine\nbt\tag\CompoundTag;
-use shoghicp\BigBrother\nbt\tag\LongArrayTag;
-use shoghicp\BigBrother\utils\Binary;
-use shoghicp\BigBrother\utils\ConvertUtils;
+use pocketmine\world\format\Chunk;
+use pocketmine\world\World;
 use shoghicp\BigBrother\entity\ItemFrameBlockEntity;
+use shoghicp\BigBrother\nbt\tag\LongArrayTag;
+use shoghicp\BigBrother\network\DesktopNetworkSession;
+use shoghicp\BigBrother\utils\Binary;
+use function array_search;
+use function chr;
+use function count;
+use function microtime;
+use function ord;
+use function strlen;
+use function strrev;
 
 class DesktopChunk{
-	/** @var DesktopPlayer */
-	private $player;
-	/** @var int */
-	private $chunkX;
-	/** @var int */
-	private $chunkZ;
-	/** @var Level */
-	private $level;
-	/** @var int */
-	private $chunkBitmask;
-	/** @var bool */
-	private $isFullChunk = false;
-	/** @var string */
-	private $chunkData;
-	/** @var CompoundTag */
-	private $heightMaps;
-	/** @var string */
-	private $biomes;
-	/** @var int */
-	private $skyLightBitMask;
-	/** @var int */
-	private $blockLightBitMask;
+	private World $world;
+	private int $chunkBitmask = 0;
+	private bool $isFullChunk = false;
+	private string $chunkData;
+	private CompoundTag $heightMaps;
+	private string $biomes;
+	private int $skyLightBitMask = 0;
+	private int $blockLightBitMask = 0;
 	/** @var string[] */
-	private $skyLight = [];
+	private array $skyLight = [];
 	/** @var string[] */
-	private $blockLight = [];
+	private array $blockLight = [];
 
-	/**
-	 * @param DesktopPlayer $player
-	 * @param int           $chunkX
-	 * @param int           $chunkZ
-	 */
-	public function __construct(DesktopPlayer $player, int $chunkX, int $chunkZ){
-		$this->player = $player;
-		$this->chunkX = $chunkX;
-		$this->chunkZ = $chunkZ;
-		$this->level = $player->getLevel();
-		$this->chunkBitmask = 0;
+	public function __construct(private DesktopNetworkSession $session, private int $chunkX, private int $chunkZ){
+		$this->world = $session->getPlayer()->getWorld();
 
 		$start = microtime(true);
 		$this->generateChunk();
 		$this->generateHeightMaps();
-		echo "Chunk generate takes " . (microtime(true) - $start)."\n";
+		echo "Chunk generate takes " . (microtime(true) - $start) . "\n";
 	}
 
 	public function generateChunk() : void{
-		$chunk = $this->level->getChunk($this->chunkX, $this->chunkZ, false);
-		$this->isFullChunk = count($chunk->getSubChunks()) === 16;
-		$chunk->fastSerialize();
+		$chunk = $this->world->getChunk($this->chunkX, $this->chunkZ);
+		$this->isFullChunk = $chunk->getHeight() === Chunk::MAX_SUBCHUNKS;
 		$this->biomes = $chunk->getBiomeIdArray();
 
 		$payload = "";
 
 		foreach($chunk->getSubChunks() as $num => $subChunk){
-			if($subChunk->isEmpty()){
+			if($num < 0 || $num > 15){
+				continue;
+			}
+			if($subChunk->isEmptyAuthoritative()){
 				continue;
 			}
 
@@ -110,19 +98,23 @@ class DesktopChunk{
 
 					$data = "";
 					for($x = 0; $x < 16; ++$x){
-						$blockId = $subChunk->getBlockId($x, $y, $z);
-						$blockData = $subChunk->getBlockData($x, $y, $z);
+						$stateId = $subChunk->getFullBlock($x, $y, $z);
+						$typeId = $stateId >> Block::INTERNAL_STATE_DATA_BITS;
+						$stateData = $stateId & Block::INTERNAL_STATE_DATA_MASK;
+						$typeId = $typeId == BlockTypeIds::AIR ? $typeId : 1;
+						$stateData = 0;
 
-						if($blockId == Block::FRAME_BLOCK){
-							ItemFrameBlockEntity::getItemFrame($this->player->getLevel(), $x + ($this->chunkX << 4), $y + ($num << 4), $z + ($this->chunkZ << 4), $blockData, true);
-							$block = Block::AIR;
+						if($typeId === BlockTypeIds::ITEM_FRAME){
+							ItemFrameBlockEntity::getItemFrame($this->session->getPlayer()->getWorld(), $x + ($this->chunkX << 4), $y + ($num << 4), $z + ($this->chunkZ << 4), $stateData, true);
+							$block = 0;
 						}else{
-							if($blockId !== Block::AIR){
+							if($typeId !== BlockTypeIds::AIR){
 								$blockCount++;
 							}
 
-							ConvertUtils::convertBlockData(true, $blockId, $blockData);
-							$stateId = ConvertUtils::getBlockStateIndex($blockId, $blockData);
+							//ConvertUtils::convertBlockData(true, $typeId, $stateData);
+							$stateId = /*ConvertUtils::getBlockStateIndex($typeId, $stateData)*/
+								$typeId == BlockTypeIds::AIR ? 0 : 1;
 							$block = $stateId;
 						}
 
@@ -132,7 +124,7 @@ class DesktopChunk{
 						}
 						$data .= chr($key);
 
-						if($x === 7 or $x === 15){//Reset ChunkData
+						if($x === 7 || $x === 15){//Reset ChunkData
 							$chunkData .= strrev($data);
 							$data = "";
 						}
@@ -145,8 +137,8 @@ class DesktopChunk{
 			for($y = 0; $y < 16; ++$y){
 				for($z = 0; $z < 16; ++$z){
 					for($x = 0; $x < 16; $x += 2){
-						$blockLight = $subChunk->getBlockLight($x, $y, $z) | ($subChunk->getBlockLight($x + 1, $y, $z) << 4);
-						$skyLight = $subChunk->getBlockSkyLight($x, $y, $z) | ($subChunk->getBlockSkyLight($x + 1, $y, $z) << 4);
+						$blockLight = $subChunk->getBlockLightArray()->get($x, $y, $z) | ($subChunk->getBlockLightArray()->get($x + 1, $y, $z) << 4);
+						$skyLight = $subChunk->getBlockSkyLightArray()->get($x, $y, $z) | ($subChunk->getBlockSkyLightArray()->get($x + 1, $y, $z) << 4);
 
 						$blockLightData .= chr($blockLight);
 						$skyLightData .= chr($skyLight);
@@ -157,7 +149,7 @@ class DesktopChunk{
 			$this->blockLight[] = $blockLightData;
 
 			/* Bits Per Block & Palette Length */
-			$payload .= Binary::writeShort($blockCount).Binary::writeByte($bitsPerBlock).Binary::writeComputerVarInt(count($palette));
+			$payload .= Binary::writeShort($blockCount) . Binary::writeByte($bitsPerBlock) . Binary::writeComputerVarInt(count($palette));
 
 			/* Palette */
 			foreach($palette as $value){
@@ -174,8 +166,8 @@ class DesktopChunk{
 		$this->chunkData = $payload;
 	}
 
-	public function generateHeightMaps(){
-		$chunk = $this->level->getChunk($this->chunkX, $this->chunkZ, false);
+	public function generateHeightMaps() : void{
+		$chunk = $this->world->getChunk($this->chunkX, $this->chunkZ);
 
 		$long = 0x00;
 		$longData = [];
@@ -192,10 +184,7 @@ class DesktopChunk{
 		}
 		$longData[] = $long;
 
-		$heightMaps = new CompoundTag("", [
-			new LongArrayTag("MOTION_BLOCKING", $longData),
-		]);
-		$this->heightMaps = $heightMaps;
+		$this->heightMaps = CompoundTag::create()->setTag("MOTION_BLOCKING", new LongArrayTag($longData));
 
 		$payload = "";
 		for($i = 0; $i < 256; $i++){
@@ -204,49 +193,39 @@ class DesktopChunk{
 		$this->biomes = $payload;
 	}
 
-	/**
-	 * @return int
-	 */
 	public function getChunkBitMask() : int{
 		return $this->chunkBitmask;
 	}
 
-	/**
-	 * @return bool
-	 */
-	public function isFullChunk(): bool{
+	public function isFullChunk() : bool{
 		return $this->isFullChunk;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function getChunkData() : string{
 		return $this->chunkData;
 	}
 
-	public function getHeightMaps(): CompoundTag{
+	public function getHeightMaps() : CompoundTag{
 		return $this->heightMaps;
 	}
 
-	public function getBiomes(): string{
+	public function getBiomes() : string{
 		return $this->biomes;
 	}
 
-	public function getSkyLightBitMask(): int{
+	public function getSkyLightBitMask() : int{
 		return $this->skyLightBitMask;
 	}
 
-	public function getBlockLightBitMask(): int{
+	public function getBlockLightBitMask() : int{
 		return $this->blockLightBitMask;
 	}
 
-	public function getSkyLight(): array{
+	public function getSkyLight() : array{
 		return $this->skyLight;
 	}
 
-	public function getBlockLight(): array{
+	public function getBlockLight() : array{
 		return $this->blockLight;
 	}
-
 }

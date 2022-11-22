@@ -31,6 +31,21 @@ namespace shoghicp\BigBrother\network;
 
 use Logger;
 use shoghicp\BigBrother\utils\Binary;
+use function base64_encode;
+use function chr;
+use function fclose;
+use function file_get_contents;
+use function fread;
+use function is_string;
+use function json_decode;
+use function ord;
+use function stream_select;
+use function stream_socket_accept;
+use function stream_socket_server;
+use function stream_socket_shutdown;
+use function strlen;
+use function substr;
+use function usleep;
 
 class ServerManager{
 
@@ -92,50 +107,28 @@ class ServerManager{
 	 */
 	const PACKET_EMERGENCY_SHUTDOWN = 0xff;
 
-	/** @var ServerThread */
-	protected $thread;
 	/** @var resource */
 	protected $fp;
 	/** @var resource */
 	protected $socket;
-	/** @var int */
-	protected $identifier = 0;
+	protected int $identifier = 0;
 	/** @var resource[] */
-	protected $sockets = [];
+	protected array $sockets = [];
 	/** @var Session[] */
-	protected $sessions = [];
-	/** @var Logger */
-	protected $logger;
-	/** @var bool */
-	protected $shutdown = false;
+	protected array $sessions = [];
+	protected Logger $logger;
+	protected bool $shutdown = false;
 
 	/** @var string[] */
-	public $sample = [];
-	/** @var string */
-	public $description;
-	/** @var string|null */
-	public $favicon;
-	/** @var array */
-	public $serverData = [
+	public array $sample = [];
+	public ?string $favicon;
+	public array $serverData = [
 		"MaxPlayers" => 20,
 		"OnlinePlayers" => 0,
 	];
 
-	/**
-	 * @param ServerThread $thread
-	 * @param int          $port
-	 * @param string       $interface
-	 * @param string       $description
-	 * @param string|null  $favicon
-	 */
-	public function __construct(ServerThread $thread, int $port, string $interface, string $description = "", string $favicon = null){
-		$this->thread = $thread;
-		$this->description = $description;
-		if($favicon === null or ($image = file_get_contents($favicon)) == ""){
-			$this->favicon = null;
-		}else{
-			$this->favicon = "data:image/png;base64,".base64_encode($image);
-		}
+	public function __construct(protected ServerThread $thread, int $port, string $interface, public string $description = "", string $favicon = null){
+		$this->favicon = $favicon === null || ($image = file_get_contents($favicon)) == "" ? null : "data:image/png;base64," . base64_encode($image);
 
 		$this->logger = $this->thread->getLogger();
 		$this->fp = $this->thread->getInternalSocket();
@@ -188,7 +181,7 @@ class ServerManager{
 						return true;
 					}
 					$this->sessions[$id]->writeRaw($data);
-				break;
+					break;
 				case self::PACKET_ENABLE_ENCRYPTION:
 					$id = Binary::readInt(substr($buffer, 0, 4));
 					$secret = substr($buffer, 4);
@@ -198,7 +191,7 @@ class ServerManager{
 						return true;
 					}
 					$this->sessions[$id]->enableEncryption($secret);
-				break;
+					break;
 				case self::PACKET_SET_COMPRESSION:
 					$id = Binary::readInt(substr($buffer, 0, 4));
 					$threshold = Binary::readInt(substr($buffer, 4, 4));
@@ -208,19 +201,17 @@ class ServerManager{
 						return true;
 					}
 					$this->sessions[$id]->setCompression($threshold);
-				break;
+					break;
 				case self::PACKET_SET_OPTION:
 					$offset = 1;
 					$len = ord($packet[$offset++]);
 					$name = substr($packet, $offset, $len);
 					$offset += $len;
 					$value = substr($packet, $offset);
-					switch($name){
-						case "name":
-							$this->serverData = json_decode($value, true);
-						break;
-					}
-				break;
+					$this->serverData = match($name){
+						"name" => json_decode($value, true),
+					};
+					break;
 				case self::PACKET_CLOSE_SESSION:
 					$id = Binary::readInt(substr($buffer, 0, 4));
 					if(isset($this->sessions[$id])){
@@ -228,7 +219,7 @@ class ServerManager{
 					}else{
 						$this->closeSession($id);
 					}
-				break;
+					break;
 				case self::PACKET_SHUTDOWN:
 					foreach($this->sessions as $session){
 						$session->close();
@@ -237,10 +228,10 @@ class ServerManager{
 					$this->shutdown();
 					stream_socket_shutdown($this->socket, STREAM_SHUT_RDWR);
 					$this->shutdown = true;
-				break;
+					break;
 				case self::PACKET_EMERGENCY_SHUTDOWN:
 					$this->shutdown = true;
-				break;
+					break;
 			}
 
 			return true;
@@ -289,13 +280,14 @@ class ServerManager{
 					if($sockets[0] !== $this->fp){
 						$this->findSocket($sockets[0]);
 					}else{
-						while($this->processPacket()){}
+						while($this->processPacket()){
+						}
 					}
 					unset($sockets[0]);
 				}
 
 				foreach($sockets as $identifier => $socket){
-					if(isset($this->sessions[$identifier]) and $this->sockets[$identifier] === $socket){
+					if(isset($this->sessions[$identifier]) && $this->sockets[$identifier] === $socket){
 						$this->sessions[$identifier]->process();
 					}else{
 						$this->findSocket($socket);
@@ -310,7 +302,7 @@ class ServerManager{
 	 */
 	protected function findSocket($s) : void{
 		foreach($this->sockets as $identifier => $socket){
-			if($identifier > 0 and $socket === $s){
+			if($identifier > 0 && $socket === $s){
 				$this->sessions[$identifier]->process();
 				break;
 			}

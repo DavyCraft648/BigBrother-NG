@@ -29,58 +29,45 @@ declare(strict_types=1);
 
 namespace shoghicp\BigBrother\entity;
 
-use pocketmine\item\Item;
-use pocketmine\block\Block;
-use pocketmine\level\Level;
-use pocketmine\level\Position;
+use pocketmine\block\ItemFrame;
 use pocketmine\entity\Entity;
-use pocketmine\tile\ItemFrame;
-use pocketmine\utils\UUID;
-use pocketmine\network\mcpe\protocol\MapInfoRequestPacket;
+use pocketmine\item\VanillaItems;
+use pocketmine\math\Facing;
+use pocketmine\world\Position;
+use pocketmine\world\World;
+use Ramsey\Uuid\Uuid;
+use shoghicp\BigBrother\network\DesktopNetworkSession;
 use shoghicp\BigBrother\network\protocol\Play\Server\DestroyEntitiesPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\SpawnEntityPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\EntityMetadataPacket;
 use shoghicp\BigBrother\utils\ConvertUtils;
 use shoghicp\BigBrother\DesktopPlayer;
+use function array_diff;
 
 class ItemFrameBlockEntity extends Position{
-	/** @var array */
-	protected static $itemFrames = [];
-	/** @var array */
-	protected static $itemFramesAt = [];
-	/** @var array */
-	protected static $itemFramesInChunk = [];
+	/** @var ItemFrameBlockEntity[][] */
+	protected static array $itemFrames = [];
+	/** @var ItemFrameBlockEntity[][] */
+	protected static array $itemFramesAt = [];
+	/** @var ItemFrameBlockEntity[][][] */
+	protected static array $itemFramesInChunk = [];
 
-	/** @var array */
-	private static $mapping = [
-		0 => [ -90,  3],//EAST
-		1 => [ +90,  1],//WEST
-		2 => [   0,  0],//SOUTH
-		3 => [-180,  2] //NORTH
+	private static array $mapping = [
+		Facing::EAST => [-90, 3],
+		Facing::WEST => [+90, 1],
+		Facing::SOUTH => [0, 0],
+		Facing::NORTH => [-180, 2]
 	];
 
-	/** @var int */
-	private $eid;
-	/** @var string */
-	private $uuid;
-	/** @var int */
-	private $facing;
-	/** @var int */
-	private $yaw;
+	private int $eid;
+	private string $uuid;
+	private int $yaw;
 
-	/**
-	 * @param Level $level
-	 * @param int   $x
-	 * @param int   $y
-	 * @param int   $z
-	 * @param int   $data
-	 */
-	private function __construct(Level $level, int $x, int $y, int $z, int $data){
-		parent::__construct($x, $y, $z, $level);
-		$this->eid = Entity::$entityCount++;
-		$this->uuid = UUID::fromRandom()->toBinary();
-		$this->facing = $data;
-		$this->yaw = self::$mapping[$data][0] ?? 0;
+	private function __construct(World $world, int $x, int $y, int $z, private int $facing){
+		parent::__construct($x, $y, $z, $world);
+		$this->eid = Entity::nextRuntimeId();
+		$this->uuid = Uuid::uuid4()->getBytes();
+		$this->yaw = self::$mapping[$facing][0] ?? 0;
 	}
 
 	/**
@@ -101,18 +88,15 @@ class ItemFrameBlockEntity extends Position{
 	 * @return bool
 	 */
 	public function hasItem() : bool{
-		$tile = $this->getLevel()->getTile($this);
-		if($tile instanceof ItemFrame){
-			return $tile->hasItem();
+		$block = $this->getWorld()->getBlock($this);
+		if($block instanceof ItemFrame){
+			return $block->getFramedItem() !== null;
 		}
 
 		return false;
 	}
 
-	/**
-	 * @param DesktopPlayer $player
-	 */
-	public function spawnTo(DesktopPlayer $player){
+	public function spawnTo(DesktopNetworkSession $player){
 		$pk = new SpawnEntityPacket();
 		$pk->entityId = $this->eid;
 		$pk->uuid = $this->uuid;
@@ -122,7 +106,7 @@ class ItemFrameBlockEntity extends Position{
 		$pk->z = $this->z;
 		$pk->yaw = $this->yaw;
 		$pk->pitch = 0;
-		$pk->data = self::$mapping[$this->facing][1];
+		$pk->data = self::$mapping[$this->facing][1] ?? 0;
 		$pk->sendVelocity = true;
 		$pk->velocityX = 0;
 		$pk->velocityY = 0;
@@ -133,11 +117,11 @@ class ItemFrameBlockEntity extends Position{
 		$pk->entityId = $this->eid;
 		$pk->metadata = ["convert" => true];
 
-		$tile = $this->getLevel()->getTile($this);
-		if($tile instanceof ItemFrame){
-			$item = $tile->hasItem() ? $tile->getItem() : Item::get(Item::AIR, 0, 0);
+		$block = $this->getWorld()->getTile($this);
+		if($block instanceof ItemFrame){
+			$item = $block->getFramedItem() ?? VanillaItems::AIR();
 
-			if($item->getId() === Item::FILLED_MAP){
+			/*if($item->getId() === Item::FILLED_MAP){
 				$mapId = $item->getNamedTag()->getLong("map_uuid");
 				if($mapId !== null){
 					// store $mapId as meta
@@ -147,11 +131,11 @@ class ItemFrameBlockEntity extends Position{
 					$req->mapId = $mapId;
 					$player->handleDataPacket($req);
 				}
-			}
+			}*/
 
 			ConvertUtils::convertItemData(true, $item);
 			$pk->metadata[6] = [5, $item];
-			$pk->metadata[7] = [1, $tile->getItemRotation()];
+			$pk->metadata[7] = [1, $block->getItemRotation()];
 		}
 
 		$player->putRawPacket($pk);
@@ -167,7 +151,7 @@ class ItemFrameBlockEntity extends Position{
 	}
 
 	public function despawnFromAll() : void{
-		foreach($this->getLevel()->getChunkLoaders($this->x >> 4, $this->z >> 4) as $player){
+		foreach($this->getWorld()->getChunkLoaders($this->x >> 4, $this->z >> 4) as $player){
 			if($player instanceof DesktopPlayer){
 				$this->despawnFrom($player);
 			}
@@ -175,81 +159,47 @@ class ItemFrameBlockEntity extends Position{
 		self::removeItemFrame($this);
 	}
 
-	/**
-	 * @param Level $level
-	 * @param int   $x
-	 * @param int   $y
-	 * @param int   $z
-	 * @return bool
-	 */
-	public static function exists(Level $level, int $x, int $y, int $z) : bool{
-		return isset(self::$itemFramesAt[$level->getId()][Level::blockHash($x, $y, $z)]);
+	public static function exists(World $world, int $x, int $y, int $z) : bool{
+		return isset(self::$itemFramesAt[$world->getId()][World::blockHash($x, $y, $z)]);
 	}
 
-	/**
-	 * @param Level $level
-	 * @param int   $x
-	 * @param int   $y
-	 * @param int   $z
-	 * @param int   $data
-	 * @param bool  $create
-	 * @return ItemFrameBlockEntity|null
-	 */
-	public static function getItemFrame(Level $level, int $x, int $y, int $z, int $data=0, bool $create=false) : ?ItemFrameBlockEntity{
+	public static function getItemFrame(World $world, int $x, int $y, int $z, int $facing = Facing::DOWN, bool $create = false) : ?ItemFrameBlockEntity{
 		$entity = null;
 
-		if(isset(self::$itemFramesAt[$level_id = $level->getId()][$index = Level::blockHash($x, $y, $z)])){
-			$entity = self::$itemFramesAt[$level_id][$index];
+		if(isset(self::$itemFramesAt[$world_id = $world->getId()][$index = World::blockHash($x, $y, $z)])){
+			$entity = self::$itemFramesAt[$world_id][$index];
 		}elseif($create){
-			$entity = new ItemFrameBlockEntity($level, $x, $y, $z, $data);
-			self::$itemFrames[$level_id][$entity->eid] = $entity;
-			self::$itemFramesAt[$level_id][$index] = $entity;
+			$entity = new ItemFrameBlockEntity($world, $x, $y, $z, $facing);
+			self::$itemFrames[$world_id][$entity->eid] = $entity;
+			self::$itemFramesAt[$world_id][$index] = $entity;
 
-			if(!isset(self::$itemFramesInChunk[$level_id][$index = Level::chunkHash($x >> 4, $z >> 4)])){
-				self::$itemFramesInChunk[$level_id][$index] = [];
+			if(!isset(self::$itemFramesInChunk[$world_id][$index = World::chunkHash($x >> 4, $z >> 4)])){
+				self::$itemFramesInChunk[$world_id][$index] = [];
 			}
-			self::$itemFramesInChunk[$level_id][$index] []= $entity;
+			self::$itemFramesInChunk[$world_id][$index] [] = $entity;
 		}
 
 		return $entity;
 	}
 
-	/**
-	 * @param Level $level
-	 * @param int   $eid
-	 * @return ItemFrameBlockEntity|null
-	 */
-	public static function getItemFrameById(Level $level, int $eid) : ?ItemFrameBlockEntity{
-		return self::$itemFrames[$level->getId()][$eid] ?? null;
+	public static function getItemFrameById(World $world, int $eid) : ?ItemFrameBlockEntity{
+		return self::$itemFrames[$world->getId()][$eid] ?? null;
 	}
 
-	/**
-	 * @param Block $block
-	 * @param bool  $create
-	 * @return ItemFrameBlockEntity|null
-	 */
-	public static function getItemFrameByBlock(Block $block, bool $create=false) : ?ItemFrameBlockEntity{
-		return self::getItemFrame($block->getLevel(), $block->x, $block->y, $block->z, $block->getDamage(), $create);
+	public static function getItemFrameByBlock(ItemFrame $block, bool $create = false) : ?ItemFrameBlockEntity{
+		$pos = $block->getPosition();
+		return self::getItemFrame($pos->getWorld(), $pos->x, $pos->y, $pos->z, $block->getFacing(), $create);
 	}
 
-	/**
-	 * @param Level $level
-	 * @param int   $x
-	 * @param int   $z
-	 * @return array
-	 */
-	public static function getItemFramesInChunk(Level $level, int $x, int $z) : array{
-		return self::$itemFramesInChunk[$level->getId()][Level::chunkHash($x, $z)] ?? [];
+	public static function getItemFramesInChunk(World $world, int $x, int $z) : array{
+		return self::$itemFramesInChunk[$world->getId()][World::chunkHash($x, $z)] ?? [];
 	}
 
-	/**
-	 * @param ItemFrameBlockEntity $entity
-	 */
 	public static function removeItemFrame(ItemFrameBlockEntity $entity) : void{
-		unset(self::$itemFrames[$entity->level->getid()][$entity->eid]);
-		unset(self::$itemFramesAt[$entity->level->getId()][Level::blockHash($entity->x, $entity->y, $entity->z)]);
-		if(isset(self::$itemFramesInChunk[$level_id = $entity->getLevel()->getId()][$index = Level::chunkHash($entity->x >> 4, $entity->z >> 4)])){
-			self::$itemFramesInChunk[$level_id][$index] = array_diff(self::$itemFramesInChunk[$level_id][$index], [$entity]);
+		unset(self::$itemFrames[$entity->world->getId()][$entity->eid]);
+		unset(self::$itemFramesAt[$entity->world->getId()][World::blockHash($entity->x, $entity->y, $entity->z)]);
+		if(isset(self::$itemFramesInChunk[$world_id = $entity->getWorld()->getId()][$index = World::chunkHash($entity->x >> 4, $entity->z >> 4)])){
+			self::$itemFramesInChunk[$world_id][$index] = array_diff(self::$itemFramesInChunk[$world_id][$index], [$entity]);
 		}
 	}
 }

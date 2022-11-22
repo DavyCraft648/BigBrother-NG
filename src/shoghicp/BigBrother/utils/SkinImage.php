@@ -29,10 +29,15 @@ declare(strict_types=1);
 
 namespace shoghicp\BigBrother\utils;
 
-class SkinImage{
-	private $utils, $existSkinImage = false;
+use function base64_encode;
+use function chr;
+use function str_repeat;
 
-	public function __construct($binary){
+class SkinImage{
+	private PNGParser $utils;
+	private bool $existSkinImage = false;
+
+	public function __construct(string $binary){
 		$this->utils = new PNGParser($binary);
 		if($binary !== ""){
 			$this->existSkinImage = true;
@@ -45,7 +50,7 @@ class SkinImage{
 			for($height = 0; $height < $this->utils->getHeight(); $height++){
 				for($width = 0; $width < $this->utils->getWidth(); $width++){
 					$rgbaData = $this->utils->getRGBA($height, $width);
-					$data .= chr($rgbaData[0]).chr($rgbaData[1]).chr($rgbaData[2]).chr($rgbaData[3]);
+					$data .= chr($rgbaData[0]) . chr($rgbaData[1]) . chr($rgbaData[2]) . chr($rgbaData[3]);
 				}
 			}
 		}elseif($enableDummyImage){
@@ -58,5 +63,4 @@ class SkinImage{
 	public function getSkinImageData(bool $enableDummyImage = false) : string{
 		return base64_encode($this->getRawSkinImageData($enableDummyImage));
 	}
-
 }

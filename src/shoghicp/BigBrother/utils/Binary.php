@@ -30,49 +30,56 @@ declare(strict_types=1);
 namespace shoghicp\BigBrother\utils;
 
 use phpseclib\Math\BigInteger;
-use pocketmine\item\Item;
 use shoghicp\BigBrother\network\Session;
-use const pocketmine\DEBUG;
+use function assert;
+use function bin2hex;
+use function chr;
+use function fgetc;
+use function is_int;
+use function ltrim;
+use function ord;
+use function sha1;
+use function strlen;
+use function substr;
 
 class Binary extends \pocketmine\utils\Binary{
 
 	/**
 	 * @param string $input
+	 *
 	 * @return string
 	 */
 	public static function sha1(string $input) : string{
 		$number = new BigInteger(sha1($input, true), -256);
 		$zero = new BigInteger(0);
-		return ($zero->compare($number) <= 0 ? "":"-") . ltrim($number->toHex(), "0");
+		return ($zero->compare($number) <= 0 ? "" : "-") . ltrim($number->toHex(), "0");
 	}
 
 	/**
 	 * @param string $uuid
+	 *
 	 * @return string
 	 */
 	public static function UUIDtoString(string $uuid) : string{
-		return substr($uuid, 0, 8) ."-". substr($uuid, 8, 4) ."-". substr($uuid, 12, 4) ."-". substr($uuid, 16, 4) ."-". substr($uuid, 20);
+		return substr($uuid, 0, 8) . "-" . substr($uuid, 8, 4) . "-" . substr($uuid, 12, 4) . "-" . substr($uuid, 16, 4) . "-" . substr($uuid, 20);
 	}
 
 	public static function hexentities($str){//debug
 		$return = '';
-		for($i = 0, $iMax = strlen($str); $i < $iMax; $i++) {
-			$return .= '&#x'.bin2hex(substr($str, $i, 1)).';';
+		for($i = 0, $iMax = strlen($str); $i < $iMax; $i++){
+			$return .= '&#x' . bin2hex(substr($str, $i, 1)) . ';';
 		}
 		return $return;
 	}
 
 	/**
 	 * @param array $data
+	 *
 	 * @return string
 	 */
 	public static function writeMetadata(array $data) : string{
 		if(!isset($data["convert"])){
 			$data = ConvertUtils::convertPEToPCMetadata($data);
-		}
-
-		if(DEBUG > 4){
-			var_dump($data);
 		}
 
 		$m = "";
@@ -87,28 +94,27 @@ class Binary extends \pocketmine\utils\Binary{
 			$m .= self::writeComputerVarInt($d[0]);
 
 
-
 			switch($d[0]){
 				case 0://Byte
 					$m .= self::writeByte($d[1]);
-				break;
+					break;
 				case 1://VarInt
 					$m .= self::writeComputerVarInt($d[1]);
-				break;
+					break;
 				case 2://Float
 					$m .= self::writeFloat($d[1]);
-				break;
+					break;
 				case 3://String
 				case 4://component
 					$m .= self::writeComputerVarInt(strlen($d[1])) . $d[1];
-				break;
+					break;
 				case 5://Optcomponent
 					$m .= self::writeBool($d[1][0]);
 					if($d[1][0]){
 						$m .= self::writeComputerVarInt(strlen($d[1][1])) . $d[1][1];
 					}
 
-				break;
+					break;
 				case 6://Slot
 					// @var Item $item
 					$item = $d[1];
@@ -122,31 +128,31 @@ class Binary extends \pocketmine\utils\Binary{
 
 						if($item->hasCompoundTag()){
 							$itemNBT = clone $item->getNamedTag();
-							$m .= ConvertUtils::convertNBTDataFromPEtoPC($itemNBT);
+							$m .= ConvertUtils::convertNBTDataFromPEtoPC("", $itemNBT);
 						}else{
 							$m .= "\x00";//TAG_End
 						}
 					}
-				break;
+					break;
 				case 7://Boolean
 					$m .= self::writeByte($d[1] ? 1 : 0);
-				break;
+					break;
 				case 8://Rotation
 					$m .= self::writeFloat($d[1][0]);
 					$m .= self::writeFloat($d[1][1]);
 					$m .= self::writeFloat($d[1][2]);
-				break;
+					break;
 				case 9://Position
 					$long = (($d[1][0] & 0x3FFFFFF) << 38) | (($d[1][1] & 0xFFF) << 26) | ($d[1][2] & 0x3FFFFFF);
 					$m .= self::writeLong($long);
-				break;
+					break;
 				case 10://OptPos
 					$m .= self::writeBool($d[1][0]);
 					if($d[1][0]){
 						$long = (($d[1][1][0] & 0x3FFFFFF) << 38) | (($d[1][1][1] & 0xFFF) << 26) | ($d[1][1][2] & 0x3FFFFFF);
 						$m .= self::writeLong($long);
 					}
-				break;
+					break;
 			}
 		}
 
@@ -156,8 +162,9 @@ class Binary extends \pocketmine\utils\Binary{
 	}
 
 	/**
-	 * @param string $buffer
-	 * @param int    &$offset
+	 * @param string      $buffer
+	 * @param int    &    $offset
+	 *
 	 * @phpstan-param int $offset
 	 * @return int
 	 */
@@ -177,8 +184,9 @@ class Binary extends \pocketmine\utils\Binary{
 	}
 
 	/**
-	 * @param Session $session
-	 * @param int     &$offset
+	 * @param Session     $session
+	 * @param int     &   $offset
+	 *
 	 * @phpstan-param int $offset
 	 * @return int|bool
 	 */
@@ -203,8 +211,9 @@ class Binary extends \pocketmine\utils\Binary{
 
 
 	/**
-	 * @param resource $fp
-	 * @param int      &$offset
+	 * @param resource    $fp
+	 * @param int      &  $offset
+	 *
 	 * @phpstan-param int $offset
 	 * @return int|bool
 	 */
@@ -229,6 +238,7 @@ class Binary extends \pocketmine\utils\Binary{
 
 	/**
 	 * @param int $number
+	 *
 	 * @return string
 	 */
 	public static function writeComputerVarInt(int $number) : string{

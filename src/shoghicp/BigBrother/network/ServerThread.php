@@ -35,55 +35,39 @@ use ReflectionClass;
 use Thread;
 use Threaded;
 use ThreadedLogger;
+use function array_reverse;
+use function class_exists;
+use function fwrite;
+use function interface_exists;
+use function register_shutdown_function;
+use function serialize;
+use function socket_last_error;
+use function socket_strerror;
+use function stream_set_blocking;
+use function stream_socket_pair;
+use function strtoupper;
+use function substr;
+use function unserialize;
 
 class ServerThread extends Thread{
+	protected string $data;
 
-	/** @var int */
-	protected $port;
-	/** @var string */
-	protected $interface;
-	/** @var ThreadedLogger */
-	protected $logger;
-	/** @var ClassLoader */
-	protected $loader;
-	/** @var string */
-	protected $data;
+	public array $loadPaths;
 
-	/** @var array */
-	public $loadPaths;
+	protected bool $shutdown;
 
-	/** @var bool */
-	protected $shutdown;
-
-	/** @var Threaded */
-	protected $externalQueue;
-	/** @var Threaded */
-	protected $internalQueue;
+	protected Threaded $externalQueue;
+	protected Threaded $internalQueue;
 
 	/** @var resource */
 	protected $externalSocket;
 	/** @var resource */
 	protected $internalSocket;
 
-	/**
-	 * @param ThreadedLogger $logger
-	 * @param ClassLoader    $loader
-	 * @param int             $port 1-65536
-	 * @param string          $interface
-	 * @param string          $motd
-	 * @param string|null     $icon
-	 * @param bool            $autoStart
-	 * @throws Exception
-	 */
-	public function __construct(ThreadedLogger $logger, ClassLoader $loader, int $port, string $interface = "0.0.0.0", string $motd = "Minecraft: PE server", string $icon = null, bool $autoStart = true){
-		$this->port = $port;
-		if($port < 1 or $port > 65536){
+	public function __construct(protected ThreadedLogger $logger, protected ClassLoader $loader, protected int $port, protected string $interface = "0.0.0.0", string $motd = "Minecraft: PE server", string $icon = null, bool $autoStart = true){
+		if($port < 1 || $port > 65536){
 			throw new Exception("Invalid port range");
 		}
-
-		$this->interface = $interface;
-		$this->logger = $logger;
-		$this->loader = $loader;
 
 		$this->data = serialize([
 			"motd" => $motd,
@@ -100,7 +84,7 @@ class ServerThread extends Thread{
 		$this->internalQueue = new Threaded;
 
 		if(($sockets = stream_socket_pair((strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ? STREAM_PF_INET : STREAM_PF_UNIX), STREAM_SOCK_STREAM, STREAM_IPPROTO_IP)) === false){
-			throw new Exception("Could not create IPC streams. Reason: ".socket_strerror(socket_last_error()));
+			throw new Exception("Could not create IPC streams. Reason: " . socket_strerror(socket_last_error()));
 		}
 
 		$this->internalSocket = $sockets[0];
@@ -115,8 +99,10 @@ class ServerThread extends Thread{
 
 	/**
 	 * @param array            &$loadPaths
+	 *
 	 * @phpstan-param array     $loadPaths
-	 * @param ReflectionClass $dep
+	 *
+	 * @param ReflectionClass   $dep
 	 */
 	protected function addDependency(array &$loadPaths, ReflectionClass $dep){
 		if($dep->getFileName() !== false){
@@ -132,102 +118,65 @@ class ServerThread extends Thread{
 		}
 	}
 
-	/**
-	 * @return bool true if this thread state is shutdown
-	 */
 	public function isShutdown() : bool{
-		return $this->shutdown === true;
+		return $this->shutdown;
 	}
 
 	public function shutdown(){
 		$this->shutdown = true;
 	}
 
-	/**
-	 * @return int port
-	 */
 	public function getPort() : int{
 		return $this->port;
 	}
 
-	/**
-	 * @return string interface
-	 */
 	public function getInterface() : string{
 		return $this->interface;
 	}
 
-	/**
-	 * @return ThreadedLogger logger
-	 */
 	public function getLogger() : ThreadedLogger{
 		return $this->logger;
 	}
 
-	/**
-	 * @return Threaded external queue
-	 */
 	public function getExternalQueue() : Threaded{
 		return $this->externalQueue;
 	}
 
-	/**
-	 * @return Threaded internal queue
-	 */
 	public function getInternalQueue() : Threaded{
 		return $this->internalQueue;
 	}
 
-	/**
-	 * @return resource internal socket
-	 */
 	public function getInternalSocket(){
 		return $this->internalSocket;
 	}
 
-	/**
-	 * @param string $str
-	 */
 	public function pushMainToThreadPacket(string $str) : void{
 		$this->internalQueue[] = $str;
 		@fwrite($this->externalSocket, "\xff", 1); //Notify
 	}
 
-	/**
-	 * @return string|null
-	 */
 	public function readMainToThreadPacket() : ?string{
 		return $this->internalQueue->shift();
 	}
 
-	/**
-	 * @param string $str
-	 */
 	public function pushThreadToMainPacket(string $str) : void{
 		$this->externalQueue[] = $str;
 	}
 
-	/**
-	 * @return string|null
-	 */
 	public function readThreadToMainPacket() : ?string{
 		return $this->externalQueue->shift();
 	}
 
 	public function shutdownHandler() : void{
 		if($this->shutdown !== true){
-			$this->getLogger()->emergency("[ServerThread #". Thread::getCurrentThreadId() ."] ServerThread crashed!");
+			$this->getLogger()->emergency("[ServerThread #" . Thread::getCurrentThreadId() . "] ServerThread crashed!");
 		}
 	}
 
-	/**
-	 * @override
-	 */
-	public function run(){
+	public function run() : void{
 		//Load removed dependencies, can't use require_once()
 		foreach($this->loadPaths as $name => $path){
-			if(!class_exists($name, false) and !interface_exists($name, false)){
-				/** @noinspection PhpIncludeInspection */
+			if(!class_exists($name, false) && !interface_exists($name, false)){
 				require $path;
 			}
 		}

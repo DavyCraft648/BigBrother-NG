@@ -27,12 +27,7 @@
  */
 declare(strict_types=1);
 
-namespace pocketmine\utils {
-	class Color { /* this is stub */ }
-}
-
 namespace {
-	/** @noinspection PhpIncludeInspection */
 	require_once($source = "src/shoghicp/BigBrother/utils/ColorUtils.php");
 
 	use shoghicp\BigBrother\utils\ColorUtils;

@@ -31,19 +31,20 @@ namespace shoghicp\BigBrother\network;
 
 use pocketmine\item\Durable;
 use pocketmine\item\Item;
-use pocketmine\utils\UUID;
+use pocketmine\item\VanillaItems;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
+use Ramsey\Uuid\UuidInterface;
 use shoghicp\BigBrother\utils\Binary;
 use shoghicp\BigBrother\utils\ComputerItem;
 use shoghicp\BigBrother\utils\ConvertUtils;
 use stdClass;
+use function strrev;
+use function substr;
 
 abstract class Packet extends stdClass{
 
-	/** @var string */
-	protected $buffer;
-	/** @var int */
-	protected $offset = 0;
+	protected string $buffer;
+	protected int $offset = 0;
 
 	protected function get($len) : string{
 		if($len < 0){
@@ -91,7 +92,7 @@ abstract class Packet extends stdClass{
 	protected function getSlot() : Item{
 		$hasItem = $this->getBool();
 		if($hasItem === false){ //Empty
-			return Item::get(Item::AIR, 0, 0);
+			return VanillaItems::AIR();
 		}else{
 
 			$id = $this->getVarInt();
@@ -121,7 +122,7 @@ abstract class Packet extends stdClass{
 		if($item instanceof ItemStackWrapper) {
 			$item = $item->getItemStack();
 		}
-		ConvertUtils::convertItemData(true, $item);
+		//ConvertUtils::convertItemData(true, $item);
 
 		/*$this->putBool(!$item->isNull());
 		if(!$item->isNull()){
@@ -261,11 +262,9 @@ abstract class Packet extends stdClass{
 		$this->decode();
 	}
 
-	public function putUUID(UUID $uuid){
-		$parts = $uuid->getParts();
-
-		$this->putLong(($parts[0] << 32) | $parts[1]);
-		$this->putLong(($parts[1] << 32) | $parts[2]);
+	public function putUUID(UuidInterface $uuid) : void{
+		$bytes = $uuid->getBytes();
+		$this->putLong((substr($bytes, 0, 4) << 32) | substr($bytes, 4, 4));
+		$this->putLong((substr($bytes, 4, 4) << 32) | substr($bytes, 8, 4));
 	}
-
 }

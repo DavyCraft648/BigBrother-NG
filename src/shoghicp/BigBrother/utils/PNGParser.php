@@ -34,14 +34,17 @@ use pocketmine\utils\BinaryStream;
 class PNGParser{
 	const PNGFileSignature = "\x89\x50\x4e\x47\x0d\x0a\x1a\x0a";
 
-	private $stream;
-	private $width = 0, $height = 0;
-	private $isPalette = false, $palette = [];
-	private $bitDepth = 8, $colorType = 6, $isAlpha = true;
-	private $compressionMethod = 0, $filterMethod = 0, $interlaceMethod = 0;
-	private $pixelData = [[[0,0,0,255]]];
-	private $rawImageData = "";
-	private $usedBit = 0, $usedBitNum = 0;
+	private BinaryStream $stream;
+	private int $width = 0, $height = 0;
+	private array $palette = [];
+	private bool $isPalette = false;
+	private int $bitDepth = 8;
+	private bool $isAlpha = true;
+	private int $colorType = 6;
+	private int $compressionMethod = 0, $filterMethod = 0, $interlaceMethod = 0;
+	private array $pixelData = [[[0,0,0,255]]];
+	private string $rawImageData = "";
+	private int $usedBit = 0, $usedBitNum = 0;
 
 	public function __construct($binary = ""){
 		$this->stream = new BinaryStream($binary);
@@ -98,7 +101,7 @@ class PNGParser{
 					$this->readtRNS($length);
 				break;
 				default:
-					$this->stream->offset += $length;
+					$this->stream->setOffset($this->stream->getOffset() + $length);
 				break;
 			}
 

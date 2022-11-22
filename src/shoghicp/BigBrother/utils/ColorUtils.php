@@ -29,13 +29,17 @@ declare(strict_types=1);
 
 namespace shoghicp\BigBrother\utils;
 
-use pocketmine\utils\Color;
+use pocketmine\color\Color;
+use function chr;
+use function file_get_contents;
+use function file_put_contents;
+use function zlib_decode;
+use function zlib_encode;
 
-class ColorUtils extends Color{
+class ColorUtils{
 
 	// TODO this color table is not up-to-date (please update me!!)
-	/** @var array */
-	private static $colorTable = [
+	private static array $colorTable = [
 		0x04 => [0x59, 0x7D, 0x27], // Grass
 		0x05 => [0x6D, 0x99, 0x30], // Grass
 		0x06 => [0x7F, 0xB2, 0x38], // Grass
@@ -178,24 +182,23 @@ class ColorUtils extends Color{
 		0x8F => [0x3B, 0x01, 0x00], // Netherrack, Quartz Ore, Nether Wart, Nether Brick Items
 	];
 
-	/** @var ?string */
-	private static $index = null;
+	private static ?string $index = null;
 
 	/**
 	 * @var string $path
 	 * @internal
 	 */
-	public static function generateColorIndex(string $path){
+	public static function generateColorIndex(string $path) : void{
 		$indexes = "";
 
-		for($r=0; $r<256; ++$r){
-			for($g=0; $g<256; ++$g){
-				for($b=0; $b<256; ++$b){
+		for($r = 0; $r < 256; ++$r){
+			for($g = 0; $g < 256; ++$g){
+				for($b = 0; $b < 256; ++$b){
 					$ind = 0x00;
 					$min = PHP_INT_MAX;
 
 					foreach(self::$colorTable as $index => $rgb){
-						$squared = ($rgb[0]-$r)**2 + ($rgb[1]-$g)**2 + ($rgb[2]-$b)**2;
+						$squared = ($rgb[0] - $r) ** 2 + ($rgb[1] - $g) ** 2 + ($rgb[2] - $b) ** 2;
 						if($squared < $min){
 							$ind = $index;
 							$min = $squared;
@@ -210,10 +213,7 @@ class ColorUtils extends Color{
 		file_put_contents($path, zlib_encode($indexes, ZLIB_ENCODING_DEFLATE, 9));
 	}
 
-	/**
-	 * @var string $path
-	 */
-	public static function loadColorIndex(string $path){
+	public static function loadColorIndex(string $path) : void{
 		self::$index = zlib_decode(file_get_contents($path));
 	}
 
@@ -221,16 +221,17 @@ class ColorUtils extends Color{
 	 * Find nearest color defined in self::$colorTable for each pixel in $colors
 	 *
 	 * @param Color[][] $colors
-	 * @param int $width
-	 * @param int $height
+	 * @param int       $width
+	 * @param int       $height
+	 *
 	 * @return string
 	 */
 	public static function convertColorsToPC(array $colors, int $width, int $height) : string{
 		$ret = "";
 
-		for($y=0; $y<$height; ++$y){
-			for($x=0; $x<$width; ++$x){
-				$ret .= $colors[$y][$x]->a >= 128 ? self::$index[($colors[$y][$x]->r << 16) + ($colors[$y][$x]->g << 8) + $colors[$y][$x]->b] : chr(0x00);
+		for($y = 0; $y < $height; ++$y){
+			for($x = 0; $x < $width; ++$x){
+				$ret .= $colors[$y][$x]->getA() >= 128 ? self::$index[($colors[$y][$x]->getR() << 16) + ($colors[$y][$x]->getG() << 8) + $colors[$y][$x]->getB()] : chr(0x00);
 			}
 		}
 

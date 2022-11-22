@@ -5,32 +5,26 @@ declare(strict_types=1);
 namespace shoghicp\BigBrother\utils;
 
 use pocketmine\block\Block;
-use pocketmine\level\format\Chunk;
-use pocketmine\Player;
 use pocketmine\scheduler\AsyncTask;
-use pocketmine\Server;
-use pocketmine\tile\Spawnable;
+use pocketmine\world\format\Chunk;
 use shoghicp\BigBrother\DesktopPlayer;
 use shoghicp\BigBrother\network\protocol\Play\Server\ChunkDataPacket;
+use function array_search;
+use function chr;
+use function count;
+use function strlen;
+use function strrev;
 
 class AsyncChunkConverter extends AsyncTask{
+	public string $payload;
+	public string $chunk;
+	public int $dimension;
+	public int $bitMap = 0;
+	public string $biomes;
+	public int $chunkX;
+	public int $chunkZ;
 
-	/** @var string */
-	public $payload;
-	/** @var string */
-	public $chunk;
-	/** @var int */
-	public $dimension;
-	/** @var int */
-	public $bitMap = 0;
-	/** @var string */
-	public $biomes;
-	/** @var int */
-	public $chunkX;
-	/** @var int */
-	public $chunkZ;
-
-	public function __construct(DesktopPlayer $player, Chunk $chunk) {
+	public function __construct(DesktopPlayer $player, Chunk $chunk){
 		$this->storeLocal($player);
 		$this->chunkX = $chunk->getX();
 		$this->chunkZ = $chunk->getZ();
@@ -38,7 +32,7 @@ class AsyncChunkConverter extends AsyncTask{
 		$this->dimension = $player->bigBrother_getDimension();
 	}
 
-	public function onRun(){
+	public function onRun() : void{
 		$chunk = Chunk::fastDeserialize($this->chunk);
 
 		$this->biomes = $chunk->getBiomeIdArray();
@@ -103,7 +97,7 @@ class AsyncChunkConverter extends AsyncTask{
 			}
 
 			/* Bits Per Block & Palette Length */
-			$payload .= Binary::writeByte($bitsPerBlock).Binary::writeComputerVarInt(count($palette));
+			$payload .= Binary::writeByte($bitsPerBlock) . Binary::writeComputerVarInt(count($palette));
 
 			/* Palette */
 			foreach($palette as $value){
@@ -127,9 +121,9 @@ class AsyncChunkConverter extends AsyncTask{
 		$this->payload = $payload;
 	}
 
-	public function onCompletion(Server $server){
+	public function onCompletion() : void{
 		$player = $this->fetchLocal();
-		if($player instanceof DesktopPlayer && $player->isConnected()) {
+		if($player instanceof DesktopPlayer && $player->isConnected()){
 			$blockEntities = [];
 			foreach($player->getLevel()->getChunkTiles($this->chunkX, $this->chunkZ) as $tile){
 				if($tile instanceof Spawnable){

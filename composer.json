@@ -41,7 +41,7 @@
     ]
   },
   "require": {
-    "php": ">=7.2.0",
+    "php": ">=8.0.0",
     "ext-pthreads": "*",
     "ext-json": "*",
     "ext-openssl": "*",

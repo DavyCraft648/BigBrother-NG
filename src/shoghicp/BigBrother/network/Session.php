@@ -34,36 +34,34 @@ use shoghicp\BigBrother\BigBrother;
 use shoghicp\BigBrother\network\protocol\Login\LoginDisconnectPacket;
 use shoghicp\BigBrother\network\protocol\Status\PingPacket;
 use shoghicp\BigBrother\utils\Binary;
+use function fread;
+use function fwrite;
+use function json_decode;
+use function json_encode;
+use function stream_socket_get_name;
+use function strlen;
+use function strrpos;
+use function substr;
+use function zlib_decode;
+use function zlib_encode;
 
 class Session{
-	/** @var ServerManager */
-	private $manager;
-	/** @var int */
-	private $identifier;
 	/** @var resource */
 	private $socket;
-	/** @var int */
-	private $status = 0;
-	/** @var string */
-	protected $address;
-	/** @var int */
-	protected $port;
-	/** @var AES */
-	protected $aes;
-	/** @var bool */
-	protected $encryptionEnabled = false;
+	private int $status = 0;
+	protected string $address;
+	protected int $port;
+	protected AES $aes;
+	protected bool $encryptionEnabled = false;
 
-	/** @var ?int */
-	private $threshold = null;
+	private ?int $threshold = null;
 
 	/**
 	 * @param ServerManager $manager
 	 * @param int           $identifier
 	 * @param resource      $socket
 	 */
-	public function __construct(ServerManager $manager, int $identifier, $socket){
-		$this->manager = $manager;
-		$this->identifier = $identifier;
+	public function __construct(private ServerManager $manager, private int $identifier, $socket){
 		$this->socket = $socket;
 		$addr = stream_socket_get_name($this->socket, true);
 		$final = strrpos($addr, ":");
@@ -92,9 +90,10 @@ class Session{
 
 	/**
 	 * @param int $len
+	 *
 	 * @return string data read from socket
 	 */
-	public function read(int $len): string{
+	public function read(int $len) : string{
 		$data = @fread($this->socket, $len);
 		if($data !== false){
 			if($this->encryptionEnabled){
@@ -145,9 +144,7 @@ class Session{
 	 * @param string $data
 	 */
 	public function writeRaw(string $data) : void{
-		if($this->threshold === null){
-			$this->write(Binary::writeComputerVarInt(strlen($data)) . $data);
-		}else{
+		if($this->threshold !== null){
 			$dataLength = strlen($data);
 			if($dataLength >= $this->threshold){
 				$data = zlib_encode($data, ZLIB_ENCODING_DEFLATE, 7);
@@ -156,16 +153,16 @@ class Session{
 			}
 
 			$data = Binary::writeComputerVarInt($dataLength) . $data;
-			$this->write(Binary::writeComputerVarInt(strlen($data)) . $data);
 		}
+		$this->write(Binary::writeComputerVarInt(strlen($data)) . $data);
 	}
 
 	public function process() : void{
 		$length = Binary::readVarIntSession($this);
-		if($length === false or $this->status === -1){
+		if($length === false || $this->status === -1){
 			$this->close("Connection closed");
 			return;
-		}elseif($length <= 0 or $length > 131070){
+		}elseif($length <= 0 || $length > 131070){
 			$this->close("Invalid length");
 			return;
 		}
