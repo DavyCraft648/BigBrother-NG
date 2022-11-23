@@ -31,7 +31,7 @@ namespace shoghicp\BigBrother\network;
 
 use phpseclib\Crypt\AES;
 use shoghicp\BigBrother\BigBrother;
-use shoghicp\BigBrother\network\protocol\Login\LoginDisconnectPacket;
+use shoghicp\BigBrother\network\protocol\Login\ClientboundLoginDisconnectPacket;
 use shoghicp\BigBrother\network\protocol\Status\PingPacket;
 use shoghicp\BigBrother\utils\Binary;
 use function fread;
@@ -239,11 +239,11 @@ class Session{
 				}elseif($nextState === 2){
 					$this->status = -1;
 					if($protocol < ServerManager::PROTOCOL){
-						$packet = new LoginDisconnectPacket();
+						$packet = new ClientboundLoginDisconnectPacket();
 						$packet->reason = json_encode(["translate" => "multiplayer.disconnect.outdated_client", "with" => [["text" => ServerManager::VERSION]]]);
 						$this->writePacket($packet);
 					}elseif($protocol > ServerManager::PROTOCOL){
-						$packet = new LoginDisconnectPacket();
+						$packet = new ClientboundLoginDisconnectPacket();
 						$packet->reason = json_encode(["translate" => "multiplayer.disconnect.outdated_server", "with" => [["text" => ServerManager::VERSION]]]);
 						$this->writePacket($packet);
 					}else{

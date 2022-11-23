@@ -55,17 +55,17 @@ use pocketmine\network\mcpe\protocol\types\inventory\WindowTypes;
 use pocketmine\Server;
 use shoghicp\BigBrother\network\DesktopNetworkSession;
 use shoghicp\BigBrother\network\OutboundPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\ClickWindowPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\CloseWindowPacket as ClientCloseWindowPacket;
-use shoghicp\BigBrother\network\protocol\Play\Client\CreativeInventoryActionPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\CloseWindowPacket as ServerCloseWindowPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\CollectItemPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\EntityEquipmentPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\OpenWindowPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\SetSlotPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\ServerboundContainerClickPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\ServerboundContainerClosePacket as ClientCloseWindowPacket;
+use shoghicp\BigBrother\network\protocol\Play\Client\ServerboundSetCreativeModeSlotPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundContainerClosePacket as ServerCloseWindowPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundTakeItemEntityPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundSetEquipmentPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundOpenScreenPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundContainerSetSlotPacket;
 use shoghicp\BigBrother\network\protocol\Play\Server\WindowConfirmationPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\WindowItemsPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\WindowPropertyPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundContainerSetContentPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundContainerSetDataPacket;
 use function array_fill;
 use function bin2hex;
 use function ceil;
@@ -213,7 +213,7 @@ class InventoryUtils{
 	private function dropCraftingItem(array &$craftingItem) : void{
 		foreach($craftingItem as $slot => $item){
 			if(!$item->isNull()){
-				$pk = new SetSlotPacket();
+				$pk = new ClientboundContainerSetSlotPacket();
 				$pk->windowId = count($craftingItem) === 9 ? 127 : 0;
 				$pk->slotData = VanillaItems::AIR();
 				$pk->slot = $slot;
@@ -229,7 +229,7 @@ class InventoryUtils{
 	}
 
 	public function sendHeldItem(){//send cursor item
-		$pk = new SetSlotPacket();
+		$pk = new ClientboundContainerSetSlotPacket();
 		$pk->windowId = -1;
 		$pk->slotData = $this->playerHeldItem;
 		$pk->slot = -1;
@@ -292,7 +292,7 @@ class InventoryUtils{
 			$saveSlots = 3;
 		}
 
-		$pk = new OpenWindowPacket();
+		$pk = new ClientboundOpenScreenPacket();
 		$pk->windowId = $packet->windowId;
 		$pk->inventoryType = $type;//
 		$pk->windowTitle = json_encode(["translate" => "container.".$title]);
@@ -342,7 +342,7 @@ class InventoryUtils{
 	 * @return OutboundPacket|null
 	 */
 	public function onWindowSetSlot(InventorySlotPacket $packet) : ?OutboundPacket{
-		$pk = new SetSlotPacket();
+		$pk = new ClientboundContainerSetSlotPacket();
 		$pk->windowId = $packet->windowId;
 
 		switch($packet->windowId){
@@ -405,26 +405,26 @@ class InventoryUtils{
 			case WindowTypes::FURNACE:
 				switch($packet->property){
 					case ContainerSetDataPacket::PROPERTY_FURNACE_TICK_COUNT://Smelting
-						$pk = new WindowPropertyPacket();
+						$pk = new ClientboundContainerSetDataPacket();
 						$pk->windowId = $packet->windowId;
 						$pk->property = 3;
 						$pk->value = 200;//TODO: changed?
 						$packets[] = $pk;
 
-						$pk = new WindowPropertyPacket();
+						$pk = new ClientboundContainerSetDataPacket();
 						$pk->windowId = $packet->windowId;
 						$pk->property = 2;
 						$pk->value = $packet->value;
 						$packets[] = $pk;
 						break;
 					case ContainerSetDataPacket::PROPERTY_FURNACE_LIT_TIME://Fire icon
-						$pk = new WindowPropertyPacket();
+						$pk = new ClientboundContainerSetDataPacket();
 						$pk->windowId = $packet->windowId;
 						$pk->property = 1;
 						$pk->value = 200;//TODO: changed?
 						$packets[] = $pk;
 
-						$pk = new WindowPropertyPacket();
+						$pk = new ClientboundContainerSetDataPacket();
 						$pk->windowId = $packet->windowId;
 						$pk->property = 0;
 						$pk->value = $packet->value;
@@ -452,7 +452,7 @@ class InventoryUtils{
 
 		switch($packet->windowId){
 			case ContainerIds::INVENTORY:
-				$pk = new WindowItemsPacket();
+				$pk = new ClientboundContainerSetContentPacket();
 				$pk->windowId = $packet->windowId;
 
 				for($i = 0; $i < 5; ++$i){
@@ -487,7 +487,7 @@ class InventoryUtils{
 				break;
 			case ContainerIds::ARMOR:
 				foreach($packet->items as $slot => $item){
-					$pk = new SetSlotPacket();
+					$pk = new ClientboundContainerSetSlotPacket();
 					$pk->windowId = ContainerIds::INVENTORY;
 					$pk->slotData = $item->getItemStack();
 					$pk->slot = $slot + 5;
@@ -510,7 +510,7 @@ class InventoryUtils{
 						$items[] = $item->getItemStack();
 					}
 
-					$pk = new WindowItemsPacket();
+					$pk = new ClientboundContainerSetContentPacket();
 					$pk->windowId = $packet->windowId;
 					$pk->slotData = $items;
 
@@ -532,10 +532,11 @@ class InventoryUtils{
 	}
 
 	/**
-	 * @param ClickWindowPacket $packet
+	 * @param ServerboundContainerClickPacket $packet
+	 *
 	 * @return InventoryTransactionPacket|null
 	 */
-	public function onWindowClick(ClickWindowPacket $packet) : ?InventoryTransactionPacket{
+	public function onWindowClick(ServerboundContainerClickPacket $packet) : ?InventoryTransactionPacket{
 		$item = clone $packet->clickedItem;
 		$heldItem = clone $this->playerHeldItem;
 		$accepted = false;
@@ -881,7 +882,7 @@ class InventoryUtils{
 		return null;
 	}
 
-	public function onCreativeInventoryAction(CreativeInventoryActionPacket $packet) : ?DataPacket{
+	public function onCreativeInventoryAction(ServerboundSetCreativeModeSlotPacket $packet) : ?DataPacket{
 		$trace = debug_backtrace();
 		foreach($trace as $line) {
 			error_log("{$line["file"]}: line {$line["line"]}");
@@ -922,7 +923,7 @@ class InventoryUtils{
 
 				$action = $this->addNetworkInventoryAction(NetworkInventoryAction::SOURCE_CONTAINER, ContainerIds::ARMOR, $inventorySlot, $oldItem, $newItem);
 			}elseif($packet->slot === 45){//Offhand
-				$pk = new SetSlotPacket();
+				$pk = new ClientboundContainerSetSlotPacket();
 				$pk->windowId = 0;
 				$pk->slotData = VanillaItems::AIR();
 				$pk->slot = 45;//offhand slot
@@ -990,7 +991,7 @@ class InventoryUtils{
 			$itemCount = $entity->getItem()->getCount();
 		}
 
-		$pk = new CollectItemPacket();
+		$pk = new ClientboundTakeItemEntityPacket();
 		$pk->collectorEntityId = $packet->eid;
 		$pk->collectedEntityId = $packet->target;
 		$pk->pickUpItemCount = $itemCount;
@@ -1005,28 +1006,28 @@ class InventoryUtils{
 	public function onMobArmorEquipment(MobArmorEquipmentPacket $packet) : array{
 		$packets = [];
 
-		$pk = new EntityEquipmentPacket();
+		$pk = new ClientboundSetEquipmentPacket();
 		$pk->entityId = $packet->entityRuntimeId;
 		$pk->slot = 5;
 		$pk->item = $packet->head->getItemStack();
 		$packets[] = $pk;
 		$this->playerArmorSlot[0] = $pk->item;
 
-		$pk = new EntityEquipmentPacket();
+		$pk = new ClientboundSetEquipmentPacket();
 		$pk->entityId = $packet->entityRuntimeId;
 		$pk->slot = 4;
 		$pk->item = $packet->chest->getItemStack();
 		$packets[] = $pk;
 		$this->playerArmorSlot[1] = $pk->item;
 
-		$pk = new EntityEquipmentPacket();
+		$pk = new ClientboundSetEquipmentPacket();
 		$pk->entityId = $packet->entityRuntimeId;
 		$pk->slot = 3;
 		$pk->item = $packet->legs->getItemStack();
 		$packets[] = $pk;
 		$this->playerArmorSlot[2] = $pk->item;
 
-		$pk = new EntityEquipmentPacket();
+		$pk = new ClientboundSetEquipmentPacket();
 		$pk->entityId = $packet->entityRuntimeId;
 		$pk->slot = 2;
 		$pk->item = $packet->feet->getItemStack();
@@ -1099,7 +1100,7 @@ class InventoryUtils{
 		}
 		$saveInventoryData[0] = $resultItem;
 
-		$pk = new SetSlotPacket();
+		$pk = new ClientboundContainerSetSlotPacket();
 		$pk->windowId = $windowId;
 		$pk->slotData = $resultItem;
 		$pk->slot = 0;//result slot

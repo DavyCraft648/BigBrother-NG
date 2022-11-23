@@ -31,21 +31,21 @@ use Ramsey\Uuid\Uuid;
 use shoghicp\BigBrother\BigBrother;
 use shoghicp\BigBrother\DesktopChunk;
 use shoghicp\BigBrother\entity\ItemFrameBlockEntity;
-use shoghicp\BigBrother\network\protocol\Login\EncryptionRequestPacket;
-use shoghicp\BigBrother\network\protocol\Login\EncryptionResponsePacket;
-use shoghicp\BigBrother\network\protocol\Login\LoginSuccessPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\ChangeGameStatePacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\ChatMessagePacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\ChunkDataPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\PlayerAbilitiesPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\PlayerPositionAndLookPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\ServerDifficultyPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\SpawnPositionPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\TimeUpdatePacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\UnloadChunkPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\UpdateLightPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\UpdateViewDistancePacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\UpdateViewPositionPacket;
+use shoghicp\BigBrother\network\protocol\Login\ClientboundHelloPacket;
+use shoghicp\BigBrother\network\protocol\Login\ServerboundKeyPacket;
+use shoghicp\BigBrother\network\protocol\Login\ClientboundGameProfilePacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundGameEventPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundChatPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundLevelChunkPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundPlayerAbilitiesPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundPlayerPositionPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundChangeDifficultyPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundSetDefaultSpawnPositionPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundSetTimePacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundForgetLevelChunkPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundLightUpdatePacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundSetChunkCacheRadiusPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundSetChunkCacheCenterPacket;
 use shoghicp\BigBrother\utils\Binary;
 use shoghicp\BigBrother\utils\InventoryUtils;
 use shoghicp\BigBrother\utils\RecipeUtils;
@@ -144,7 +144,7 @@ class DesktopNetworkSession extends NetworkSession{
 	}
 
 	public function stopUsingChunk(int $chunkX, int $chunkZ) : void{
-		$pk = new UnloadChunkPacket();
+		$pk = new ClientboundForgetLevelChunkPacket();
 		$pk->chunkX = $chunkX;
 		$pk->chunkZ = $chunkZ;
 		$this->putRawPacket($pk);
@@ -175,7 +175,7 @@ class DesktopNetworkSession extends NetworkSession{
 	}
 
 	public function respawn() : void{
-		$pk = new PlayerPositionAndLookPacket();
+		$pk = new ClientboundPlayerPositionPacket();
 		$pk->x = $this->getPlayer()->getPosition()->getX();
 		$pk->y = $this->getPlayer()->getPosition()->getY();
 		$pk->z = $this->getPlayer()->getPosition()->getZ();
@@ -208,7 +208,7 @@ class DesktopNetworkSession extends NetworkSession{
 
 	public function notifyTerrainReady() : void{
 		$this->getLogger()->debug("forcing spawn");
-		$pk = new PlayerPositionAndLookPacket();
+		$pk = new ClientboundPlayerPositionPacket();
 		$pos = $this->getPlayer()->getLocation();
 		$pk->x = $pos->x;
 		$pk->y = $pos->y;
@@ -223,24 +223,24 @@ class DesktopNetworkSession extends NetworkSession{
 	}
 
 	public function syncViewAreaRadius(int $distance) : void{
-		$pk = new UpdateViewDistancePacket();
+		$pk = new ClientboundSetChunkCacheRadiusPacket();
 		$pk->viewDistance = $distance * 2;
 		$this->putRawPacket($pk);
 	}
 
 	public function syncViewAreaCenterPoint(Vector3 $newPos, int $viewDistance) : void{
-		$pk = new UpdateViewPositionPacket();
+		$pk = new ClientboundSetChunkCacheCenterPacket();
 		$pk->chunkX = $newPos->getX() >> 4;
 		$pk->chunkZ = $newPos->getZ() >> 4;
 		$this->putRawPacket($pk);
 
-		$pk = new UpdateViewDistancePacket();
+		$pk = new ClientboundSetChunkCacheRadiusPacket();
 		$pk->viewDistance = $viewDistance * 2;
 		$this->putRawPacket($pk);
 	}
 
 	public function syncPlayerSpawnPoint(Position $newSpawn) : void{
-		$pk = new SpawnPositionPacket();
+		$pk = new ClientboundSetDefaultSpawnPositionPacket();
 		$pk->x = $newSpawn->x;
 		$pk->y = $newSpawn->y;
 		$pk->z = $newSpawn->z;
@@ -248,7 +248,7 @@ class DesktopNetworkSession extends NetworkSession{
 	}
 
 	public function syncGameMode(GameMode $mode, bool $isRollback = false) : void{
-		$pk = new ChangeGameStatePacket();
+		$pk = new ClientboundGameEventPacket();
 		$pk->reason = 3;
 		$pk->value = match($mode->getEnglishName()){
 			GameMode::SURVIVAL()->getEnglishName() => 0,
@@ -263,7 +263,7 @@ class DesktopNetworkSession extends NetworkSession{
 	}
 
 	public function syncAbilities(Player $for) : void{
-		$pk = new PlayerAbilitiesPacket();
+		$pk = new ClientboundPlayerAbilitiesPacket();
 		$pk->flyingSpeed = 0.05;
 		$pk->viewModifierField = 0.1;
 		$pk->canFly = $for->getAllowFlight();
@@ -312,7 +312,7 @@ class DesktopNetworkSession extends NetworkSession{
 	}*/
 
 	public function onRawChatMessage(string $message, bool $system = false) : void{
-		$pk = new ChatMessagePacket();
+		$pk = new ClientboundChatPacket();
 		$pk->message = BigBrother::toJSON($message);
 		$pk->position = $system ? 1 : 0;
 		$pk->sender = str_repeat("\x00", 16);
@@ -320,7 +320,7 @@ class DesktopNetworkSession extends NetworkSession{
 	}
 
 	public function onTranslatedChatMessage(string $key, array $parameters) : void{
-		$pk = new ChatMessagePacket();
+		$pk = new ClientboundChatPacket();
 		$pk->message = BigBrother::toJSON($key, TextPacket::TYPE_TRANSLATION, $parameters);
 		$pk->position = 0;
 		$pk->sender = str_repeat("\x00", 16);
@@ -332,7 +332,7 @@ class DesktopNetworkSession extends NetworkSession{
 	}
 
 	public function onPopup(string $message) : void{
-		$pk = new ChatMessagePacket();
+		$pk = new ClientboundChatPacket();
 		$pk->message = BigBrother::toJSON($message, TextPacket::TYPE_POPUP, []);
 		$pk->position = 2;
 		$pk->sender = str_repeat("\x00", 16);
@@ -351,7 +351,7 @@ class DesktopNetworkSession extends NetworkSession{
 			}
 		}
 		$chunk = new DesktopChunk($this, $chunkX, $chunkZ);
-		$pk = new UpdateLightPacket();
+		$pk = new ClientboundLightUpdatePacket();
 		$pk->chunkX = $chunkX;
 		$pk->chunkZ = $chunkZ;
 		$pk->skyLightMask = $chunk->getSkyLightBitMask();
@@ -362,7 +362,7 @@ class DesktopNetworkSession extends NetworkSession{
 		$pk->blockLight = $chunk->getBlockLight();
 		$this->putRawPacket($pk);
 
-		$pk = new ChunkDataPacket();
+		$pk = new ClientboundLevelChunkPacket();
 		$pk->chunkX = $chunkX;
 		$pk->chunkZ = $chunkZ;
 		$pk->isFullChunk = $chunk->isFullChunk();
@@ -381,14 +381,14 @@ class DesktopNetworkSession extends NetworkSession{
 	}
 
 	public function syncWorldTime(int $worldTime) : void{
-		$pk = new TimeUpdatePacket();
+		$pk = new ClientboundSetTimePacket();
 		$pk->worldAge = $worldTime;
 		$pk->dayTime = $worldTime;
 		$this->putRawPacket($pk);
 	}
 
 	public function syncWorldDifficulty(int $worldDifficulty) : void{
-		$pk = new ServerDifficultyPacket();
+		$pk = new ClientboundChangeDifficultyPacket();
 		$pk->difficulty = $worldDifficulty;
 		$this->putRawPacket($pk);
 	}
@@ -397,7 +397,7 @@ class DesktopNetworkSession extends NetworkSession{
 		return $this->bigBrother_properties;
 	}
 
-	public function bigBrother_processAuthentication(EncryptionResponsePacket $packet) : void{
+	public function bigBrother_processAuthentication(ServerboundKeyPacket $packet) : void{
 		$this->secret = $this->plugin->decryptBinary($packet->sharedSecret);//todo
 		$token = $this->plugin->decryptBinary($packet->verifyToken);//todo
 		$this->plugin->getInterface()->enableEncryption($this, $this->secret);
@@ -453,7 +453,7 @@ class DesktopNetworkSession extends NetworkSession{
 
 			$this->plugin->getInterface()->setCompression($this);
 
-			$pk = new LoginSuccessPacket();
+			$pk = new ClientboundGameProfilePacket();
 
 			$pk->uuid = $this->formattedUUID;
 			$pk->name = $this->username;
@@ -557,7 +557,7 @@ class DesktopNetworkSession extends NetworkSession{
 		if($this->status === 0){
 			$this->username = $username;
 			if($onlineMode){
-				$pk = new EncryptionRequestPacket();
+				$pk = new ClientboundHelloPacket();
 				$pk->serverID = "";
 				$pk->publicKey = $this->plugin->getASN1PublicKey();
 				$pk->verifyToken = $this->checkToken = str_repeat("\x00", 4);

@@ -48,8 +48,8 @@ use pocketmine\utils\TextFormat;
 use pocketmine\utils\Utils;
 use Ramsey\Uuid\Uuid;
 use shoghicp\BigBrother\network\DesktopNetworkSession;
-use shoghicp\BigBrother\network\protocol\Play\Server\KeepAlivePacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\OpenSignEditorPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundKeepAlivePacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundOpenSignEditorPacket;
 use shoghicp\BigBrother\network\ProtocolInterface;
 use shoghicp\BigBrother\network\ServerManager;
 use shoghicp\BigBrother\network\Translator;
@@ -300,7 +300,7 @@ class BigBrother extends PluginBase implements Listener{
 		if($player instanceof DesktopPlayer){
 			$block = $event->getBlock();
 			if($block instanceof BaseSign){
-				$pk = new OpenSignEditorPacket();
+				$pk = new ClientboundOpenSignEditorPacket();
 				$pos = $block->getPosition();
 				$pk->x = $pos->x;
 				$pk->y = $pos->y;
@@ -615,7 +615,7 @@ class BigBrother extends PluginBase implements Listener{
 
 		$session->getPlayer()->setViewDistance(4);
 
-		$pk = new KeepAlivePacket();
+		$pk = new ClientboundKeepAlivePacket();
 		$pk->keepAliveId = mt_rand();
 		$session->putRawPacket($pk);
 

@@ -38,8 +38,8 @@ use pocketmine\world\World;
 use Ramsey\Uuid\Uuid;
 use shoghicp\BigBrother\network\DesktopNetworkSession;
 use shoghicp\BigBrother\network\protocol\Play\Server\DestroyEntitiesPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\SpawnEntityPacket;
-use shoghicp\BigBrother\network\protocol\Play\Server\EntityMetadataPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundAddEntityPacket;
+use shoghicp\BigBrother\network\protocol\Play\Server\ClientboundSetEntityDataPacket;
 use shoghicp\BigBrother\utils\ConvertUtils;
 use shoghicp\BigBrother\DesktopPlayer;
 use function array_diff;
@@ -97,10 +97,10 @@ class ItemFrameBlockEntity extends Position{
 	}
 
 	public function spawnTo(DesktopNetworkSession $player){
-		$pk = new SpawnEntityPacket();
+		$pk = new ClientboundAddEntityPacket();
 		$pk->entityId = $this->eid;
 		$pk->uuid = $this->uuid;
-		$pk->type = SpawnEntityPacket::ITEM_FRAMES;
+		$pk->type = ClientboundAddEntityPacket::ITEM_FRAMES;
 		$pk->x = $this->x;
 		$pk->y = $this->y;
 		$pk->z = $this->z;
@@ -113,7 +113,7 @@ class ItemFrameBlockEntity extends Position{
 		$pk->velocityZ = 0;
 		$player->putRawPacket($pk);
 
-		$pk = new EntityMetadataPacket();
+		$pk = new ClientboundSetEntityDataPacket();
 		$pk->entityId = $this->eid;
 		$pk->metadata = ["convert" => true];
 
